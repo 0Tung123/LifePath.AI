@@ -10,8 +10,12 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findOne(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
+  async create(user: User): Promise<User> {
+    return this.usersRepository.save(user);
+  }
+
+  async findOne(email: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { email } });
   }
 
   async update(userId: number, updatedUser: any): Promise<any> {

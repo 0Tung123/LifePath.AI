@@ -8,6 +8,8 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { Repository } from 'typeorm';
 import { MailService } from 'src/mail/mail.service';
 import * as bcrypt from 'bcrypt';
+import { RegisterDto } from './dto/register.dto';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -20,9 +22,26 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async validateUser(username: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne(username);
-    if (user && user.password === pass) {
+  async register(registerDto: RegisterDto): Promise<any> {
+    const { email, password, firstName, lastName } = registerDto;
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newUser = new User();
+    newUser.email = email;
+    newUser.password = hashedPassword;
+    newUser.firstName = firstName;
+    newUser.lastName = lastName;
+
+    await this.usersService.create(newUser);
+
+    return { message: 'User registered successfully' };
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.usersService.findOne(email);
+    if (user && await bcrypt.compare(pass, user.password)) {
       const { password, ...result } = user;
       return result;
     }
@@ -30,7 +49,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.username, sub: user.userId };
+    const payload = { email: user.email, sub: user.id };
     return {
       access_token: await this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_SECRET'),
@@ -82,7 +101,7 @@ export class AuthService {
     }
 
     user.password = hashedPassword;
-    await this.usersService.update(user.userId, user);
+    await this.usersService.update(parseInt(user.id), user);
 
     await this.passwordResetTokenRepository.remove(passwordResetToken);
 
