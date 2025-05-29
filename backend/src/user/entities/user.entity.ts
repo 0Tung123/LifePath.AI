@@ -33,28 +33,65 @@ export class User {
   @Column({ default: false })
   isActive: boolean; // Có thể dùng để xác thực email sau này
 
-  @ApiProperty({ example: 'reset_token', description: 'Reset password token', nullable: true })
+  @ApiProperty({
+    example: 'reset_token',
+    description: 'Reset password token',
+    nullable: true,
+  })
   @Column({ nullable: true, type: 'varchar', length: 255 })
   resetPasswordToken?: string | null;
 
-  @ApiProperty({ example: '2025-05-30T00:00:00.000Z', description: 'Reset password expires', nullable: true })
+  @ApiProperty({
+    example: '2025-05-30T00:00:00.000Z',
+    description: 'Reset password expires',
+    nullable: true,
+  })
   @Column({ nullable: true, type: 'timestamp' })
   resetPasswordExpires?: Date | null;
-  
-  @ApiProperty({ example: 'email_verification_token', description: 'Email verification token', nullable: true })
+
+  @ApiProperty({
+    example: 'email_verification_token',
+    description: 'Email verification token',
+    nullable: true,
+  })
   @Column({ nullable: true, type: 'varchar', length: 255 })
   emailVerificationToken?: string | null;
 
-  @ApiProperty({ example: '2025-05-30T00:00:00.000Z', description: 'Email verification expires', nullable: true })
+  @ApiProperty({
+    example: '2025-05-30T00:00:00.000Z',
+    description: 'Email verification expires',
+    nullable: true,
+  })
   @Column({ nullable: true, type: 'timestamp' })
   emailVerificationExpires?: Date | null;
 
-
-  @ApiProperty({ example: '2025-05-29T12:00:00.000Z', description: 'Created at' })
+  @ApiProperty({
+    example: '2025-05-29T12:00:00.000Z',
+    description: 'Created at',
+  })
   @CreateDateColumn()
   createdAt: Date;
 
-  @ApiProperty({ example: '2025-05-29T12:00:00.000Z', description: 'Updated at' })
+  @ApiProperty({
+    example: '2025-05-29T12:00:00.000Z',
+    description: 'Updated at',
+  })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ApiProperty({
+    example: 'google_id',
+    description: 'Google ID',
+    nullable: true,
+  })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  googleId?: string | null;
+
+  @ApiProperty({
+    example: 'https://example.com/profile.jpg',
+    description: 'Profile picture URL',
+    nullable: true,
+  })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  profilePicture?: string | null;
 }

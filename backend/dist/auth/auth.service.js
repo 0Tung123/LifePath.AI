@@ -56,6 +56,7 @@ const password_reset_token_entity_1 = require("./entities/password-reset-token.e
 const typeorm_2 = require("typeorm");
 const mail_service_1 = require("../mail/mail.service");
 const bcrypt = __importStar(require("bcrypt"));
+const user_entity_1 = require("../user/entities/user.entity");
 let AuthService = class AuthService {
     constructor(usersService, jwtService, configService, passwordResetTokenRepository, mailService) {
         this.usersService = usersService;
@@ -64,16 +65,56 @@ let AuthService = class AuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.mailService = mailService;
     }
-    async validateUser(username, pass) {
-        const user = await this.usersService.findOne(username);
-        if (user && user.password === pass) {
-            const { password, ...result } = user;
-            return result;
+    async register(registerDto) {
+        const { email, password, firstName, lastName } = registerDto;
+        const existingUser = await this.usersService.findOne(email);
+        if (existingUser) {
+            return {
+                message: 'User with this email already exists',
+                statusCode: 400,
+            };
         }
-        return null;
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const emailVerificationToken = (0, uuid_1.v4)();
+        const expiresIn = 24;
+        const emailVerificationExpires = new Date();
+        emailVerificationExpires.setHours(emailVerificationExpires.getHours() + expiresIn);
+        const newUser = new user_entity_1.User();
+        newUser.email = email;
+        newUser.password = hashedPassword;
+        newUser.firstName = firstName;
+        newUser.lastName = lastName;
+        newUser.isActive = false;
+        newUser.emailVerificationToken = emailVerificationToken;
+        newUser.emailVerificationExpires = emailVerificationExpires;
+        const user = await this.usersService.create(newUser);
+        const verificationLink = `${this.configService.get('FRONTEND_URL')}/verify-email?token=${emailVerificationToken}`;
+        await this.mailService.sendVerificationEmail(user.email, user.firstName ?? '', verificationLink);
+        return {
+            message: 'Registration successful. Please check your email to verify your account.',
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+            },
+        };
+    }
+    async validateUser(email, pass) {
+        const user = await this.usersService.findOne(email);
+        if (!user) {
+            return null;
+        }
+        const isPasswordValid = await bcrypt.compare(pass, user.password);
+        if (!isPasswordValid) {
+            return null;
+        }
+        const { password, ...result } = user;
+        return result;
     }
     async login(user) {
-        const payload = { username: user.username, sub: user.userId };
+        const payload = { email: user.email, sub: user.id };
         return {
             access_token: await this.jwtService.signAsync(payload, {
                 secret: this.configService.get('JWT_SECRET'),
@@ -93,24 +134,87 @@ let AuthService = class AuthService {
             token: resetToken,
         });
         await this.passwordResetTokenRepository.save(passwordResetToken);
-        await this.mailService.sendEmail(email, 'Password Reset Request', `Please click the following link to reset your password: ${resetLink}`);
+        await this.mailService.sendPasswordResetEmail(email, resetLink);
         return { message: `Password reset link sent to ${email}` };
     }
     async resetPassword(token, password) {
-        const passwordResetToken = await this.passwordResetTokenRepository.findOne({ where: { token } });
+        const passwordResetToken = await this.passwordResetTokenRepository.findOne({
+            where: { token },
+        });
         if (!passwordResetToken) {
-            return { message: 'Invalid reset token' };
+            return { message: 'Invalid reset token', statusCode: 400 };
         }
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const user = await this.usersService.findOne(passwordResetToken.email);
         if (!user) {
-            return { message: 'User not found' };
+            return { message: 'User not found', statusCode: 404 };
         }
         user.password = hashedPassword;
-        await this.usersService.update(user.userId, user);
+        await this.usersService.update(user.id, user);
         await this.passwordResetTokenRepository.remove(passwordResetToken);
         return { message: 'Password reset successfully' };
+    }
+    async verifyEmail(token) {
+        const user = await this.usersService.findByVerificationToken(token);
+        if (!user) {
+            return { message: 'Invalid verification token', statusCode: 400 };
+        }
+        if (user.emailVerificationExpires &&
+            user.emailVerificationExpires < new Date()) {
+            return { message: 'Verification token has expired', statusCode: 400 };
+        }
+        user.isActive = true;
+        user.emailVerificationToken = null;
+        user.emailVerificationExpires = null;
+        await this.usersService.update(user.id, user);
+        await this.mailService.sendWelcomeEmail(user.email, user.firstName ?? '');
+        return { message: 'Email verified successfully' };
+    }
+    async resendVerificationEmail(email) {
+        const user = await this.usersService.findOne(email);
+        if (!user) {
+            return { message: 'User not found', statusCode: 404 };
+        }
+        if (user.isActive) {
+            return { message: 'Email is already verified', statusCode: 400 };
+        }
+        const emailVerificationToken = (0, uuid_1.v4)();
+        const expiresIn = 24;
+        const emailVerificationExpires = new Date();
+        emailVerificationExpires.setHours(emailVerificationExpires.getHours() + expiresIn);
+        user.emailVerificationToken = emailVerificationToken;
+        user.emailVerificationExpires = emailVerificationExpires;
+        await this.usersService.update(user.id, user);
+        const verificationLink = `${this.configService.get('FRONTEND_URL')}/verify-email?token=${emailVerificationToken}`;
+        await this.mailService.sendVerificationEmail(user.email, user.firstName ?? '', verificationLink);
+        return { message: 'Verification email sent successfully' };
+    }
+    async validateOrCreateGoogleUser(googleUser) {
+        let user = await this.usersService.findOne(googleUser.email);
+        if (!user) {
+            const newUser = new user_entity_1.User();
+            newUser.email = googleUser.email;
+            newUser.firstName = googleUser.firstName;
+            newUser.lastName = googleUser.lastName;
+            newUser.isActive = true;
+            newUser.googleId = googleUser.accessToken;
+            newUser.profilePicture = googleUser.picture;
+            const randomPassword = Math.random().toString(36).slice(-8);
+            const saltRounds = 10;
+            newUser.password = await bcrypt.hash(randomPassword, saltRounds);
+            user = await this.usersService.create(newUser);
+            await this.mailService.sendWelcomeEmail(user.email, user.firstName ?? '');
+        }
+        else {
+            user.googleId = googleUser.accessToken;
+            user.isActive = true;
+            if (!user.profilePicture) {
+                user.profilePicture = googleUser.picture;
+            }
+            await this.usersService.update(user.id, user);
+        }
+        return this.login(user);
     }
 };
 exports.AuthService = AuthService;

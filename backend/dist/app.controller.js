@@ -21,6 +21,9 @@ let AppController = class AppController {
     getHello() {
         return this.appService.getHello();
     }
+    getHelloWorld() {
+        return { message: 'Hello, world!' };
+    }
 };
 exports.AppController = AppController;
 __decorate([
@@ -32,6 +35,14 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Object)
 ], AppController.prototype, "getHello", null);
+__decorate([
+    (0, common_1.Get)('hello'),
+    (0, swagger_1.ApiOperation)({ summary: 'Returns hello world' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Returns hello world' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Object)
+], AppController.prototype, "getHelloWorld", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [app_service_1.AppService])

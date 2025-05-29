@@ -5,4 +5,7 @@ export declare class AppController {
     getHello(): {
         message: string;
     };
+    getHelloWorld(): {
+        message: string;
+    };
 }

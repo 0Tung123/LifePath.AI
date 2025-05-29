@@ -14,4 +14,11 @@ export class AppController {
   getHello(): { message: string } {
     return this.appService.getHello();
   }
+
+  @Get('hello')
+  @ApiOperation({ summary: 'Returns hello world' })
+  @ApiResponse({ status: 200, description: 'Returns hello world' })
+  getHelloWorld(): { message: string } {
+    return { message: 'Hello, world!' };
+  }
 }

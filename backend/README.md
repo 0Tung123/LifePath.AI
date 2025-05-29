@@ -24,9 +24,25 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+A full-stack application with a complete authentication system built with [Nest](https://github.com/nestjs/nest) framework.
+
+## Features
+
+- User registration with email verification
+- Login with JWT authentication
+- Password reset functionality
+- Email notifications with HTML templates
+- Swagger API documentation
 
 ## Project setup
+
+1. Copy the `.env.example` file to `.env` and update the values:
+
+```bash
+$ cp .env.example .env
+```
+
+2. Install dependencies:
 
 ```bash
 $ npm install
@@ -71,18 +87,53 @@ $ mau deploy
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## Resources
+## API Documentation
 
-Check out a few resources that may come in handy when working with NestJS:
+The API documentation is available at `/api` when the server is running. You can use Swagger UI to test all the endpoints.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Authentication Endpoints
+
+#### Register
+
+- **POST** `/auth/register`
+- Creates a new user account
+- Sends a verification email to the user
+
+#### Verify Email
+
+- **GET** `/auth/verify-email?token=<verification_token>`
+- Verifies the user's email address
+- Activates the user account
+
+#### Resend Verification Email
+
+- **POST** `/auth/resend-verification`
+- Resends the verification email to the user
+
+#### Login
+
+- **POST** `/auth/login`
+- Authenticates the user and returns a JWT token
+- Requires a verified email address
+
+#### Forgot Password
+
+- **POST** `/auth/forgot-password`
+- Sends a password reset link to the user's email
+
+#### Reset Password
+
+- **POST** `/auth/reset-password`
+- Resets the user's password using the reset token
+
+## Environment Variables
+
+- `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`: Database connection details
+- `JWT_SECRET`, `JWT_EXPIRES_IN`: JWT configuration
+- `MAIL_HOST`, `MAIL_PORT`, `MAIL_SECURE`, `MAIL_USER`, `MAIL_PASSWORD`: SMTP server configuration
+- `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`: Email sender details
+- `FRONTEND_URL`: URL of the frontend application (for email links)
+- `PORT`: Backend server port
 
 ## Support
 

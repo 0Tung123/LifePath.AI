@@ -14,15 +14,23 @@ const passport_local_1 = require("passport-local");
 const passport_1 = require("@nestjs/passport");
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("../auth.service");
-let LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy) {
+let LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)(passport_local_1.Strategy, 'local') {
     constructor(authService) {
-        super();
+        super({
+            usernameField: 'email',
+        });
         this.authService = authService;
     }
-    async validate(username, password) {
-        const user = await this.authService.validateUser(username, password);
+    async validate(email, password) {
+        const user = await this.authService.validateUser(email, password);
         if (!user) {
-            throw new common_1.UnauthorizedException();
+            throw new common_1.UnauthorizedException('Invalid email or password');
+        }
+        if (!user.isActive) {
+            throw new common_1.UnauthorizedException('Please verify your email before logging in');
+        }
+        if (!user.isActive) {
+            throw new common_1.UnauthorizedException('Please verify your email before logging in');
         }
         return user;
     }

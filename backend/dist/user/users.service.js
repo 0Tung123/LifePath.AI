@@ -21,12 +21,59 @@ let UsersService = class UsersService {
     constructor(usersRepository) {
         this.usersRepository = usersRepository;
     }
-    async findOne(username) {
-        return this.usersRepository.findOne({ where: { username } });
+    async create(user) {
+        return this.usersRepository.save(user);
+    }
+    async findOne(email) {
+        return this.usersRepository.findOne({
+            where: { email },
+            select: [
+                'id',
+                'email',
+                'password',
+                'firstName',
+                'lastName',
+                'isActive',
+                'emailVerificationToken',
+                'emailVerificationExpires',
+                'resetPasswordToken',
+                'resetPasswordExpires',
+            ],
+        });
+    }
+    async findById(id) {
+        return this.usersRepository.findOne({ where: { id } });
+    }
+    async findByVerificationToken(token) {
+        return this.usersRepository.findOne({
+            where: { emailVerificationToken: token },
+            select: [
+                'id',
+                'email',
+                'firstName',
+                'lastName',
+                'isActive',
+                'emailVerificationToken',
+                'emailVerificationExpires',
+            ],
+        });
     }
     async update(userId, updatedUser) {
         await this.usersRepository.update(userId, updatedUser);
         return { message: `User with id ${userId} updated successfully` };
+    }
+    async findAll() {
+        return this.usersRepository.find({
+            select: [
+                'id',
+                'email',
+                'firstName',
+                'lastName',
+                'isActive',
+                'createdAt',
+                'updatedAt',
+            ],
+        });
     }
 };
 exports.UsersService = UsersService;
