@@ -6,8 +6,13 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { UsersModule } from './user/users.module';
+import { GameModule } from './game/game.module';
 import { User } from './user/entities/user.entity';
 import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
+import { Character } from './game/entities/character.entity';
+import { GameSession } from './game/entities/game-session.entity';
+import { StoryNode } from './game/entities/story-node.entity';
+import { Choice } from './game/entities/choice.entity';
 
 @Module({
   imports: [
@@ -22,7 +27,14 @@ import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_NAME', 'postgres'),
-        entities: [User, PasswordResetToken],
+        entities: [
+          User,
+          PasswordResetToken,
+          Character,
+          GameSession,
+          StoryNode,
+          Choice,
+        ],
         synchronize: true,
         autoLoadEntities: true,
         retryAttempts: 10,
@@ -34,6 +46,7 @@ import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
     AuthModule,
     MailModule,
     UsersModule,
+    GameModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,30 @@
+import { Repository } from 'typeorm';
+import { Character, GameGenre } from './entities/character.entity';
+import { GameSession } from './entities/game-session.entity';
+import { StoryNode } from './entities/story-node.entity';
+import { Choice } from './entities/choice.entity';
+import { GeminiAiService } from './gemini-ai.service';
+import { CharacterGeneratorService } from './character-generator.service';
+export declare class GameService {
+    private characterRepository;
+    private gameSessionRepository;
+    private storyNodeRepository;
+    private choiceRepository;
+    private geminiAiService;
+    private characterGeneratorService;
+    private readonly logger;
+    constructor(characterRepository: Repository<Character>, gameSessionRepository: Repository<GameSession>, storyNodeRepository: Repository<StoryNode>, choiceRepository: Repository<Choice>, geminiAiService: GeminiAiService, characterGeneratorService: CharacterGeneratorService);
+    createCharacter(userId: string, characterData: Partial<Character>): Promise<Character>;
+    generateCharacterFromDescription(userId: string, description: string, preferredGenre?: GameGenre): Promise<Character>;
+    private getDefaultAttributes;
+    private getDefaultInventory;
+    getCharactersByUserId(userId: string): Promise<Character[]>;
+    getCharacterById(id: string): Promise<Character>;
+    startNewGameSession(characterId: string): Promise<GameSession>;
+    getActiveGameSessionsByUserId(userId: string): Promise<GameSession[]>;
+    getGameSessionById(id: string): Promise<GameSession>;
+    getGameSessionWithDetails(id: string): Promise<GameSession>;
+    saveGameSession(id: string): Promise<GameSession>;
+    makeChoice(gameSessionId: string, choiceId: string): Promise<GameSession>;
+    endGameSession(id: string): Promise<GameSession>;
+}

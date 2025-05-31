@@ -15,8 +15,13 @@ const app_service_1 = require("./app.service");
 const auth_module_1 = require("./auth/auth.module");
 const mail_module_1 = require("./mail/mail.module");
 const users_module_1 = require("./user/users.module");
+const game_module_1 = require("./game/game.module");
 const user_entity_1 = require("./user/entities/user.entity");
 const password_reset_token_entity_1 = require("./auth/entities/password-reset-token.entity");
+const character_entity_1 = require("./game/entities/character.entity");
+const game_session_entity_1 = require("./game/entities/game-session.entity");
+const story_node_entity_1 = require("./game/entities/story-node.entity");
+const choice_entity_1 = require("./game/entities/choice.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,7 +39,14 @@ exports.AppModule = AppModule = __decorate([
                     username: configService.get('DB_USERNAME', 'postgres'),
                     password: configService.get('DB_PASSWORD', 'postgres'),
                     database: configService.get('DB_NAME', 'postgres'),
-                    entities: [user_entity_1.User, password_reset_token_entity_1.PasswordResetToken],
+                    entities: [
+                        user_entity_1.User,
+                        password_reset_token_entity_1.PasswordResetToken,
+                        character_entity_1.Character,
+                        game_session_entity_1.GameSession,
+                        story_node_entity_1.StoryNode,
+                        choice_entity_1.Choice,
+                    ],
                     synchronize: true,
                     autoLoadEntities: true,
                     retryAttempts: 10,
@@ -45,6 +57,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             mail_module_1.MailModule,
             users_module_1.UsersModule,
+            game_module_1.GameModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

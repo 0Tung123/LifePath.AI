@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
 const swagger_1 = require("@nestjs/swagger");
+const character_entity_1 = require("../../game/entities/character.entity");
 let User = class User {
 };
 exports.User = User;
@@ -115,6 +116,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true, type: 'varchar', length: 255 }),
     __metadata("design:type", Object)
 ], User.prototype, "profilePicture", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => character_entity_1.Character, (character) => character.user),
+    __metadata("design:type", Array)
+], User.prototype, "characters", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)('users')
 ], User);

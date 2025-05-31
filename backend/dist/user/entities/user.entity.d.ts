@@ -1,3 +1,4 @@
+import { Character } from '../../game/entities/character.entity';
 export declare class User {
     id: string;
     email: string;
@@ -13,4 +14,5 @@ export declare class User {
     updatedAt: Date;
     googleId?: string | null;
     profilePicture?: string | null;
+    characters: Character[];
 }

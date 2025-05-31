@@ -4,8 +4,10 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Character } from '../../game/entities/character.entity';
 
 @Entity('users')
 export class User {
@@ -94,4 +96,7 @@ export class User {
   })
   @Column({ nullable: true, type: 'varchar', length: 255 })
   profilePicture?: string | null;
+
+  @OneToMany(() => Character, (character) => character.user)
+  characters: Character[];
 }
