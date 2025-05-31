@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import axios from "axios";
+import { useAuth } from "@/contexts/AuthContext";
+import authService from "@/services/auth.service";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/game";
+  const { isAuthenticated, loading: authLoading, checkAuth } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -16,24 +18,12 @@ export default function LoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Kiểm tra xem người dùng đã đăng nhập chưa
-    const checkAuth = async () => {
-      try {
-        const response = await axios.get("/api/auth/status");
-        if (response.data.isAuthenticated) {
-          setIsAuthenticated(true);
-          router.push(redirect);
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-      }
-    };
-
-    checkAuth();
-  }, [router, redirect]);
+    if (isAuthenticated) {
+      router.push(redirect);
+    }
+  }, [isAuthenticated, router, redirect]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,25 +40,28 @@ export default function LoginPage() {
       setLoading(true);
       setError("");
 
-      await axios.post("/api/auth/login", formData);
+      await authService.login(formData);
 
-      // Chuyển hướng sau khi đăng nhập thành công
-      router.push(redirect);
-    } catch (err: any) {
+      // Refresh auth status after successful login
+      await checkAuth();
+
+      // Redirect will happen automatically via useEffect when isAuthenticated becomes true
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Login error:", err);
       setError(
-        err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại."
+        error.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại."
       );
       setLoading(false);
     }
   };
 
-  if (isAuthenticated) {
+  if (authLoading || isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse text-2xl font-bold mb-4">
-            Đang chuyển hướng...
+            {isAuthenticated ? "Đang chuyển hướng..." : "Đang kiểm tra..."}
           </div>
           <div className="w-12 h-12 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
         </div>
@@ -200,7 +193,11 @@ export default function LoginPage() {
 
               <div className="mt-6 grid grid-cols-1 gap-3">
                 <button
-                  onClick={() => (window.location.href = "/api/auth/google")}
+                  onClick={() =>
+                    (window.location.href = `${
+                      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+                    }/auth/google`)
+                  }
                   className="w-full py-3 px-4 rounded-lg border border-gray-700 bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center"
                 >
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
@@ -240,5 +237,24 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-pulse text-2xl font-bold mb-4">
+              Đang tải...
+            </div>
+            <div className="w-12 h-12 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
+          </div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

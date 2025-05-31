@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { ApiRouteError } from "@/types/api.types";
 
 // Tạo nhân vật bằng AI
 export async function POST(request: NextRequest) {
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const response = await axios.post(
-      "http://localhost:3001/game/characters/generate",
+      "http://localhost:3000/game/characters/generate",
       body,
       {
         headers: {
@@ -19,17 +20,18 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error generating character:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
         message:
-          error.response?.data?.message || "Failed to generate character",
+          apiError.response?.data?.message || "Failed to generate character",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

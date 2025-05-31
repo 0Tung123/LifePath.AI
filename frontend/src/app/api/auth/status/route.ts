@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { apiRouteClient } from "@/utils/apiRoutes";
+import { ApiRouteError } from "@/types/api.types";
 
 export async function GET(request: NextRequest) {
   try {
-    const response = await axios.get("http://localhost:3001/auth/status", {
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
-      },
-      withCredentials: true,
-    });
+    const cookie = request.headers.get("cookie") || "";
+    const api = apiRouteClient(cookie);
+
+    const response = await api.get("/auth/status");
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     // Nếu lỗi 401 (Unauthorized), trả về isAuthenticated: false
-    if (error.response?.status === 401) {
+    if (apiError.response?.status === 401) {
       return NextResponse.json({ isAuthenticated: false });
     }
 
     console.error(
       "Error checking auth status:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
         isAuthenticated: false,
         message:
-          error.response?.data?.message ||
+          apiError.response?.data?.message ||
           "Failed to check authentication status",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { apiRouteClient } from "@/utils/apiRoutes";
+import { ApiRouteError } from "@/types/api.types";
 
 export async function POST(request: NextRequest) {
   try {
-    const response = await axios.post(
-      "http://localhost:3001/auth/logout",
-      {},
-      {
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-        },
-        withCredentials: true,
-      }
-    );
+    const cookie = request.headers.get("cookie") || "";
+    const api = apiRouteClient(cookie);
+
+    const response = await api.post("/auth/logout", {});
 
     // Tạo response với cookie đã xóa
     const nextResponse = NextResponse.json(response.data);
@@ -21,11 +16,15 @@ export async function POST(request: NextRequest) {
     nextResponse.cookies.delete("jwt");
 
     return nextResponse;
-  } catch (error: any) {
-    console.error("Error logging out:", error.response?.data || error.message);
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
+    console.error(
+      "Error logging out:",
+      apiError.response?.data || apiError.message
+    );
     return NextResponse.json(
-      { message: error.response?.data?.message || "Failed to logout" },
-      { status: error.response?.status || 500 }
+      { message: apiError.response?.data?.message || "Failed to logout" },
+      { status: apiError.response?.status || 500 }
     );
   }
 }

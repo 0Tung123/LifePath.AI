@@ -84,12 +84,26 @@ export class AuthController {
           type: 'string',
           description: 'JWT token for authentication',
         },
+        user: {
+          type: 'object',
+          description: 'User information',
+        },
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(req.user);
+
+    // Set JWT cookie
+    res.cookie('jwt', result.access_token, {
+      httpOnly: true,
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    return result;
   }
 
   @Post('forgot-password')
@@ -167,5 +181,70 @@ export class AuthController {
     return res.redirect(
       `${frontendUrl}/auth/google-callback?token=${access_token}`,
     );
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'Successfully logged out' })
+  async logout(@Res({ passthrough: true }) res: Response) {
+    // Clear JWT cookie
+    res.clearCookie('jwt');
+    return { message: 'Successfully logged out' };
+  }
+
+  @Get('status')
+  @ApiOperation({ summary: 'Check authentication status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns authentication status',
+    schema: {
+      type: 'object',
+      properties: {
+        isAuthenticated: {
+          type: 'boolean',
+          description: 'Whether the user is authenticated',
+        },
+        user: {
+          type: 'object',
+          description: 'User information if authenticated',
+        },
+      },
+    },
+  })
+  async checkAuthStatus(@Req() req) {
+    try {
+      // Extract JWT from cookie
+      const token = req.cookies?.jwt;
+
+      if (!token) {
+        return { isAuthenticated: false };
+      }
+
+      // Verify token manually
+      const decoded = await this.authService.verifyToken(token);
+
+      if (decoded) {
+        return {
+          isAuthenticated: true,
+          user: {
+            id: decoded.userId,
+            email: decoded.email,
+            firstName: decoded.firstName,
+            lastName: decoded.lastName,
+            isActive: decoded.isActive,
+            profilePicture: decoded.profilePicture,
+            geminiApiKey: decoded.geminiApiKey,
+            createdAt: decoded.createdAt,
+            updatedAt: decoded.updatedAt,
+          },
+        };
+      }
+
+      return { isAuthenticated: false };
+    } catch (error) {
+      console.error('Auth status check error:', error);
+      return { isAuthenticated: false };
+    }
   }
 }

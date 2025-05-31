@@ -1,27 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { apiRouteClient } from "@/utils/apiRoutes";
+import { ApiRouteError } from "@/types/api.types";
 
 // Lấy danh sách nhân vật
 export async function GET(request: NextRequest) {
   try {
-    const response = await axios.get("http://localhost:3001/game/characters", {
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
-      },
-      withCredentials: true,
-    });
+    const cookie = request.headers.get("cookie") || "";
+    const api = apiRouteClient(cookie);
+
+    const response = await api.get("/game/characters");
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error fetching characters:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
-        message: error.response?.data?.message || "Failed to fetch characters",
+        message:
+          apiError.response?.data?.message || "Failed to fetch characters",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }
@@ -30,30 +31,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const cookie = request.headers.get("cookie") || "";
+    const api = apiRouteClient(cookie);
 
-    const response = await axios.post(
-      "http://localhost:3001/game/characters",
-      body,
-      {
-        headers: {
-          Cookie: request.headers.get("cookie") || "",
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await api.post("/game/characters", body);
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error creating character:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
-        message: error.response?.data?.message || "Failed to create character",
+        message:
+          apiError.response?.data?.message || "Failed to create character",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

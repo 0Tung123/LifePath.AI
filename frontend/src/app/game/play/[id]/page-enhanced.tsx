@@ -1,18 +1,32 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 import TypewriterEffect from "@/components/TypewriterEffect";
 import LoadingScreen from "@/components/LoadingScreen";
 import CharacterAvatar from "@/components/CharacterAvatar";
+import { GameSession, Choice } from "@/types/game.types";
 
-export default function GamePlayPage({ params }: { params: { id: string } }) {
+interface Enemy {
+  id: string;
+  name: string;
+  level: number;
+  health: number;
+  attributes: Record<string, number>;
+  abilities: string[];
+}
+
+export default function GamePlayPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
 
-  const [gameSession, setGameSession] = useState<any>(null);
+  const [gameSession, setGameSession] = useState<GameSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [makingChoice, setMakingChoice] = useState(false);
@@ -20,7 +34,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
   const [showCharacterInfo, setShowCharacterInfo] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showQuestLog, setShowQuestLog] = useState(false);
-  const [textComplete, setTextComplete] = useState(false);
+
   const [showChoices, setShowChoices] = useState(false);
 
   const choicesRef = useRef<HTMLDivElement>(null);
@@ -47,8 +61,9 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
   // Cuộn xuống khi hiển thị lựa chọn
   useEffect(() => {
     if (showChoices && choicesRef.current) {
+      const element = choicesRef.current;
       setTimeout(() => {
-        choicesRef.current.scrollIntoView({ behavior: "smooth" });
+        element.scrollIntoView({ behavior: "smooth" });
       }, 300);
     }
   }, [showChoices]);
@@ -64,7 +79,6 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
 
       // Reset các trạng thái
       setGameSession(response.data);
-      setTextComplete(false);
       setShowChoices(false);
       setMakingChoice(false);
       setSelectedChoiceId(null);
@@ -100,7 +114,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
   };
 
   // Kiểm tra xem nhân vật có đáp ứng yêu cầu của lựa chọn không
-  const canMakeChoice = (choice: any) => {
+  const canMakeChoice = (choice: Choice) => {
     if (!gameSession || !gameSession.character) return false;
 
     const character = gameSession.character;
@@ -381,7 +395,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
           {gameSession.currentStoryNode?.sceneDescription && (
             <div
               className={`bg-gradient-to-b ${getGenreGradient(
-                gameSession.character?.primaryGenre
+                gameSession.character?.primaryGenre || "modern"
               )} p-6 border-b border-gray-700`}
             >
               <div className="container mx-auto">
@@ -399,7 +413,6 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                 <TypewriterEffect
                   text={gameSession.currentStoryNode.content}
                   onComplete={() => {
-                    setTextComplete(true);
                     setShowChoices(true);
                   }}
                   className="prose prose-invert max-w-none"
@@ -417,7 +430,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
 
                   <div className="space-y-4">
                     {gameSession.currentStoryNode.combatData.enemies.map(
-                      (enemy: any, index: number) => (
+                      (enemy: Enemy, index: number) => (
                         <div
                           key={index}
                           className="flex justify-between items-center bg-gray-800/50 p-3 rounded-lg"
@@ -460,74 +473,80 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                 <div ref={choicesRef} className="space-y-4 mt-8">
                   <h3 className="text-xl font-bold mb-4">Lựa chọn của bạn</h3>
 
-                  {gameSession.currentStoryNode.choices.map((choice: any) => {
-                    const canChoose = canMakeChoice(choice);
+                  {gameSession.currentStoryNode.choices.map(
+                    (choice: Choice) => {
+                      const canChoose = canMakeChoice(choice);
 
-                    return (
-                      <button
-                        key={choice.id}
-                        onClick={() => canChoose && makeChoice(choice.id)}
-                        disabled={!canChoose || makingChoice}
-                        className={`w-full text-left p-4 rounded-lg transition-all ${
-                          selectedChoiceId === choice.id
-                            ? "bg-blue-600 text-white"
-                            : canChoose
-                            ? "bg-gray-800 hover:bg-gray-700 text-white"
-                            : "bg-gray-800/50 text-gray-500 cursor-not-allowed"
-                        }`}
-                      >
-                        <div className="flex items-start">
-                          <div className="flex-1">
-                            <p>{choice.text}</p>
+                      return (
+                        <button
+                          key={choice.id}
+                          onClick={() => canChoose && makeChoice(choice.id)}
+                          disabled={!canChoose || makingChoice}
+                          className={`w-full text-left p-4 rounded-lg transition-all ${
+                            selectedChoiceId === choice.id
+                              ? "bg-blue-600 text-white"
+                              : canChoose
+                              ? "bg-gray-800 hover:bg-gray-700 text-white"
+                              : "bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                          }`}
+                        >
+                          <div className="flex items-start">
+                            <div className="flex-1">
+                              <p>{choice.content}</p>
 
-                            {/* Hiển thị yêu cầu nếu không đáp ứng */}
-                            {!canChoose && (
-                              <div className="mt-2 text-sm text-red-400">
-                                {choice.requiredAttribute &&
-                                  choice.requiredAttributeValue && (
+                              {/* Hiển thị yêu cầu nếu không đáp ứng */}
+                              {!canChoose && (
+                                <div className="mt-2 text-sm text-red-400">
+                                  {choice.requiredAttribute &&
+                                    choice.requiredAttributeValue && (
+                                      <p>
+                                        Yêu cầu: {choice.requiredAttribute} ≥{" "}
+                                        {choice.requiredAttributeValue}
+                                      </p>
+                                    )}
+
+                                  {choice.requiredSkill && (
                                     <p>
-                                      Yêu cầu: {choice.requiredAttribute} ≥{" "}
-                                      {choice.requiredAttributeValue}
+                                      Yêu cầu kỹ năng: {choice.requiredSkill}
                                     </p>
                                   )}
 
-                                {choice.requiredSkill && (
-                                  <p>Yêu cầu kỹ năng: {choice.requiredSkill}</p>
-                                )}
+                                  {choice.requiredItem && (
+                                    <p>
+                                      Yêu cầu vật phẩm: {choice.requiredItem}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
-                                {choice.requiredItem && (
-                                  <p>Yêu cầu vật phẩm: {choice.requiredItem}</p>
-                                )}
-                              </div>
+                            {makingChoice && selectedChoiceId === choice.id && (
+                              <svg
+                                className="animate-spin h-5 w-5 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
                             )}
                           </div>
-
-                          {makingChoice && selectedChoiceId === choice.id && (
-                            <svg
-                              className="animate-spin h-5 w-5 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               )}
 
@@ -578,11 +597,13 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
             <div className="p-4">
               <div className="mb-6">
                 <div className="flex items-center justify-center mb-4">
-                  <CharacterAvatar
-                    character={gameSession.character}
-                    size="md"
-                    showInfo={true}
-                  />
+                  {gameSession.character && (
+                    <CharacterAvatar
+                      character={gameSession.character}
+                      size="md"
+                      showInfo={true}
+                    />
+                  )}
                 </div>
 
                 <div className="flex justify-between text-sm mb-1">
@@ -623,7 +644,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                               ? "Năng lượng"
                               : key}
                           </span>
-                          <span>{value}</span>
+                          <span>{String(value)}</span>
                         </div>
                       )
                     )}
@@ -705,7 +726,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                                   : "🪙"}
                               </span>
                               <span>
-                                {amount}{" "}
+                                {String(amount)}{" "}
                                 {currency === "gold"
                                   ? "Vàng"
                                   : currency === "credits"
@@ -714,7 +735,7 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                                   ? "Yuan"
                                   : currency === "spirit_stones"
                                   ? "Linh thạch"
-                                  : currency.replace("_", " ")}
+                                  : String(currency).replace("_", " ")}
                               </span>
                             </div>
                           ))}
@@ -728,63 +749,61 @@ export default function GamePlayPage({ params }: { params: { id: string } }) {
                     {gameSession.character.inventory.items &&
                     gameSession.character.inventory.items.length > 0 ? (
                       <div className="space-y-3">
-                        {gameSession.character.inventory.items.map(
-                          (item: any) => (
-                            <div
-                              key={item.id}
-                              className="bg-gray-700 p-3 rounded-lg"
-                            >
-                              <div className="flex justify-between">
-                                <h5 className="font-medium">
-                                  {item.name}
-                                  {item.quantity > 1 && (
-                                    <span className="text-gray-400 text-sm ml-1">
-                                      x{item.quantity}
-                                    </span>
-                                  )}
-                                </h5>
-                                {item.rarity && (
-                                  <span
-                                    className={`text-xs px-1.5 py-0.5 rounded ${
-                                      item.rarity === "common"
-                                        ? "bg-gray-600 text-gray-300"
-                                        : item.rarity === "uncommon"
-                                        ? "bg-green-800 text-green-300"
-                                        : item.rarity === "rare"
-                                        ? "bg-blue-800 text-blue-300"
-                                        : item.rarity === "epic"
-                                        ? "bg-purple-800 text-purple-300"
-                                        : item.rarity === "legendary"
-                                        ? "bg-orange-800 text-orange-300"
-                                        : "bg-gray-600 text-gray-300"
-                                    }`}
-                                  >
-                                    {item.rarity === "common"
-                                      ? "Thường"
-                                      : item.rarity === "uncommon"
-                                      ? "Không phổ biến"
-                                      : item.rarity === "rare"
-                                      ? "Hiếm"
-                                      : item.rarity === "epic"
-                                      ? "Sử thi"
-                                      : item.rarity === "legendary"
-                                      ? "Huyền thoại"
-                                      : item.rarity}
+                        {gameSession.character.inventory.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="bg-gray-700 p-3 rounded-lg"
+                          >
+                            <div className="flex justify-between">
+                              <h5 className="font-medium">
+                                {item.name}
+                                {item.quantity > 1 && (
+                                  <span className="text-gray-400 text-sm ml-1">
+                                    x{item.quantity}
                                   </span>
                                 )}
-                              </div>
-                              {item.description && (
-                                <p className="text-gray-400 text-sm mt-1">
-                                  {item.description}
-                                </p>
+                              </h5>
+                              {item.rarity && (
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded ${
+                                    item.rarity === "common"
+                                      ? "bg-gray-600 text-gray-300"
+                                      : item.rarity === "uncommon"
+                                      ? "bg-green-800 text-green-300"
+                                      : item.rarity === "rare"
+                                      ? "bg-blue-800 text-blue-300"
+                                      : item.rarity === "epic"
+                                      ? "bg-purple-800 text-purple-300"
+                                      : item.rarity === "legendary"
+                                      ? "bg-orange-800 text-orange-300"
+                                      : "bg-gray-600 text-gray-300"
+                                  }`}
+                                >
+                                  {item.rarity === "common"
+                                    ? "Thường"
+                                    : item.rarity === "uncommon"
+                                    ? "Không phổ biến"
+                                    : item.rarity === "rare"
+                                    ? "Hiếm"
+                                    : item.rarity === "epic"
+                                    ? "Sử thi"
+                                    : item.rarity === "legendary"
+                                    ? "Huyền thoại"
+                                    : item.rarity}
+                                </span>
                               )}
-                              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                {item.type && <span>{item.type}</span>}
-                                {item.value && <span>{item.value} vàng</span>}
-                              </div>
                             </div>
-                          )
-                        )}
+                            {item.description && (
+                              <p className="text-gray-400 text-sm mt-1">
+                                {item.description}
+                              </p>
+                            )}
+                            <div className="flex justify-between text-xs text-gray-400 mt-1">
+                              {item.type && <span>{item.type}</span>}
+                              {item.value && <span>{item.value} vàng</span>}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <p className="text-gray-400 text-sm">Hành trang trống</p>

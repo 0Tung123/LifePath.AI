@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { ApiRouteError } from "@/types/api.types";
 
 // Lấy danh sách phiên game
 export async function GET(request: NextRequest) {
   try {
-    const response = await axios.get("http://localhost:3001/game/sessions", {
+    const response = await axios.get("http://localhost:3000/game/sessions", {
       headers: {
         Cookie: request.headers.get("cookie") || "",
       },
@@ -12,17 +13,18 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error fetching game sessions:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
         message:
-          error.response?.data?.message || "Failed to fetch game sessions",
+          apiError.response?.data?.message || "Failed to fetch game sessions",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const response = await axios.post(
-      "http://localhost:3001/game/sessions",
+      "http://localhost:3000/game/sessions",
       body,
       {
         headers: {
@@ -45,17 +47,18 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error creating game session:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
         message:
-          error.response?.data?.message || "Failed to create game session",
+          apiError.response?.data?.message || "Failed to create game session",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

@@ -10,8 +10,19 @@ export declare class AuthController {
     private configService;
     constructor(authService: AuthService, configService: ConfigService);
     register(registerDto: RegisterDto): Promise<any>;
-    login(req: any): Promise<{
+    login(req: any, res: Response): Promise<{
         access_token: string;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            isActive: any;
+            profilePicture: any;
+            geminiApiKey: any;
+            createdAt: any;
+            updatedAt: any;
+        };
     }>;
     forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<any>;
     resetPassword(resetPasswordDto: ResetPasswordDto): Promise<any>;
@@ -19,4 +30,24 @@ export declare class AuthController {
     resendVerification(resendVerificationDto: ResendVerificationDto): Promise<any>;
     googleAuth(): void;
     googleAuthRedirect(req: any, res: Response): Promise<void>;
+    logout(res: Response): Promise<{
+        message: string;
+    }>;
+    checkAuthStatus(req: any): Promise<{
+        isAuthenticated: boolean;
+        user?: undefined;
+    } | {
+        isAuthenticated: boolean;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            isActive: any;
+            profilePicture: any;
+            geminiApiKey: any;
+            createdAt: any;
+            updatedAt: any;
+        };
+    }>;
 }

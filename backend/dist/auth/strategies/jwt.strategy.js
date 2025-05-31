@@ -18,7 +18,12 @@ const users_service_1 = require("../../user/users.service");
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'jwt') {
     constructor(configService, usersService) {
         super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: passport_jwt_1.ExtractJwt.fromExtractors([
+                passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
+                (request) => {
+                    return request?.cookies?.jwt;
+                },
+            ]),
             ignoreExpiration: false,
             secretOrKey: configService.get('JWT_SECRET') ||
                 (() => {
@@ -36,7 +41,17 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (!user.isActive) {
             throw new common_1.UnauthorizedException('User account is not active');
         }
-        return { userId: payload.sub, email: payload.email };
+        return {
+            userId: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            isActive: user.isActive,
+            profilePicture: user.profilePicture,
+            geminiApiKey: user.geminiApiKey,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        };
     }
 };
 exports.JwtStrategy = JwtStrategy;

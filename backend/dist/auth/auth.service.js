@@ -115,11 +115,23 @@ let AuthService = class AuthService {
     }
     async login(user) {
         const payload = { email: user.email, sub: user.id };
+        const access_token = await this.jwtService.signAsync(payload, {
+            secret: this.configService.get('JWT_SECRET'),
+            expiresIn: this.configService.get('JWT_EXPIRES_IN'),
+        });
         return {
-            access_token: await this.jwtService.signAsync(payload, {
-                secret: this.configService.get('JWT_SECRET'),
-                expiresIn: this.configService.get('JWT_EXPIRES_IN'),
-            }),
+            access_token,
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                isActive: user.isActive,
+                profilePicture: user.profilePicture,
+                geminiApiKey: user.geminiApiKey,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+            },
         };
     }
     async forgotPassword(email) {
@@ -215,6 +227,32 @@ let AuthService = class AuthService {
             await this.usersService.update(user.id, user);
         }
         return this.login(user);
+    }
+    async verifyToken(token) {
+        try {
+            const decoded = await this.jwtService.verifyAsync(token, {
+                secret: this.configService.get('JWT_SECRET'),
+            });
+            const user = await this.usersService.findById(decoded.sub);
+            if (!user || !user.isActive) {
+                return null;
+            }
+            return {
+                userId: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                isActive: user.isActive,
+                profilePicture: user.profilePicture,
+                geminiApiKey: user.geminiApiKey,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+            };
+        }
+        catch (error) {
+            console.error('Token verification error:', error);
+            return null;
+        }
     }
 };
 exports.AuthService = AuthService;

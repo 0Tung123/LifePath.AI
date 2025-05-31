@@ -1,12 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
+// Type definitions
+type GenreId =
+  | "fantasy"
+  | "modern"
+  | "scifi"
+  | "xianxia"
+  | "wuxia"
+  | "horror"
+  | "cyberpunk"
+  | "steampunk"
+  | "postapocalyptic"
+  | "historical";
+
+interface CharacterData {
+  name: string;
+  characterClass: string;
+  primaryGenre: GenreId;
+  secondaryGenres: GenreId[];
+  customGenreDescription: string;
+  backstory: string;
+  attributes: {
+    strength: number;
+    intelligence: number;
+    dexterity: number;
+    charisma: number;
+    health: number;
+    mana: number;
+  };
+  skills: string[];
+}
+
 // Định nghĩa các thể loại game
-const GAME_GENRES = [
+const GAME_GENRES: Array<{
+  id: GenreId;
+  name: string;
+  description: string;
+}> = [
   {
     id: "fantasy",
     name: "Fantasy",
@@ -62,7 +97,7 @@ const GAME_GENRES = [
 ];
 
 // Định nghĩa các lớp nhân vật theo thể loại
-const CHARACTER_CLASSES = {
+const CHARACTER_CLASSES: Record<GenreId, string[]> = {
   fantasy: [
     "Chiến binh",
     "Pháp sư",
@@ -155,7 +190,7 @@ const CHARACTER_CLASSES = {
   ],
 };
 
-export default function CreateCharacterPage() {
+function CreateCharacterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedGenre = searchParams.get("genre");
@@ -163,15 +198,13 @@ export default function CreateCharacterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [generatedCharacter, setGeneratedCharacter] = useState(null);
   const [useAI, setUseAI] = useState(false);
 
   // Form state
-  const [characterData, setCharacterData] = useState({
+  const [characterData, setCharacterData] = useState<CharacterData>({
     name: "",
     characterClass: "",
-    primaryGenre: preselectedGenre || "fantasy",
+    primaryGenre: (preselectedGenre as GenreId) || "fantasy",
     secondaryGenres: [],
     customGenreDescription: "",
     backstory: "",
@@ -190,7 +223,11 @@ export default function CreateCharacterPage() {
   const [aiDescription, setAiDescription] = useState("");
 
   // Xử lý thay đổi form
-  const handleChange = (e) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
 
     if (name.includes(".")) {
@@ -198,20 +235,23 @@ export default function CreateCharacterPage() {
       setCharacterData({
         ...characterData,
         [parent]: {
-          ...characterData[parent],
+          ...(characterData[parent as keyof typeof characterData] as Record<
+            string,
+            unknown
+          >),
           [child]: value,
         },
       });
     } else {
       setCharacterData({
         ...characterData,
-        [name]: value,
+        [name as keyof typeof characterData]: value,
       });
     }
   };
 
   // Xử lý thay đổi thể loại phụ
-  const handleSecondaryGenreChange = (genreId) => {
+  const handleSecondaryGenreChange = (genreId: GenreId) => {
     const currentSecondaryGenres = [...characterData.secondaryGenres];
 
     if (currentSecondaryGenres.includes(genreId)) {
@@ -235,18 +275,18 @@ export default function CreateCharacterPage() {
   };
 
   // Xử lý thay đổi thuộc tính
-  const handleAttributeChange = (attribute, value) => {
+  const handleAttributeChange = (attribute: string, value: string) => {
     setCharacterData({
       ...characterData,
       attributes: {
         ...characterData.attributes,
-        [attribute]: parseInt(value),
+        [attribute as keyof typeof characterData.attributes]: parseInt(value),
       },
     });
   };
 
   // Xử lý thêm/xóa kỹ năng
-  const handleSkillChange = (skill) => {
+  const handleSkillChange = (skill: string) => {
     const currentSkills = [...characterData.skills];
 
     if (currentSkills.includes(skill)) {
@@ -283,9 +323,7 @@ export default function CreateCharacterPage() {
         customGenreDescription: characterData.customGenreDescription,
       });
 
-      setGeneratedCharacter(response.data);
       setCharacterData(response.data);
-      setSuccess(true);
       setStep(4); // Chuyển đến bước xem trước
       setLoading(false);
     } catch (err) {
@@ -314,7 +352,6 @@ export default function CreateCharacterPage() {
 
       const response = await axios.post("/api/game/characters", characterData);
 
-      setSuccess(true);
       router.push(`/game/characters/${response.data.id}`);
     } catch (err) {
       console.error("Error creating character:", err);
@@ -324,7 +361,7 @@ export default function CreateCharacterPage() {
   };
 
   // Danh sách kỹ năng theo thể loại
-  const getSkillsByGenre = (genre) => {
+  const getSkillsByGenre = (genre: GenreId) => {
     const skillsByGenre = {
       fantasy: [
         "Kiếm thuật",
@@ -737,13 +774,13 @@ export default function CreateCharacterPage() {
                     disabled={useAI && loading}
                   >
                     <option value="">Chọn lớp nhân vật</option>
-                    {CHARACTER_CLASSES[characterData.primaryGenre]?.map(
-                      (className) => (
-                        <option key={className} value={className}>
-                          {className}
-                        </option>
-                      )
-                    )}
+                    {CHARACTER_CLASSES[
+                      characterData.primaryGenre as keyof typeof CHARACTER_CLASSES
+                    ]?.map((className) => (
+                      <option key={className} value={className}>
+                        {className}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -914,5 +951,24 @@ export default function CreateCharacterPage() {
     <div className="min-h-screen bg-gray-900 text-white py-12 px-4">
       {renderStep()}
     </div>
+  );
+}
+
+export default function CreateCharacterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-pulse text-2xl font-bold mb-4">
+              Đang tải...
+            </div>
+            <div className="w-12 h-12 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
+          </div>
+        </div>
+      }
+    >
+      <CreateCharacterContent />
+    </Suspense>
   );
 }

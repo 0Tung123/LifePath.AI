@@ -1,28 +1,99 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
-export default function GamePlayPage({ params }) {
+// TypeScript interfaces
+interface Choice {
+  id: string;
+  text: string;
+  requiredAttribute?: string;
+  requiredAttributeValue?: number;
+  requiredSkill?: string;
+  requiredItem?: string;
+}
+
+interface Enemy {
+  name: string;
+  level: number;
+  health: number;
+}
+
+interface CombatData {
+  enemies: Enemy[];
+}
+
+interface StoryNode {
+  content: string;
+  location?: string;
+  sceneDescription?: string;
+  choices?: Choice[];
+  isCombatScene?: boolean;
+  combatData?: CombatData;
+  isEnding?: boolean;
+}
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  rarity?: string;
+  type?: string;
+  value?: number;
+}
+
+interface Inventory {
+  items?: InventoryItem[];
+  currency?: Record<string, number>;
+}
+
+interface Character {
+  name: string;
+  characterClass: string;
+  level: number;
+  experience?: number;
+  attributes: Record<string, number>;
+  skills: string[];
+  inventory?: Inventory;
+  primaryGenre?: string;
+}
+
+interface GameState {
+  questLog?: string[];
+  completedQuests?: string[];
+}
+
+interface GameSession {
+  character: Character;
+  currentStoryNode: StoryNode;
+  gameState?: GameState;
+}
+
+export default function GamePlayPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
 
-  const [gameSession, setGameSession] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [makingChoice, setMakingChoice] = useState(false);
-  const [selectedChoiceId, setSelectedChoiceId] = useState(null);
-  const [showCharacterInfo, setShowCharacterInfo] = useState(false);
-  const [showInventory, setShowInventory] = useState(false);
-  const [showQuestLog, setShowQuestLog] = useState(false);
-  const [animateText, setAnimateText] = useState(true);
-  const [textComplete, setTextComplete] = useState(false);
-  const [showChoices, setShowChoices] = useState(false);
+  const [gameSession, setGameSession] = useState<GameSession | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [makingChoice, setMakingChoice] = useState<boolean>(false);
+  const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
+  const [showCharacterInfo, setShowCharacterInfo] = useState<boolean>(false);
+  const [showInventory, setShowInventory] = useState<boolean>(false);
+  const [showQuestLog, setShowQuestLog] = useState<boolean>(false);
+  const [animateText, setAnimateText] = useState<boolean>(true);
+  const [textComplete, setTextComplete] = useState<boolean>(false);
+  const [showChoices, setShowChoices] = useState<boolean>(false);
 
-  const contentRef = useRef(null);
-  const choicesRef = useRef(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const choicesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchGameSession = async () => {
@@ -75,13 +146,14 @@ export default function GamePlayPage({ params }) {
   // Cuộn xuống khi hiển thị lựa chọn
   useEffect(() => {
     if (showChoices && choicesRef.current) {
+      const element = choicesRef.current;
       setTimeout(() => {
-        choicesRef.current.scrollIntoView({ behavior: "smooth" });
+        element.scrollIntoView({ behavior: "smooth" });
       }, 300);
     }
   }, [showChoices]);
 
-  const makeChoice = async (choiceId) => {
+  const makeChoice = async (choiceId: string) => {
     try {
       setMakingChoice(true);
       setSelectedChoiceId(choiceId);
@@ -128,7 +200,7 @@ export default function GamePlayPage({ params }) {
   };
 
   // Kiểm tra xem nhân vật có đáp ứng yêu cầu của lựa chọn không
-  const canMakeChoice = (choice) => {
+  const canMakeChoice = (choice: Choice): boolean => {
     if (!gameSession || !gameSession.character) return false;
 
     const character = gameSession.character;
@@ -211,8 +283,8 @@ export default function GamePlayPage({ params }) {
   }
 
   // Xác định màu nền dựa trên thể loại
-  const getGenreGradient = (genre) => {
-    const gradients = {
+  const getGenreGradient = (genre: string | undefined): string => {
+    const gradients: Record<string, string> = {
       fantasy: "from-blue-900/70 to-purple-900/70",
       modern: "from-gray-900/70 to-blue-900/70",
       scifi: "from-cyan-900/70 to-blue-900/70",
@@ -225,7 +297,7 @@ export default function GamePlayPage({ params }) {
       historical: "from-amber-900/70 to-yellow-900/70",
     };
 
-    return gradients[genre] || "from-gray-900/70 to-blue-900/70";
+    return gradients[genre || ""] || "from-gray-900/70 to-blue-900/70";
   };
 
   return (

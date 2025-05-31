@@ -5,10 +5,25 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
+// Type definitions
+interface Character {
+  id: string;
+  name: string;
+  characterClass: string;
+  level: number;
+  primaryGenre: string;
+}
+
+interface GameSession {
+  id: string;
+  startedAt: string;
+  character?: Character;
+}
+
 export default function GameHomePage() {
   const router = useRouter();
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [characters, setCharacters] = useState([]);
+  const [activeSessions, setActiveSessions] = useState<GameSession[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 

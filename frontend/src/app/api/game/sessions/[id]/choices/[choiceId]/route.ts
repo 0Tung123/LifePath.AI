@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { ApiRouteError } from "@/types/api.types";
 
 // Thực hiện lựa chọn trong game
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; choiceId: string } }
+  { params }: { params: Promise<{ id: string; choiceId: string }> }
 ) {
   try {
-    const { id, choiceId } = params;
+    const { id, choiceId } = await params;
 
     const response = await axios.post(
-      `http://localhost:3001/game/sessions/${id}/choices/${choiceId}`,
+      `http://localhost:3000/game/sessions/${id}/choices/${choiceId}`,
       {},
       {
         headers: {
@@ -21,14 +22,15 @@ export async function POST(
     );
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error making choice:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
-      { message: error.response?.data?.message || "Failed to make choice" },
-      { status: error.response?.status || 500 }
+      { message: apiError.response?.data?.message || "Failed to make choice" },
+      { status: apiError.response?.status || 500 }
     );
   }
 }

@@ -29,9 +29,6 @@ let LocalStrategy = class LocalStrategy extends (0, passport_1.PassportStrategy)
         if (!user.isActive) {
             throw new common_1.UnauthorizedException('Please verify your email before logging in');
         }
-        if (!user.isActive) {
-            throw new common_1.UnauthorizedException('Please verify your email before logging in');
-        }
         return user;
     }
 };

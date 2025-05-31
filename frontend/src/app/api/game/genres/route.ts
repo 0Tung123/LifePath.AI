@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { apiRouteClient } from "@/utils/apiRoutes";
+import { ApiRouteError } from "@/types/api.types";
 
 // Lấy danh sách thể loại game
 export async function GET(request: NextRequest) {
   try {
-    const response = await axios.get("http://localhost:3001/game/genres", {
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
-      },
-      withCredentials: true,
-    });
+    const cookie = request.headers.get("cookie") || "";
+    const api = apiRouteClient(cookie);
+
+    const response = await api.get("/game/genres");
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error fetching game genres:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
-        message: error.response?.data?.message || "Failed to fetch game genres",
+        message: apiError.response?.data?.message || "Failed to fetch game genres",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

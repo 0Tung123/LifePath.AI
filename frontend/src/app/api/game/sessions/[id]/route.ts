@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { ApiRouteError } from "@/types/api.types";
 
 // Lấy thông tin chi tiết phiên game
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const response = await axios.get(
-      `http://localhost:3001/game/sessions/${id}`,
+      `http://localhost:3000/game/sessions/${id}`,
       {
         headers: {
           Cookie: request.headers.get("cookie") || "",
@@ -20,17 +21,18 @@ export async function GET(
     );
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error fetching game session:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
         message:
-          error.response?.data?.message || "Failed to fetch game session",
+          apiError.response?.data?.message || "Failed to fetch game session",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

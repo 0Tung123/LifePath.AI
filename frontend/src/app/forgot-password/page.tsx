@@ -22,10 +22,11 @@ export default function ForgotPasswordPage() {
       await axios.post("/api/auth/forgot-password", { email });
 
       router.push("/forgot-password/success");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Forgot password error:", err);
       setError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại."
       );
       setLoading(false);

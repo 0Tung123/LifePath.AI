@@ -27,6 +27,11 @@ services:
       - JWT_SECRET=Tunglkce170271
       - JWT_EXPIRES_IN=1d
       - JWT_REFRESH_EXPIRES_IN=7d
+      - GEMINI_API_KEY=dummy-api-key
+      - ALLOW_USER_API_KEYS=false
+      - GOOGLE_CLIENT_ID=dummy-client-id
+      - GOOGLE_CLIENT_SECRET=dummy-client-secret
+      - GOOGLE_CALLBACK_URL=http://localhost:3001/auth/google/callback
     ports:
       - "3001:3000"
     depends_on:

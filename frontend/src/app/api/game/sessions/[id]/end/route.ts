@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { ApiRouteError } from "@/types/api.types";
 
 // Kết thúc phiên game
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const response = await axios.put(
-      `http://localhost:3001/game/sessions/${id}/end`,
+      `http://localhost:3000/game/sessions/${id}/end`,
       {},
       {
         headers: {
@@ -21,16 +22,18 @@ export async function PUT(
     );
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
     console.error(
       "Error ending game session:",
-      error.response?.data || error.message
+      apiError.response?.data || apiError.message
     );
     return NextResponse.json(
       {
-        message: error.response?.data?.message || "Failed to end game session",
+        message:
+          apiError.response?.data?.message || "Failed to end game session",
       },
-      { status: error.response?.status || 500 }
+      { status: apiError.response?.status || 500 }
     );
   }
 }

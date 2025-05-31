@@ -17,11 +17,27 @@ const genreNames = {
   steampunk: "Steampunk",
   postapocalyptic: "Hậu tận thế",
   historical: "Lịch sử",
-};
+} as const;
+
+type Genre = keyof typeof genreNames;
+
+interface Character {
+  id: string;
+  name: string;
+  characterClass: string;
+  level: number;
+  primaryGenre: Genre;
+  secondaryGenres?: Genre[];
+  attributes: {
+    strength: number;
+    intelligence: number;
+    dexterity: number;
+  };
+}
 
 // Xác định màu nền dựa trên thể loại
-const getGenreGradient = (genre) => {
-  const gradients = {
+const getGenreGradient = (genre: Genre | string) => {
+  const gradients: Record<string, string> = {
     fantasy: "from-blue-600 to-purple-600",
     modern: "from-gray-600 to-blue-600",
     scifi: "from-cyan-500 to-blue-500",
@@ -39,11 +55,13 @@ const getGenreGradient = (genre) => {
 
 export default function CharactersPage() {
   const router = useRouter();
-  const [characters, setCharacters] = useState([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startingGame, setStartingGame] = useState(false);
-  const [startingCharacterId, setStartingCharacterId] = useState(null);
+  const [startingCharacterId, setStartingCharacterId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchCharacters = async () => {
@@ -62,7 +80,7 @@ export default function CharactersPage() {
     fetchCharacters();
   }, []);
 
-  const startNewGame = async (characterId) => {
+  const startNewGame = async (characterId: string) => {
     try {
       setStartingGame(true);
       setStartingCharacterId(characterId);

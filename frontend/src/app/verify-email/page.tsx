@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
@@ -26,10 +26,11 @@ export default function VerifyEmailPage() {
 
           setVerified(true);
           setLoading(false);
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const error = err as { response?: { data?: { message?: string } } };
           console.error("Verification error:", err);
           setError(
-            err.response?.data?.message ||
+            error.response?.data?.message ||
               "Xác minh email thất bại. Vui lòng thử lại."
           );
           setLoading(false);
@@ -52,10 +53,11 @@ export default function VerifyEmailPage() {
       await axios.post("/api/auth/resend-verification", { email });
 
       router.push("/resend-verification/success");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Resend verification error:", err);
       setError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           "Gửi lại email xác minh thất bại. Vui lòng thử lại."
       );
       setLoading(false);
@@ -206,5 +208,22 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse text-2xl font-bold mb-4">
+            Đang tải...
+          </div>
+          <div className="w-12 h-12 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

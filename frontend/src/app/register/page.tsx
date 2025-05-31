@@ -9,7 +9,8 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -57,18 +58,20 @@ export default function RegisterPage() {
       setError("");
 
       // Gửi yêu cầu đăng ký
-      const response = await axios.post("/api/auth/register", {
-        name: formData.name,
+      await axios.post("/api/auth/register", {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
       });
 
       // Chuyển hướng đến trang xác minh email
       router.push("/verify-email?email=" + encodeURIComponent(formData.email));
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Registration error:", err);
       setError(
-        err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại."
+        error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại."
       );
       setLoading(false);
     }
@@ -106,20 +109,43 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="mb-6">
-                <label htmlFor="name" className="block text-gray-300 mb-2">
-                  Tên hiển thị
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Nhập tên hiển thị của bạn"
-                  required
-                />
+              <div className="mb-6 grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-gray-300 mb-2"
+                  >
+                    Họ
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Nhập họ của bạn"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-gray-300 mb-2"
+                  >
+                    Tên
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="w-full bg-gray-700 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Nhập tên của bạn"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="mb-6">

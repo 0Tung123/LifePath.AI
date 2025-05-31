@@ -1,0 +1,3 @@
+{
+  "/api/game/characters/generate/route": "app/api/game/characters/generate/route.js"
+}

@@ -1,12 +1,73 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 
+// TypeScript interfaces
+interface CharacterAttributes {
+  strength: number;
+  intelligence: number;
+  dexterity: number;
+  charisma: number;
+  health: number;
+  mana: number;
+  cultivation?: number;
+  qi?: number;
+  perception?: number;
+  tech?: number;
+  hacking?: number;
+  piloting?: number;
+  sanity?: number;
+  willpower?: number;
+  education?: number;
+  wealth?: number;
+  influence?: number;
+}
+
+interface SpecialAbility {
+  name: string;
+  description: string;
+  cooldown?: number;
+  cost?: {
+    amount: number;
+    type: string;
+  };
+}
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  rarity?: "common" | "uncommon" | "rare" | "epic" | "legendary";
+  quantity: number;
+  value?: number;
+}
+
+interface Inventory {
+  currency?: Record<string, number>;
+  items?: InventoryItem[];
+}
+
+interface Character {
+  id: string;
+  name: string;
+  characterClass: string;
+  level: number;
+  primaryGenre: string;
+  secondaryGenres?: string[];
+  attributes: CharacterAttributes;
+  skills?: string[];
+  specialAbilities?: SpecialAbility[];
+  backstory?: string;
+  equipment?: string[];
+  inventory?: Inventory;
+}
+
 // Ánh xạ tên thuộc tính sang tiếng Việt
-const attributeNames = {
+const attributeNames: Record<string, string> = {
   strength: "Sức mạnh",
   intelligence: "Trí tuệ",
   dexterity: "Nhanh nhẹn",
@@ -27,7 +88,7 @@ const attributeNames = {
 };
 
 // Ánh xạ thể loại sang tiếng Việt
-const genreNames = {
+const genreNames: Record<string, string> = {
   fantasy: "Fantasy",
   modern: "Hiện đại",
   scifi: "Khoa học viễn tưởng",
@@ -40,11 +101,15 @@ const genreNames = {
   historical: "Lịch sử",
 };
 
-export default function CharacterDetailPage({ params }) {
+export default function CharacterDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
 
-  const [character, setCharacter] = useState(null);
+  const [character, setCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startingGame, setStartingGame] = useState(false);
@@ -129,8 +194,8 @@ export default function CharacterDetailPage({ params }) {
   }
 
   // Xác định màu nền dựa trên thể loại
-  const getGenreGradient = (genre) => {
-    const gradients = {
+  const getGenreGradient = (genre: string) => {
+    const gradients: Record<string, string> = {
       fantasy: "from-blue-600 to-purple-600",
       modern: "from-gray-600 to-blue-600",
       scifi: "from-cyan-500 to-blue-500",

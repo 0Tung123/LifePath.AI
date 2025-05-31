@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -49,10 +49,11 @@ export default function ResetPasswordPage() {
 
       // Chuyển hướng đến trang đăng nhập sau khi đặt lại mật khẩu thành công
       router.push("/login?reset=success");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error("Reset password error:", err);
       setError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           "Không thể đặt lại mật khẩu. Vui lòng thử lại."
       );
       setLoading(false);
@@ -215,5 +216,22 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse text-2xl font-bold mb-4">
+            Đang tải...
+          </div>
+          <div className="w-12 h-12 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

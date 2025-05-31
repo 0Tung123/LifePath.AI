@@ -31,8 +31,15 @@ let AuthController = class AuthController {
     async register(registerDto) {
         return this.authService.register(registerDto);
     }
-    async login(req) {
-        return this.authService.login(req.user);
+    async login(req, res) {
+        const result = await this.authService.login(req.user);
+        res.cookie('jwt', result.access_token, {
+            httpOnly: true,
+            secure: this.configService.get('NODE_ENV') === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+        return result;
     }
     async forgotPassword(forgotPasswordDto) {
         return this.authService.forgotPassword(forgotPasswordDto.email);
@@ -53,6 +60,40 @@ let AuthController = class AuthController {
         const { access_token } = await this.authService.validateOrCreateGoogleUser(req.user);
         const frontendUrl = this.configService.get('FRONTEND_URL');
         return res.redirect(`${frontendUrl}/auth/google-callback?token=${access_token}`);
+    }
+    async logout(res) {
+        res.clearCookie('jwt');
+        return { message: 'Successfully logged out' };
+    }
+    async checkAuthStatus(req) {
+        try {
+            const token = req.cookies?.jwt;
+            if (!token) {
+                return { isAuthenticated: false };
+            }
+            const decoded = await this.authService.verifyToken(token);
+            if (decoded) {
+                return {
+                    isAuthenticated: true,
+                    user: {
+                        id: decoded.userId,
+                        email: decoded.email,
+                        firstName: decoded.firstName,
+                        lastName: decoded.lastName,
+                        isActive: decoded.isActive,
+                        profilePicture: decoded.profilePicture,
+                        geminiApiKey: decoded.geminiApiKey,
+                        createdAt: decoded.createdAt,
+                        updatedAt: decoded.updatedAt,
+                    },
+                };
+            }
+            return { isAuthenticated: false };
+        }
+        catch (error) {
+            console.error('Auth status check error:', error);
+            return { isAuthenticated: false };
+        }
     }
 };
 exports.AuthController = AuthController;
@@ -104,13 +145,18 @@ __decorate([
                     type: 'string',
                     description: 'JWT token for authentication',
                 },
+                user: {
+                    type: 'object',
+                    description: 'User information',
+                },
             },
         },
     }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
@@ -186,6 +232,41 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleAuthRedirect", null);
+__decorate([
+    (0, common_1.Post)('logout'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Logout user' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Successfully logged out' }),
+    __param(0, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Get)('status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Check authentication status' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Returns authentication status',
+        schema: {
+            type: 'object',
+            properties: {
+                isAuthenticated: {
+                    type: 'boolean',
+                    description: 'Whether the user is authenticated',
+                },
+                user: {
+                    type: 'object',
+                    description: 'User information if authenticated',
+                },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "checkAuthStatus", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),

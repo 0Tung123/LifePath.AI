@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import { GameSession } from "@/types/game.types";
 
 export default function GameSessionsPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [sessions, setSessions] = useState<GameSession[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -28,7 +29,7 @@ export default function GameSessionsPage() {
     fetchSessions();
   }, []);
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("vi-VN", {
       year: "numeric",
@@ -39,10 +40,10 @@ export default function GameSessionsPage() {
     }).format(date);
   };
 
-  const getTimeSince = (dateString) => {
+  const getTimeSince = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now - date;
+    const diffMs = now.getTime() - date.getTime();
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
@@ -229,8 +230,11 @@ export default function GameSessionsPage() {
                     .map((session) => {
                       // Tính thời gian chơi
                       const startDate = new Date(session.startedAt);
-                      const endDate = new Date(session.endedAt);
-                      const playTimeMs = endDate - startDate;
+                      const endDate = session.endedAt
+                        ? new Date(session.endedAt)
+                        : new Date();
+                      const playTimeMs =
+                        endDate.getTime() - startDate.getTime();
                       const playTimeHours = Math.floor(
                         playTimeMs / (1000 * 60 * 60)
                       );
@@ -260,7 +264,9 @@ export default function GameSessionsPage() {
                             {formatDate(session.startedAt)}
                           </td>
                           <td className="px-4 py-3 text-sm">
-                            {formatDate(session.endedAt)}
+                            {session.endedAt
+                              ? formatDate(session.endedAt)
+                              : "Chưa kết thúc"}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {playTimeFormatted}
@@ -268,6 +274,13 @@ export default function GameSessionsPage() {
                           <td className="px-4 py-3 text-right">
                             <button
                               onClick={async () => {
+                                if (!session.character?.id) {
+                                  setError(
+                                    "Không thể tìm thấy thông tin nhân vật."
+                                  );
+                                  return;
+                                }
+
                                 try {
                                   const response = await axios.post(
                                     "/api/game/sessions",

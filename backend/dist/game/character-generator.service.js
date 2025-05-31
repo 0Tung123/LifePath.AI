@@ -22,15 +22,22 @@ let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGen
         this.defaultApiKey = this.configService.get('GEMINI_API_KEY') || '';
         this.allowUserApiKeys =
             this.configService.get('ALLOW_USER_API_KEYS') === 'true';
-        if (!this.defaultApiKey) {
-            throw new Error('GEMINI_API_KEY is required but not provided in environment variables');
+        if (!this.defaultApiKey || this.defaultApiKey === 'dummy-api-key') {
+            this.logger.warn('GEMINI_API_KEY is not properly configured. AI features will be limited.');
+            this.defaultGenerativeAI = null;
+            this.defaultModel = null;
         }
-        this.defaultGenerativeAI = new generative_ai_1.GoogleGenerativeAI(this.defaultApiKey);
-        this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
-            model: 'gemini-pro',
-        });
+        else {
+            this.defaultGenerativeAI = new generative_ai_1.GoogleGenerativeAI(this.defaultApiKey);
+            this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+                model: 'gemini-pro',
+            });
+        }
     }
     getModel(userApiKey) {
+        if (!this.defaultModel && (!this.allowUserApiKeys || !userApiKey)) {
+            return null;
+        }
         if (this.allowUserApiKeys && userApiKey) {
             try {
                 const userGenerativeAI = new generative_ai_1.GoogleGenerativeAI(userApiKey);

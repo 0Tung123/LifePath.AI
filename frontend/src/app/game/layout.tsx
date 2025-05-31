@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import api from "@/utils/api";
+import { User } from "@/types/auth.types";
 
 export default function GameLayout({
   children,
@@ -12,7 +14,7 @@ export default function GameLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -106,22 +108,28 @@ export default function GameLayout({
                 <div className="flex items-center">
                   <div className="hidden md:block mr-4">
                     <div className="font-medium">
-                      {user.name || user.username || "Người chơi"}
+                      {user.firstName && user.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user.firstName || user.lastName || "Người chơi"}
                     </div>
                     <div className="text-sm text-gray-400">{user.email}</div>
                   </div>
 
                   <div className="relative group">
                     <button className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
+                      {user.profilePicture ? (
+                        <Image
+                          src={user.profilePicture}
                           alt="Avatar"
+                          width={40}
+                          height={40}
                           className="w-full h-full rounded-full"
                         />
                       ) : (
                         <span className="text-lg font-bold">
-                          {(user.name || user.username || "U").charAt(0)}
+                          {(user.firstName || user.lastName || "U")
+                            .charAt(0)
+                            .toUpperCase()}
                         </span>
                       )}
                     </button>

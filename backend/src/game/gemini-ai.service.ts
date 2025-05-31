@@ -5,8 +5,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GeminiAiService {
-  private readonly defaultGenerativeAI: GoogleGenerativeAI;
-  private readonly defaultModel: any;
+  private readonly defaultGenerativeAI: GoogleGenerativeAI | null;
+  private readonly defaultModel: any | null;
   private readonly logger = new Logger(GeminiAiService.name);
   private readonly allowUserApiKeys: boolean;
   private readonly defaultApiKey: string;
@@ -17,15 +17,28 @@ export class GeminiAiService {
     this.allowUserApiKeys =
       this.configService.get<string>('ALLOW_USER_API_KEYS') === 'true';
 
-    // Initialize default AI model
-    this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
-    this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
-      model: 'gemini-pro',
-    });
+    // Initialize default AI model if API key is available
+    if (!this.defaultApiKey || this.defaultApiKey === 'dummy-api-key') {
+      this.logger.warn(
+        'GEMINI_API_KEY is not properly configured. AI features will be limited.',
+      );
+      this.defaultGenerativeAI = null;
+      this.defaultModel = null;
+    } else {
+      this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
+      this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+        model: 'gemini-pro',
+      });
+    }
   }
 
   // Get the appropriate model based on user context
   private getModel(userApiKey?: string): any {
+    // If the default model is null (API key not configured), return null
+    if (!this.defaultModel && (!this.allowUserApiKeys || !userApiKey)) {
+      return null;
+    }
+
     // If user API keys are allowed and a key is provided, use it
     if (this.allowUserApiKeys && userApiKey) {
       try {

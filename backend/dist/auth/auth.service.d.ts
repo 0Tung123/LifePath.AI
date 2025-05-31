@@ -23,11 +23,23 @@ export declare class AuthService {
     validateUser(email: string, pass: string): Promise<any>;
     login(user: any): Promise<{
         access_token: string;
+        user: {
+            id: any;
+            email: any;
+            firstName: any;
+            lastName: any;
+            isActive: any;
+            profilePicture: any;
+            geminiApiKey: any;
+            createdAt: any;
+            updatedAt: any;
+        };
     }>;
     forgotPassword(email: string): Promise<any>;
     resetPassword(token: string, password: string): Promise<any>;
     verifyEmail(token: string): Promise<any>;
     resendVerificationEmail(email: string): Promise<any>;
     validateOrCreateGoogleUser(googleUser: GoogleUser): Promise<any>;
+    verifyToken(token: string): Promise<any>;
 }
 export {};
