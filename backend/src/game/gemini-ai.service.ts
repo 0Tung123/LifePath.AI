@@ -27,7 +27,7 @@ export class GeminiAiService {
     } else {
       this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
       this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
-        model: 'gemini-pro',
+        model: 'gemini-1.0-pro',
       });
     }
   }
@@ -43,7 +43,7 @@ export class GeminiAiService {
     if (this.allowUserApiKeys && userApiKey) {
       try {
         const userGenerativeAI = new GoogleGenerativeAI(userApiKey);
-        return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+        return userGenerativeAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
       } catch (error) {
         this.logger.warn(
           `Failed to initialize with user API key: ${error.message}`,

@@ -13,6 +13,7 @@ import { Character } from './game/entities/character.entity';
 import { GameSession } from './game/entities/game-session.entity';
 import { StoryNode } from './game/entities/story-node.entity';
 import { Choice } from './game/entities/choice.entity';
+import { ChineseNovel } from './game/entities/chinese-novel.entity';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { Choice } from './game/entities/choice.entity';
           GameSession,
           StoryNode,
           Choice,
+          ChineseNovel,
         ],
         synchronize: true,
         autoLoadEntities: true,

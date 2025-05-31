@@ -226,6 +226,32 @@ export default function GameHomePage() {
           </div>
         </div>
 
+        {/* Chinese Novel Section */}
+        <div className="mt-16">
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-8 text-white text-center shadow-lg">
+            <h2 className="text-4xl font-bold mb-4">
+              🏮 Tiểu Thuyết Mạng Trung Quốc 🏮
+            </h2>
+            <p className="text-xl mb-6 opacity-90">
+              Tạo và đọc những câu chuyện tương tác đầy màu sắc với AI
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/game/chinese-novel"
+                className="px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                📚 Xem Tiểu Thuyết
+              </Link>
+              <Link
+                href="/game/chinese-novel/create"
+                className="px-6 py-3 bg-purple-800 text-white rounded-lg hover:bg-purple-900 transition-colors font-semibold"
+              >
+                ✨ Tạo Tiểu Thuyết Mới
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Game Genres */}
         <div className="mt-16">
           <h2 className="text-3xl font-bold mb-8 text-center">
