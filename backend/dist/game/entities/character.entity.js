@@ -48,7 +48,15 @@ __decorate([
         default: GameGenre.FANTASY,
     }),
     __metadata("design:type", String)
-], Character.prototype, "genre", void 0);
+], Character.prototype, "primaryGenre", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-array', { nullable: true }),
+    __metadata("design:type", Array)
+], Character.prototype, "secondaryGenres", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Character.prototype, "customGenreDescription", void 0);
 __decorate([
     (0, typeorm_1.Column)('simple-json'),
     __metadata("design:type", Object)

@@ -25,34 +25,60 @@ const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
 const user_entity_1 = require("../user/entities/user.entity");
 let GameService = GameService_1 = class GameService {
-    constructor(characterRepository, gameSessionRepository, storyNodeRepository, choiceRepository, geminiAiService, characterGeneratorService) {
+    constructor(characterRepository, gameSessionRepository, storyNodeRepository, choiceRepository, userRepository, geminiAiService, characterGeneratorService) {
         this.characterRepository = characterRepository;
         this.gameSessionRepository = gameSessionRepository;
         this.storyNodeRepository = storyNodeRepository;
         this.choiceRepository = choiceRepository;
+        this.userRepository = userRepository;
         this.geminiAiService = geminiAiService;
         this.characterGeneratorService = characterGeneratorService;
         this.logger = new common_1.Logger(GameService_1.name);
     }
     async createCharacter(userId, characterData) {
-        const user = new user_entity_1.User();
-        user.id = userId;
-        const defaultGenre = characterData.genre || character_entity_1.GameGenre.FANTASY;
-        const character = this.characterRepository.create({
-            ...characterData,
-            user,
-            genre: defaultGenre,
-            attributes: characterData.attributes || this.getDefaultAttributes(defaultGenre),
-            skills: characterData.skills || [],
-            specialAbilities: characterData.specialAbilities || [],
-            inventory: characterData.inventory || this.getDefaultInventory(defaultGenre),
-            relationships: characterData.relationships || [],
-        });
-        return this.characterRepository.save(character);
-    }
-    async generateCharacterFromDescription(userId, description, preferredGenre) {
         try {
-            const generatedCharacter = await this.characterGeneratorService.generateCharacterFromDescription(description, preferredGenre);
+            const user = await this.userRepository.findOne({
+                where: { id: userId },
+            });
+            if (!user) {
+                throw new common_1.NotFoundException(`User with ID ${userId} not found`);
+            }
+            if (!characterData.attributes) {
+                const defaultAttributes = this.getDefaultAttributes(characterData.primaryGenre || character_entity_1.GameGenre.FANTASY, characterData.secondaryGenres);
+                characterData.attributes = defaultAttributes;
+            }
+            if (!characterData.inventory) {
+                characterData.inventory = this.getDefaultInventory(characterData.primaryGenre || character_entity_1.GameGenre.FANTASY, characterData.secondaryGenres);
+            }
+            if (!characterData.skills || characterData.skills.length === 0) {
+                characterData.skills = ['Basic Attack', 'Defend'];
+            }
+            const character = this.characterRepository.create({
+                ...characterData,
+                user,
+            });
+            return this.characterRepository.save(character);
+        }
+        catch (error) {
+            this.logger.error(`Error creating character: ${error.message}`, error.stack);
+            throw new common_1.BadRequestException(`Failed to create character: ${error.message}`);
+        }
+    }
+    async generateCharacterFromDescription(userId, description, primaryGenre, secondaryGenres, customGenreDescription) {
+        try {
+            const user = await this.userRepository.findOne({
+                where: { id: userId },
+            });
+            if (!user) {
+                throw new common_1.NotFoundException(`User with ID ${userId} not found`);
+            }
+            const generatedCharacter = await this.characterGeneratorService.generateCharacterFromDescription(description, primaryGenre, user.geminiApiKey || undefined);
+            if (secondaryGenres && secondaryGenres.length > 0) {
+                generatedCharacter.secondaryGenres = secondaryGenres;
+            }
+            if (customGenreDescription) {
+                generatedCharacter.customGenreDescription = customGenreDescription;
+            }
             return this.createCharacter(userId, generatedCharacter);
         }
         catch (error) {
@@ -60,182 +86,239 @@ let GameService = GameService_1 = class GameService {
             throw new common_1.BadRequestException(`Failed to generate character: ${error.message}`);
         }
     }
-    getDefaultAttributes(genre) {
+    getDefaultAttributes(primaryGenre, secondaryGenres) {
+        const baseAttributes = {
+            strength: 10,
+            intelligence: 10,
+            dexterity: 10,
+            charisma: 10,
+            health: 100,
+            mana: 100,
+        };
+        this.addGenreAttributes(baseAttributes, primaryGenre);
+        if (secondaryGenres && secondaryGenres.length > 0) {
+            secondaryGenres.forEach((genre) => {
+                this.addGenreAttributes(baseAttributes, genre, true);
+            });
+        }
+        return baseAttributes;
+    }
+    addGenreAttributes(attributes, genre, isSecondary = false) {
+        const multiplier = isSecondary ? 0.7 : 1;
         switch (genre) {
-            case character_entity_1.GameGenre.FANTASY:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    dexterity: 10,
-                    charisma: 10,
-                    health: 100,
-                    mana: 100,
-                };
             case character_entity_1.GameGenre.XIANXIA:
             case character_entity_1.GameGenre.WUXIA:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    dexterity: 10,
-                    cultivation: 1,
-                    qi: 100,
-                    perception: 10,
-                };
+                attributes.qi = attributes.qi || Math.round(100 * multiplier);
+                attributes.cultivation =
+                    attributes.cultivation || Math.round(1 * multiplier);
+                attributes.perception =
+                    attributes.perception || Math.round(10 * multiplier);
+                break;
             case character_entity_1.GameGenre.SCIFI:
             case character_entity_1.GameGenre.CYBERPUNK:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    dexterity: 10,
-                    tech: 10,
-                    hacking: 5,
-                    health: 100,
-                };
-            case character_entity_1.GameGenre.MODERN:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    charisma: 10,
-                    education: 10,
-                    wealth: 10,
-                    health: 100,
-                };
+                attributes.tech = attributes.tech || Math.round(10 * multiplier);
+                attributes.hacking = attributes.hacking || Math.round(5 * multiplier);
+                break;
             case character_entity_1.GameGenre.HORROR:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    dexterity: 10,
-                    sanity: 100,
-                    willpower: 10,
-                    health: 100,
-                };
-            default:
-                return {
-                    strength: 10,
-                    intelligence: 10,
-                    dexterity: 10,
-                    charisma: 10,
-                    health: 100,
-                    mana: 100,
-                };
+                attributes.sanity = attributes.sanity || Math.round(100 * multiplier);
+                attributes.willpower =
+                    attributes.willpower || Math.round(10 * multiplier);
+                break;
+            case character_entity_1.GameGenre.MODERN:
+                attributes.education =
+                    attributes.education || Math.round(10 * multiplier);
+                attributes.wealth = attributes.wealth || Math.round(10 * multiplier);
+                attributes.influence =
+                    attributes.influence || Math.round(5 * multiplier);
+                break;
         }
     }
-    getDefaultInventory(genre) {
+    getDefaultInventory(primaryGenre, secondaryGenres) {
         const defaultItems = [];
         let currency = {};
-        switch (genre) {
-            case character_entity_1.GameGenre.FANTASY:
-                defaultItems.push({
-                    id: 'starter-weapon',
-                    name: 'Rusty Sword',
-                    description: 'A basic sword showing signs of wear.',
-                    quantity: 1,
-                    type: 'weapon',
-                    rarity: 'common',
+        this.addGenreItems(defaultItems, primaryGenre, false);
+        if (secondaryGenres && secondaryGenres.length > 0) {
+            secondaryGenres.forEach((genre) => {
+                this.addGenreItems(defaultItems, genre, true);
+            });
+        }
+        currency = this.getGenreCurrency(primaryGenre);
+        if (secondaryGenres && secondaryGenres.length > 0) {
+            secondaryGenres.forEach((genre) => {
+                const secondaryCurrency = this.getGenreCurrency(genre, 0.5);
+                Object.keys(secondaryCurrency).forEach((key) => {
+                    currency[key] = (currency[key] || 0) + secondaryCurrency[key];
                 });
-                defaultItems.push({
-                    id: 'health-potion',
-                    name: 'Health Potion',
-                    description: 'Restores 50 health when consumed.',
-                    quantity: 3,
-                    type: 'consumable',
-                    rarity: 'common',
-                });
-                currency = { gold: 50, silver: 100 };
-                break;
-            case character_entity_1.GameGenre.XIANXIA:
-            case character_entity_1.GameGenre.WUXIA:
-                defaultItems.push({
-                    id: 'starter-weapon',
-                    name: 'Training Sword',
-                    description: 'A basic sword for martial arts practice.',
-                    quantity: 1,
-                    type: 'weapon',
-                    rarity: 'common',
-                });
-                defaultItems.push({
-                    id: 'qi-pill',
-                    name: 'Qi Cultivation Pill',
-                    description: 'Helps restore qi and improve cultivation.',
-                    quantity: 3,
-                    type: 'consumable',
-                    rarity: 'common',
-                });
-                currency = { spirit_stones: 5, yuan: 1000 };
-                break;
-            case character_entity_1.GameGenre.SCIFI:
-            case character_entity_1.GameGenre.CYBERPUNK:
-                defaultItems.push({
-                    id: 'starter-weapon',
-                    name: 'Basic Blaster',
-                    description: 'A standard-issue energy weapon.',
-                    quantity: 1,
-                    type: 'weapon',
-                    rarity: 'common',
-                });
-                defaultItems.push({
-                    id: 'medkit',
-                    name: 'MedKit',
-                    description: 'Restores 50 health when used.',
-                    quantity: 2,
-                    type: 'consumable',
-                    rarity: 'common',
-                });
-                currency = { credits: 1000 };
-                break;
-            case character_entity_1.GameGenre.MODERN:
-                defaultItems.push({
-                    id: 'smartphone',
-                    name: 'Smartphone',
-                    description: 'A modern smartphone with various apps.',
-                    quantity: 1,
-                    type: 'tool',
-                    rarity: 'common',
-                });
-                defaultItems.push({
-                    id: 'first-aid',
-                    name: 'First Aid Kit',
-                    description: 'Basic medical supplies for emergencies.',
-                    quantity: 1,
-                    type: 'consumable',
-                    rarity: 'common',
-                });
-                currency = { dollars: 1000 };
-                break;
-            case character_entity_1.GameGenre.HORROR:
-                defaultItems.push({
-                    id: 'flashlight',
-                    name: 'Flashlight',
-                    description: 'A reliable flashlight with batteries.',
-                    quantity: 1,
-                    type: 'tool',
-                    rarity: 'common',
-                });
-                defaultItems.push({
-                    id: 'bandages',
-                    name: 'Bandages',
-                    description: 'Basic medical supplies to stop bleeding.',
-                    quantity: 3,
-                    type: 'consumable',
-                    rarity: 'common',
-                });
-                currency = { dollars: 50 };
-                break;
-            default:
-                defaultItems.push({
-                    id: 'starter-item',
-                    name: 'Basic Equipment',
-                    description: 'Standard equipment for beginners.',
-                    quantity: 1,
-                    type: 'equipment',
-                    rarity: 'common',
-                });
-                currency = { gold: 100 };
+            });
         }
         return {
             items: defaultItems,
             currency,
         };
+    }
+    addGenreItems(items, genre, isSecondary = false) {
+        const itemsToAdd = isSecondary ? 1 : 2;
+        let addedItems = 0;
+        switch (genre) {
+            case character_entity_1.GameGenre.FANTASY:
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'weapon', 'Rusty Sword')) {
+                    items.push({
+                        id: `fantasy-weapon-${Date.now()}`,
+                        name: 'Rusty Sword',
+                        description: 'A basic sword showing signs of wear.',
+                        quantity: 1,
+                        type: 'weapon',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'consumable', 'Health Potion')) {
+                    items.push({
+                        id: `fantasy-potion-${Date.now()}`,
+                        name: 'Health Potion',
+                        description: 'Restores 50 health when consumed.',
+                        quantity: isSecondary ? 1 : 3,
+                        type: 'consumable',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                break;
+            case character_entity_1.GameGenre.XIANXIA:
+            case character_entity_1.GameGenre.WUXIA:
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'weapon', 'Training Sword')) {
+                    items.push({
+                        id: `wuxia-weapon-${Date.now()}`,
+                        name: 'Training Sword',
+                        description: 'A basic sword for martial arts practice.',
+                        quantity: 1,
+                        type: 'weapon',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'consumable', 'Qi Cultivation Pill')) {
+                    items.push({
+                        id: `qi-pill-${Date.now()}`,
+                        name: 'Qi Cultivation Pill',
+                        description: 'Helps restore qi and improve cultivation.',
+                        quantity: isSecondary ? 1 : 3,
+                        type: 'consumable',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                break;
+            case character_entity_1.GameGenre.SCIFI:
+            case character_entity_1.GameGenre.CYBERPUNK:
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'weapon', 'Basic Blaster')) {
+                    items.push({
+                        id: `scifi-weapon-${Date.now()}`,
+                        name: 'Basic Blaster',
+                        description: 'A standard-issue energy weapon.',
+                        quantity: 1,
+                        type: 'weapon',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'consumable', 'MedKit')) {
+                    items.push({
+                        id: `scifi-medkit-${Date.now()}`,
+                        name: 'MedKit',
+                        description: 'Restores 50 health when used.',
+                        quantity: isSecondary ? 1 : 2,
+                        type: 'consumable',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                break;
+            case character_entity_1.GameGenre.HORROR:
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'tool', 'Flashlight')) {
+                    items.push({
+                        id: `horror-tool-${Date.now()}`,
+                        name: 'Flashlight',
+                        description: 'A reliable flashlight with batteries.',
+                        quantity: 1,
+                        type: 'tool',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'consumable', 'Bandages')) {
+                    items.push({
+                        id: `horror-bandages-${Date.now()}`,
+                        name: 'Bandages',
+                        description: 'Basic medical supplies to stop bleeding.',
+                        quantity: isSecondary ? 1 : 3,
+                        type: 'consumable',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                break;
+            case character_entity_1.GameGenre.MODERN:
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'tool', 'Smartphone')) {
+                    items.push({
+                        id: `modern-tool-${Date.now()}`,
+                        name: 'Smartphone',
+                        description: 'A modern smartphone with various apps.',
+                        quantity: 1,
+                        type: 'tool',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                if (addedItems < itemsToAdd &&
+                    !this.hasItemOfType(items, 'consumable', 'First Aid Kit')) {
+                    items.push({
+                        id: `modern-aid-${Date.now()}`,
+                        name: 'First Aid Kit',
+                        description: 'Basic medical supplies for emergencies.',
+                        quantity: isSecondary ? 1 : 1,
+                        type: 'consumable',
+                        rarity: 'common',
+                    });
+                    addedItems++;
+                }
+                break;
+        }
+    }
+    hasItemOfType(items, type, name) {
+        return items.some((item) => item.type === type && item.name === name);
+    }
+    getGenreCurrency(genre, multiplier = 1) {
+        switch (genre) {
+            case character_entity_1.GameGenre.FANTASY:
+                return {
+                    gold: Math.round(50 * multiplier),
+                    silver: Math.round(100 * multiplier),
+                };
+            case character_entity_1.GameGenre.XIANXIA:
+            case character_entity_1.GameGenre.WUXIA:
+                return {
+                    spirit_stones: Math.round(5 * multiplier),
+                    yuan: Math.round(1000 * multiplier),
+                };
+            case character_entity_1.GameGenre.SCIFI:
+            case character_entity_1.GameGenre.CYBERPUNK:
+                return { credits: Math.round(1000 * multiplier) };
+            case character_entity_1.GameGenre.HORROR:
+            case character_entity_1.GameGenre.MODERN:
+                return { dollars: Math.round(1000 * multiplier) };
+            default:
+                return { gold: Math.round(100 * multiplier) };
+        }
     }
     async getCharactersByUserId(userId) {
         return this.characterRepository.find({
@@ -245,224 +328,261 @@ let GameService = GameService_1 = class GameService {
     async getCharacterById(id) {
         const character = await this.characterRepository.findOne({
             where: { id },
-            relations: ['user'],
+            relations: ['user', 'gameSessions'],
         });
         if (!character) {
             throw new common_1.NotFoundException(`Character with ID ${id} not found`);
         }
         return character;
     }
-    async startNewGameSession(characterId) {
-        const character = await this.getCharacterById(characterId);
-        const gameSession = this.gameSessionRepository.create({
-            character,
-            isActive: true,
-            gameState: {
-                visitedLocations: [],
+    async updateCharacter(id, updateData) {
+        const character = await this.getCharacterById(id);
+        Object.assign(character, updateData);
+        return this.characterRepository.save(character);
+    }
+    async deleteCharacter(id) {
+        const character = await this.getCharacterById(id);
+        await this.characterRepository.remove(character);
+    }
+    async startGameSession(characterId, initialPrompt) {
+        try {
+            const character = await this.getCharacterById(characterId);
+            const gameState = {
+                currentLocation: 'Starting Area',
+                questLog: [],
                 completedQuests: [],
+                discoveredLocations: ['Starting Area'],
+                visitedLocations: ['Starting Area'],
                 acquiredItems: [],
                 npcRelations: {},
                 flags: {},
-            },
-        });
-        const savedSession = await this.gameSessionRepository.save(gameSession);
-        const initialPrompt = `A new adventure begins for ${character.name}, a level ${character.level} ${character.characterClass}. 
-    The journey starts in a small village where rumors of strange occurrences have been circulating.`;
-        const storyContent = await this.geminiAiService.generateStoryContent(initialPrompt, { character, gameState: gameSession.gameState });
-        const storyNode = this.storyNodeRepository.create({
-            content: storyContent,
-            location: 'Starting Village',
-            gameSession: savedSession,
-        });
-        const savedStoryNode = await this.storyNodeRepository.save(storyNode);
-        const choices = await this.geminiAiService.generateChoices(storyContent, {
-            character,
-            gameState: gameSession.gameState,
-        });
-        for (const choiceData of choices) {
-            const choice = this.choiceRepository.create({
-                ...choiceData,
-                storyNode: savedStoryNode,
+                time: {
+                    day: 1,
+                    hour: 8,
+                    minute: 0,
+                },
+                weather: 'clear',
+            };
+            const gameSession = this.gameSessionRepository.create({
+                character,
+                gameState,
+                isActive: true,
             });
-            await this.choiceRepository.save(choice);
+            const savedSession = await this.gameSessionRepository.save(gameSession);
+            if (!initialPrompt) {
+                initialPrompt = `You are ${character.name}, a ${character.characterClass} in a ${character.primaryGenre} world${character.customGenreDescription
+                    ? ' with ' + character.customGenreDescription
+                    : ''}. Your adventure begins...`;
+            }
+            const storyContent = await this.geminiAiService.generateStoryContent(initialPrompt, {
+                character,
+                gameState: gameSession.gameState,
+                user: character.user,
+            });
+            const storyNode = this.storyNodeRepository.create({
+                content: storyContent,
+                location: 'Starting Village',
+                gameSession: savedSession,
+            });
+            const savedStoryNode = await this.storyNodeRepository.save(storyNode);
+            const choices = await this.geminiAiService.generateChoices(storyContent, {
+                character,
+                gameState: gameSession.gameState,
+            });
+            for (const choiceData of choices) {
+                const choice = this.choiceRepository.create({
+                    ...choiceData,
+                    storyNode: savedStoryNode,
+                });
+                await this.choiceRepository.save(choice);
+            }
+            savedSession.currentStoryNode = savedStoryNode;
+            await this.gameSessionRepository.save(savedSession);
+            return this.getGameSessionWithDetails(savedSession.id);
         }
-        savedSession.currentStoryNode = savedStoryNode;
-        savedSession.currentStoryNodeId = savedStoryNode.id;
-        await this.gameSessionRepository.save(savedSession);
-        return this.getGameSessionWithDetails(savedSession.id);
+        catch (error) {
+            this.logger.error(`Error starting game session: ${error.message}`, error.stack);
+            throw new common_1.BadRequestException(`Failed to start game session: ${error.message}`);
+        }
     }
-    async getActiveGameSessionsByUserId(userId) {
-        return this.gameSessionRepository.find({
-            where: { character: { user: { id: userId } }, isActive: true },
-            relations: ['character', 'currentStoryNode'],
-        });
-    }
-    async getGameSessionById(id) {
+    async getGameSessionWithDetails(sessionId) {
         const gameSession = await this.gameSessionRepository.findOne({
-            where: { id },
-            relations: ['character', 'currentStoryNode'],
+            where: { id: sessionId },
+            relations: [
+                'character',
+                'currentStoryNode',
+                'currentStoryNode.choices',
+                'storyNodes',
+            ],
         });
         if (!gameSession) {
-            throw new common_1.NotFoundException(`Game session with ID ${id} not found`);
+            throw new common_1.NotFoundException(`Game session with ID ${sessionId} not found`);
         }
         return gameSession;
     }
-    async getGameSessionWithDetails(id) {
+    async getActiveGameSessionForCharacter(characterId) {
         const gameSession = await this.gameSessionRepository.findOne({
-            where: { id },
+            where: { character: { id: characterId }, isActive: true },
             relations: ['character', 'currentStoryNode', 'currentStoryNode.choices'],
+            order: { lastSavedAt: 'DESC' },
         });
         if (!gameSession) {
-            throw new common_1.NotFoundException(`Game session with ID ${id} not found`);
+            throw new common_1.NotFoundException(`No active game session found for character ${characterId}`);
         }
         return gameSession;
     }
-    async saveGameSession(id) {
-        const gameSession = await this.getGameSessionById(id);
-        gameSession.lastSavedAt = new Date();
-        return this.gameSessionRepository.save(gameSession);
-    }
-    async makeChoice(gameSessionId, choiceId) {
-        const gameSession = await this.getGameSessionWithDetails(gameSessionId);
-        if (!gameSession.isActive) {
-            throw new common_1.BadRequestException('This game session is no longer active');
-        }
-        const choice = await this.choiceRepository.findOne({
-            where: { id: choiceId },
-            relations: ['storyNode'],
-        });
-        if (!choice) {
-            throw new common_1.NotFoundException(`Choice with ID ${choiceId} not found`);
-        }
-        if (choice.storyNode.id !== gameSession.currentStoryNodeId) {
-            throw new common_1.BadRequestException('This choice is not available in the current story node');
-        }
-        const character = await this.getCharacterById(gameSession.character.id);
-        if (choice.requiredAttribute && choice.requiredAttributeValue) {
-            const attributeValue = character.attributes[choice.requiredAttribute];
-            if (!attributeValue || attributeValue < choice.requiredAttributeValue) {
-                throw new common_1.BadRequestException(`Your ${choice.requiredAttribute} is too low for this choice`);
+    async makeChoice(sessionId, choiceId) {
+        try {
+            const gameSession = await this.getGameSessionWithDetails(sessionId);
+            const character = await this.getCharacterById(gameSession.character.id);
+            const choice = await this.choiceRepository.findOne({
+                where: { id: choiceId },
+                relations: ['storyNode'],
+            });
+            if (!choice) {
+                throw new common_1.NotFoundException(`Choice with ID ${choiceId} not found`);
             }
-        }
-        if (choice.requiredSkill &&
-            !character.skills.includes(choice.requiredSkill)) {
-            throw new common_1.BadRequestException(`You don't have the required skill: ${choice.requiredSkill}`);
-        }
-        if (choice.requiredItem) {
-            const hasItem = character.inventory.items.some((item) => item.name === choice.requiredItem && item.quantity > 0);
-            if (!hasItem) {
-                throw new common_1.BadRequestException(`You don't have the required item: ${choice.requiredItem}`);
+            if (choice.storyNode.id !== gameSession.currentStoryNode.id) {
+                throw new common_1.BadRequestException('The selected choice does not belong to the current story node');
             }
-        }
-        if (choice.consequences) {
-            if (choice.consequences.attributeChanges) {
-                for (const [attr, change] of Object.entries(choice.consequences.attributeChanges)) {
-                    if (character.attributes[attr] !== undefined) {
-                        character.attributes[attr] += change;
+            if (choice.consequences) {
+                if (choice.consequences.attributeChanges) {
+                    for (const [attr, change] of Object.entries(choice.consequences.attributeChanges)) {
+                        if (character.attributes[attr] !== undefined) {
+                            character.attributes[attr] += change;
+                        }
                     }
+                    await this.characterRepository.save(character);
                 }
-            }
-            if (choice.consequences.skillGains &&
-                choice.consequences.skillGains.length > 0) {
-                for (const skill of choice.consequences.skillGains) {
-                    if (!character.skills.includes(skill)) {
-                        character.skills.push(skill);
-                    }
-                }
-            }
-            if (choice.consequences.itemGains &&
-                choice.consequences.itemGains.length > 0) {
-                for (const itemGain of choice.consequences.itemGains) {
-                    const existingItem = character.inventory.items.find((item) => item.id === itemGain.id || item.name === itemGain.name);
-                    if (existingItem) {
-                        existingItem.quantity += itemGain.quantity;
-                    }
-                    else {
-                        character.inventory.items.push({
-                            id: itemGain.id || `item-${Date.now()}`,
-                            name: itemGain.name,
-                            description: itemGain.description || `A ${itemGain.name}`,
-                            quantity: itemGain.quantity,
-                            type: itemGain.type || 'misc',
-                            rarity: itemGain.rarity || 'common',
-                            value: itemGain.value || 0,
-                        });
-                    }
-                }
-            }
-            if (choice.consequences.itemLosses &&
-                choice.consequences.itemLosses.length > 0) {
-                for (const itemLoss of choice.consequences.itemLosses) {
-                    const existingItemIndex = character.inventory.items.findIndex((item) => item.id === itemLoss.id);
-                    if (existingItemIndex >= 0) {
-                        const existingItem = character.inventory.items[existingItemIndex];
-                        existingItem.quantity -= itemLoss.quantity;
-                        if (existingItem.quantity <= 0) {
-                            character.inventory.items.splice(existingItemIndex, 1);
+                if (choice.consequences.itemGains &&
+                    choice.consequences.itemGains.length > 0) {
+                    for (const itemGain of choice.consequences.itemGains) {
+                        const existingItem = character.inventory.items.find((item) => item.id === itemGain.id || item.name === itemGain.name);
+                        if (existingItem) {
+                            existingItem.quantity += itemGain.quantity;
+                        }
+                        else {
+                            character.inventory.items.push({
+                                id: itemGain.id || `item-${Date.now()}`,
+                                name: itemGain.name,
+                                description: itemGain.description || `A ${itemGain.name}`,
+                                quantity: itemGain.quantity,
+                                type: itemGain.type || 'misc',
+                                rarity: itemGain.rarity || 'common',
+                                value: itemGain.value || 0,
+                            });
                         }
                     }
                 }
-            }
-            if (choice.consequences.relationChanges) {
-                for (const [npcId, change] of Object.entries(choice.consequences.relationChanges)) {
-                    gameSession.gameState.npcRelations[npcId] =
-                        (gameSession.gameState.npcRelations[npcId] || 0) + change;
+                if (choice.consequences.itemLosses &&
+                    choice.consequences.itemLosses.length > 0) {
+                    for (const itemLoss of choice.consequences.itemLosses) {
+                        const existingItemIndex = character.inventory.items.findIndex((item) => item.id === itemLoss.id || item.name === itemLoss.name);
+                        if (existingItemIndex >= 0) {
+                            const item = character.inventory.items[existingItemIndex];
+                            item.quantity -= itemLoss.quantity;
+                            if (item.quantity <= 0) {
+                                character.inventory.items.splice(existingItemIndex, 1);
+                            }
+                        }
+                    }
+                }
+                if (choice.consequences.currencyChanges) {
+                    for (const [currency, amount] of Object.entries(choice.consequences.currencyChanges)) {
+                        if (character.inventory.currency[currency] !== undefined) {
+                            character.inventory.currency[currency] += amount;
+                            if (character.inventory.currency[currency] < 0) {
+                                character.inventory.currency[currency] = 0;
+                            }
+                        }
+                        else if (amount > 0) {
+                            character.inventory.currency[currency] = amount;
+                        }
+                    }
+                }
+                await this.characterRepository.save(character);
+                if (choice.consequences.flagChanges) {
+                    for (const [flag, value] of Object.entries(choice.consequences.flagChanges)) {
+                        gameSession.gameState.flags[flag] = value;
+                    }
+                }
+                if (choice.consequences.flags) {
+                    for (const [flag, value] of Object.entries(choice.consequences.flags)) {
+                        gameSession.gameState.flags[flag] = value;
+                    }
+                }
+                if (choice.consequences.locationChange) {
+                    gameSession.gameState.currentLocation =
+                        choice.consequences.locationChange;
+                    if (!gameSession.gameState.discoveredLocations.includes(choice.consequences.locationChange)) {
+                        gameSession.gameState.discoveredLocations.push(choice.consequences.locationChange);
+                    }
                 }
             }
-            if (choice.consequences.flagChanges) {
-                for (const [flag, value] of Object.entries(choice.consequences.flagChanges)) {
-                    gameSession.gameState.flags[flag] = value;
-                }
+            const nextPrompt = choice.nextPrompt ||
+                `After ${character.name} decides to ${choice.text.toLowerCase()}, what happens next?`;
+            let isCombatScene = false;
+            let combatData = undefined;
+            if (Math.random() < 0.2) {
+                isCombatScene = true;
+                const location = gameSession.currentStoryNode.location || 'unknown location';
+                combatData = await this.geminiAiService.generateCombatScene(character, location);
             }
-        }
-        await this.characterRepository.save(character);
-        const nextPrompt = choice.nextPrompt ||
-            `After ${character.name} decides to ${choice.text.toLowerCase()}, what happens next?`;
-        let isCombatScene = false;
-        let combatData = undefined;
-        if (Math.random() < 0.2) {
-            isCombatScene = true;
-            const location = gameSession.currentStoryNode.location || 'unknown location';
-            combatData = await this.geminiAiService.generateCombatScene(character, location);
-        }
-        const storyContent = await this.geminiAiService.generateStoryContent(nextPrompt, {
-            character,
-            gameState: gameSession.gameState,
-            previousChoice: choice.text,
-        });
-        const storyNode = this.storyNodeRepository.create({
-            content: storyContent,
-            location: gameSession.currentStoryNode.location,
-            gameSession,
-            isCombatScene,
-            combatData,
-        });
-        const savedStoryNode = await this.storyNodeRepository.save(storyNode);
-        const choices = await this.geminiAiService.generateChoices(storyContent, {
-            character,
-            gameState: gameSession.gameState,
-        });
-        for (const choiceData of choices) {
-            const newChoice = this.choiceRepository.create({
-                ...choiceData,
-                storyNode: savedStoryNode,
+            const storyContent = await this.geminiAiService.generateStoryContent(nextPrompt, {
+                character,
+                gameState: gameSession.gameState,
+                previousChoice: choice.text,
             });
-            await this.choiceRepository.save(newChoice);
+            const storyNode = this.storyNodeRepository.create({
+                content: storyContent,
+                location: gameSession.currentStoryNode.location,
+                gameSession,
+                isCombatScene,
+                combatData,
+            });
+            const savedStoryNode = await this.storyNodeRepository.save(storyNode);
+            const choices = await this.geminiAiService.generateChoices(storyContent, {
+                character,
+                gameState: gameSession.gameState,
+                isCombatScene,
+            });
+            for (const choiceData of choices) {
+                const newChoice = this.choiceRepository.create({
+                    ...choiceData,
+                    storyNode: savedStoryNode,
+                });
+                await this.choiceRepository.save(newChoice);
+            }
+            gameSession.currentStoryNode = savedStoryNode;
+            await this.gameSessionRepository.save(gameSession);
+            return this.getGameSessionWithDetails(gameSession.id);
         }
-        gameSession.currentStoryNode = savedStoryNode;
-        gameSession.currentStoryNodeId = savedStoryNode.id;
-        gameSession.lastSavedAt = new Date();
-        if (savedStoryNode.location &&
-            !gameSession.gameState.visitedLocations.includes(savedStoryNode.location)) {
-            gameSession.gameState.visitedLocations.push(savedStoryNode.location);
+        catch (error) {
+            this.logger.error(`Error making choice: ${error.message}`, error.stack);
+            throw new common_1.BadRequestException(`Failed to process choice: ${error.message}`);
         }
-        await this.gameSessionRepository.save(gameSession);
-        return this.getGameSessionWithDetails(gameSession.id);
     }
-    async endGameSession(id) {
-        const gameSession = await this.getGameSessionById(id);
+    async endGameSession(sessionId) {
+        const gameSession = await this.getGameSessionWithDetails(sessionId);
         gameSession.isActive = false;
+        gameSession.endedAt = new Date();
         return this.gameSessionRepository.save(gameSession);
+    }
+    async getGameSessionHistory(sessionId) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: sessionId },
+            relations: ['storyNodes', 'storyNodes.choices'],
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${sessionId} not found`);
+        }
+        return gameSession.storyNodes.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    async getGameSessionsByCharacterId(characterId) {
+        return this.gameSessionRepository.find({
+            where: { character: { id: characterId } },
+            order: { startedAt: 'DESC' },
+        });
     }
 };
 exports.GameService = GameService;
@@ -472,7 +592,9 @@ exports.GameService = GameService = GameService_1 = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(game_session_entity_1.GameSession)),
     __param(2, (0, typeorm_1.InjectRepository)(story_node_entity_1.StoryNode)),
     __param(3, (0, typeorm_1.InjectRepository)(choice_entity_1.Choice)),
+    __param(4, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

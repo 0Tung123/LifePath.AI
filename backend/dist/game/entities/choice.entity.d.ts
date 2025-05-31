@@ -13,13 +13,21 @@ export declare class Choice {
             id: string;
             name: string;
             quantity: number;
+            description?: string;
+            type?: string;
+            rarity?: string;
+            value?: number;
         }[];
         itemLosses: {
             id: string;
+            name: string;
             quantity: number;
         }[];
         relationChanges: Record<string, number>;
         flagChanges: Record<string, boolean>;
+        currencyChanges?: Record<string, number>;
+        flags?: Record<string, any>;
+        locationChange?: string;
     };
     storyNode: StoryNode;
     nextPrompt: string;

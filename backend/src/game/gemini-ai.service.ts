@@ -1,18 +1,47 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GameGenre } from './entities/character.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GeminiAiService {
-  private readonly generativeAI: GoogleGenerativeAI;
-  private readonly model: any;
+  private readonly defaultGenerativeAI: GoogleGenerativeAI;
+  private readonly defaultModel: any;
   private readonly logger = new Logger(GeminiAiService.name);
+  private readonly allowUserApiKeys: boolean;
+  private readonly defaultApiKey: string;
 
-  constructor() {
-    // API key should be in environment variables in production
-    const API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-    this.generativeAI = new GoogleGenerativeAI(API_KEY);
-    this.model = this.generativeAI.getGenerativeModel({ model: 'gemini-pro' });
+  constructor(private configService: ConfigService) {
+    // Get configuration from environment variables
+    this.defaultApiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
+    this.allowUserApiKeys =
+      this.configService.get<string>('ALLOW_USER_API_KEYS') === 'true';
+
+    // Initialize default AI model
+    this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
+    this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+      model: 'gemini-pro',
+    });
+  }
+
+  // Get the appropriate model based on user context
+  private getModel(userApiKey?: string): any {
+    // If user API keys are allowed and a key is provided, use it
+    if (this.allowUserApiKeys && userApiKey) {
+      try {
+        const userGenerativeAI = new GoogleGenerativeAI(userApiKey);
+        return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to initialize with user API key: ${error.message}`,
+        );
+        // Fall back to default model if user's key fails
+        return this.defaultModel;
+      }
+    }
+
+    // Otherwise use the default model
+    return this.defaultModel;
   }
 
   async generateStoryContent(
@@ -27,6 +56,11 @@ export class GeminiAiService {
         );
       }
 
+      // Get user API key if available
+      const userApiKey = gameContext.user?.geminiApiKey;
+      // Get the appropriate model
+      const model = this.getModel(userApiKey);
+
       const primaryGenre = character.primaryGenre || GameGenre.FANTASY;
       const secondaryGenres = character.secondaryGenres || [];
       const customGenreDescription = character.customGenreDescription || '';
@@ -37,14 +71,17 @@ export class GeminiAiService {
       // Add all relevant attributes
       characterInfo += 'Attributes: ';
       const attributes = character.attributes;
-      const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
-      
+      const relevantAttributes = this.getRelevantAttributes(
+        primaryGenre,
+        secondaryGenres,
+      );
+
       for (const attr of relevantAttributes) {
         if (attributes[attr] !== undefined) {
           characterInfo += `${this.formatAttributeName(attr)} ${attributes[attr]}, `;
         }
       }
-      
+
       // Remove trailing comma and space
       characterInfo = characterInfo.replace(/, $/, '. ');
 
@@ -80,10 +117,7 @@ export class GeminiAiService {
       }
 
       // Add special abilities if any
-      if (
-        character.specialAbilities &&
-        character.specialAbilities.length > 0
-      ) {
+      if (character.specialAbilities && character.specialAbilities.length > 0) {
         characterInfo += 'Special Abilities: ';
         character.specialAbilities.forEach((ability, index) => {
           characterInfo += `${ability.name} (${ability.description})`;
@@ -127,11 +161,12 @@ export class GeminiAiService {
 
       // Get genre-specific instructions
       const genreInstructions = this.getGenreSpecificInstructions(primaryGenre);
-      
+
       // Get secondary genre influences
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
-        secondaryGenreInfluences = 'This story also incorporates elements from: ';
+        secondaryGenreInfluences =
+          'This story also incorporates elements from: ';
         secondaryGenres.forEach((genre, index) => {
           secondaryGenreInfluences += this.getGenreName(genre);
           if (index < secondaryGenres.length - 1) {
@@ -140,7 +175,7 @@ export class GeminiAiService {
         });
         secondaryGenreInfluences += '. ';
       }
-      
+
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
@@ -172,7 +207,7 @@ export class GeminiAiService {
       Response length: 150-250 words.
       `;
 
-      const result = await this.model.generateContent(fullPrompt);
+      const result = await model.generateContent(fullPrompt);
       const response = result.response;
       return response.text();
     } catch (error) {
@@ -196,6 +231,11 @@ export class GeminiAiService {
         );
       }
 
+      // Get user API key if available
+      const userApiKey = gameContext.user?.geminiApiKey;
+      // Get the appropriate model
+      const model = this.getModel(userApiKey);
+
       const primaryGenre = character.primaryGenre || GameGenre.FANTASY;
       const secondaryGenres = character.secondaryGenres || [];
       const customGenreDescription = character.customGenreDescription || '';
@@ -206,14 +246,17 @@ export class GeminiAiService {
       // Add all relevant attributes
       characterInfo += 'Attributes: ';
       const attributes = character.attributes;
-      const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
-      
+      const relevantAttributes = this.getRelevantAttributes(
+        primaryGenre,
+        secondaryGenres,
+      );
+
       for (const attr of relevantAttributes) {
         if (attributes[attr] !== undefined) {
           characterInfo += `${this.formatAttributeName(attr)} ${attributes[attr]}, `;
         }
       }
-      
+
       // Remove trailing comma and space
       characterInfo = characterInfo.replace(/, $/, '. ');
 
@@ -237,7 +280,7 @@ export class GeminiAiService {
       // Get genre-specific attributes for choices
       const genreAttributes = this.getGenreAttributes(primaryGenre);
       const genreItems = this.getGenreItems(primaryGenre);
-      
+
       // Get secondary genre influences
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
@@ -250,7 +293,7 @@ export class GeminiAiService {
         });
         secondaryGenreInfluences += '. ';
       }
-      
+
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
@@ -304,7 +347,7 @@ export class GeminiAiService {
       Return ONLY a valid JSON array of choice objects, with no additional text.
       `;
 
-      const result = await this.model.generateContent(fullPrompt);
+      const result = await model.generateContent(fullPrompt);
       const response = result.response;
       const responseText = response.text();
 
@@ -353,20 +396,28 @@ export class GeminiAiService {
       const primaryGenre = character.primaryGenre || GameGenre.FANTASY;
       const secondaryGenres = character.secondaryGenres || [];
       const customGenreDescription = character.customGenreDescription || '';
-      
+
+      // Get user API key if available from character's user
+      const userApiKey = character.user?.geminiApiKey;
+      // Get the appropriate model
+      const model = this.getModel(userApiKey);
+
       // Get relevant attributes for combat
-      const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
+      const relevantAttributes = this.getRelevantAttributes(
+        primaryGenre,
+        secondaryGenres,
+      );
       let attributesInfo = '';
-      
+
       for (const attr of relevantAttributes) {
         if (character.attributes[attr] !== undefined) {
           attributesInfo += `${this.formatAttributeName(attr)}: ${character.attributes[attr]}, `;
         }
       }
-      
+
       // Remove trailing comma and space
       attributesInfo = attributesInfo.replace(/, $/, '');
-      
+
       // Get secondary genre influences
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
@@ -379,7 +430,7 @@ export class GeminiAiService {
         });
         secondaryGenreInfluences += '. ';
       }
-      
+
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
@@ -433,7 +484,7 @@ export class GeminiAiService {
       Return ONLY a valid JSON object, with no additional text.
       `;
 
-      const result = await this.model.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const response = result.response;
       const responseText = response.text();
 
@@ -579,7 +630,14 @@ export class GeminiAiService {
   private getGenreAttributes(genre: GameGenre): string[] {
     switch (genre) {
       case GameGenre.FANTASY:
-        return ['strength', 'intelligence', 'dexterity', 'charisma', 'health', 'mana'];
+        return [
+          'strength',
+          'intelligence',
+          'dexterity',
+          'charisma',
+          'health',
+          'mana',
+        ];
       case GameGenre.XIANXIA:
       case GameGenre.WUXIA:
         return ['strength', 'dexterity', 'qi', 'cultivation', 'perception'];
@@ -605,12 +663,24 @@ export class GeminiAiService {
         return ['weapon', 'armor', 'potion', 'scroll', 'magical artifact'];
       case GameGenre.XIANXIA:
       case GameGenre.WUXIA:
-        return ['weapon', 'cultivation manual', 'medicinal herb', 'qi pill', 'talisman'];
+        return [
+          'weapon',
+          'cultivation manual',
+          'medicinal herb',
+          'qi pill',
+          'talisman',
+        ];
       case GameGenre.SCIFI:
       case GameGenre.CYBERPUNK:
         return ['weapon', 'implant', 'gadget', 'medkit', 'data chip'];
       case GameGenre.HORROR:
-        return ['weapon', 'light source', 'medical supply', 'ritual item', 'key'];
+        return [
+          'weapon',
+          'light source',
+          'medical supply',
+          'ritual item',
+          'key',
+        ];
       case GameGenre.MODERN:
         return ['smartphone', 'weapon', 'tool', 'medicine', 'document'];
       case GameGenre.POSTAPOCALYPTIC:
@@ -621,27 +691,30 @@ export class GeminiAiService {
         return ['weapon', 'tool', 'consumable', 'key item'];
     }
   }
-  
+
   // Helper method to get relevant attributes based on all genres
-  private getRelevantAttributes(primaryGenre: GameGenre, secondaryGenres: GameGenre[]): string[] {
+  private getRelevantAttributes(
+    primaryGenre: GameGenre,
+    secondaryGenres: GameGenre[],
+  ): string[] {
     // Start with primary genre attributes
     const attributes = new Set(this.getGenreAttributes(primaryGenre));
-    
+
     // Add attributes from secondary genres
     if (secondaryGenres && secondaryGenres.length > 0) {
-      secondaryGenres.forEach(genre => {
-        this.getGenreAttributes(genre).forEach(attr => attributes.add(attr));
+      secondaryGenres.forEach((genre) => {
+        this.getGenreAttributes(genre).forEach((attr) => attributes.add(attr));
       });
     }
-    
+
     // Always include basic attributes
-    ['strength', 'intelligence', 'dexterity', 'charisma', 'health'].forEach(attr => 
-      attributes.add(attr)
+    ['strength', 'intelligence', 'dexterity', 'charisma', 'health'].forEach(
+      (attr) => attributes.add(attr),
     );
-    
+
     return Array.from(attributes);
   }
-  
+
   // Helper method to format attribute names for display
   private formatAttributeName(attr: string): string {
     // Capitalize first letter

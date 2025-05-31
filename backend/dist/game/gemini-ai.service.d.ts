@@ -1,16 +1,20 @@
+import { ConfigService } from '@nestjs/config';
 export declare class GeminiAiService {
-    private readonly generativeAI;
-    private readonly model;
+    private configService;
+    private readonly defaultGenerativeAI;
+    private readonly defaultModel;
     private readonly logger;
-    constructor();
+    private readonly allowUserApiKeys;
+    private readonly defaultApiKey;
+    constructor(configService: ConfigService);
+    private getModel;
     generateStoryContent(prompt: string, gameContext: any): Promise<string>;
-    generateChoices(storyContext: string, gameContext: any): Promise<any[]>;
+    generateChoices(storyContent: string, gameContext: any): Promise<any[]>;
     generateCombatScene(character: any, location: string): Promise<any>;
     private getGenreName;
     private getGenreSpecificInstructions;
     private getGenreAttributes;
     private getGenreItems;
-    private getGenreCombatInstructions;
-    private getGenreEnemyTypes;
-    private getGenreRewardTypes;
+    private getRelevantAttributes;
+    private formatAttributeName;
 }

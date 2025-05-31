@@ -14,15 +14,38 @@ exports.CharacterGeneratorService = void 0;
 const common_1 = require("@nestjs/common");
 const generative_ai_1 = require("@google/generative-ai");
 const character_entity_1 = require("./entities/character.entity");
+const config_1 = require("@nestjs/config");
 let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGeneratorService {
-    constructor() {
+    constructor(configService) {
+        this.configService = configService;
         this.logger = new common_1.Logger(CharacterGeneratorService_1.name);
-        const API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-        this.generativeAI = new generative_ai_1.GoogleGenerativeAI(API_KEY);
-        this.model = this.generativeAI.getGenerativeModel({ model: 'gemini-pro' });
+        this.defaultApiKey = this.configService.get('GEMINI_API_KEY') || '';
+        this.allowUserApiKeys =
+            this.configService.get('ALLOW_USER_API_KEYS') === 'true';
+        if (!this.defaultApiKey) {
+            throw new Error('GEMINI_API_KEY is required but not provided in environment variables');
+        }
+        this.defaultGenerativeAI = new generative_ai_1.GoogleGenerativeAI(this.defaultApiKey);
+        this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+            model: 'gemini-pro',
+        });
     }
-    async generateCharacterFromDescription(description, preferredGenre) {
+    getModel(userApiKey) {
+        if (this.allowUserApiKeys && userApiKey) {
+            try {
+                const userGenerativeAI = new generative_ai_1.GoogleGenerativeAI(userApiKey);
+                return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+            }
+            catch (error) {
+                this.logger.warn(`Failed to initialize with user API key: ${error.message}`);
+                return this.defaultModel;
+            }
+        }
+        return this.defaultModel;
+    }
+    async generateCharacterFromDescription(description, preferredGenre, userApiKey) {
         try {
+            const model = this.getModel(userApiKey);
             const genreText = preferredGenre
                 ? `Thể loại: ${this.getGenreDescription(preferredGenre)}.`
                 : 'Hãy phân tích mô tả và xác định thể loại phù hợp nhất từ các lựa chọn: Fantasy (giả tưởng), Modern (hiện đại), Sci-Fi (khoa học viễn tưởng), Xianxia (Tiên Hiệp), Wuxia (Võ Hiệp), Horror (kinh dị), Cyberpunk, Steampunk, Post-Apocalyptic (hậu tận thế), Historical (lịch sử).';
@@ -84,7 +107,7 @@ let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGen
         Hãy đảm bảo rằng tất cả các thuộc tính, kỹ năng và vật phẩm đều phù hợp với thể loại và mô tả của người chơi.
         Phân bổ điểm thuộc tính hợp lý, dựa trên mô tả của người chơi.
       `;
-            const result = await this.model.generateContent(prompt);
+            const result = await model.generateContent(prompt);
             const response = result.response;
             const responseText = response.text();
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -100,7 +123,7 @@ let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGen
         }
     }
     formatCharacterData(data) {
-        const genre = Object.values(character_entity_1.GameGenre).includes(data.genre)
+        const primaryGenre = Object.values(character_entity_1.GameGenre).includes(data.genre)
             ? data.genre
             : character_entity_1.GameGenre.FANTASY;
         const inventory = data.inventory || {
@@ -108,14 +131,15 @@ let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGen
             currency: {},
         };
         if (!inventory.currency) {
-            inventory.currency = this.getDefaultCurrency(genre);
+            inventory.currency = this.getDefaultCurrency(primaryGenre);
         }
         const specialAbilities = data.specialAbilities || [];
         return {
             name: data.name || 'Unnamed Character',
             characterClass: data.characterClass || 'Adventurer',
-            genre,
-            attributes: data.attributes || this.getDefaultAttributes(genre),
+            primaryGenre,
+            secondaryGenres: [],
+            attributes: data.attributes || this.getDefaultAttributes(primaryGenre),
             skills: data.skills || [],
             specialAbilities,
             inventory,
@@ -231,6 +255,6 @@ let CharacterGeneratorService = CharacterGeneratorService_1 = class CharacterGen
 exports.CharacterGeneratorService = CharacterGeneratorService;
 exports.CharacterGeneratorService = CharacterGeneratorService = CharacterGeneratorService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], CharacterGeneratorService);
 //# sourceMappingURL=character-generator.service.js.map

@@ -1,10 +1,15 @@
 import { Character, GameGenre } from './entities/character.entity';
+import { ConfigService } from '@nestjs/config';
 export declare class CharacterGeneratorService {
-    private readonly generativeAI;
-    private readonly model;
+    private configService;
+    private readonly defaultGenerativeAI;
+    private readonly defaultModel;
     private readonly logger;
-    constructor();
-    generateCharacterFromDescription(description: string, preferredGenre?: GameGenre): Promise<Partial<Character>>;
+    private readonly allowUserApiKeys;
+    private readonly defaultApiKey;
+    constructor(configService: ConfigService);
+    private getModel;
+    generateCharacterFromDescription(description: string, preferredGenre?: GameGenre, userApiKey?: string): Promise<Partial<Character>>;
     private formatCharacterData;
     private getGenreDescription;
     private getDefaultAttributes;

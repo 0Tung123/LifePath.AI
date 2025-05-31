@@ -33,6 +33,10 @@ __decorate([
     __metadata("design:type", Date)
 ], GameSession.prototype, "lastSavedAt", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], GameSession.prototype, "endedAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], GameSession.prototype, "currentStoryNodeId", void 0);

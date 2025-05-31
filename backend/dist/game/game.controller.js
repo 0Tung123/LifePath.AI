@@ -25,7 +25,7 @@ let GameController = class GameController {
         return this.gameService.createCharacter(req.user.id, characterData);
     }
     async generateCharacter(req, data) {
-        return this.gameService.generateCharacterFromDescription(req.user.id, data.description, data.genre);
+        return this.gameService.generateCharacterFromDescription(req.user.id, data.description, data.primaryGenre, data.secondaryGenres, data.customGenreDescription);
     }
     async getMyCharacters(req) {
         return this.gameService.getCharactersByUserId(req.user.id);
@@ -88,16 +88,18 @@ let GameController = class GameController {
         ];
     }
     async startNewGame(data) {
-        return this.gameService.startNewGameSession(data.characterId);
+        return this.gameService.startGameSession(data.characterId);
     }
     async getMyActiveSessions(req) {
-        return this.gameService.getActiveGameSessionsByUserId(req.user.id);
+        const allSessions = await this.gameService.getGameSessionsByCharacterId(req.user.id);
+        return allSessions.filter((session) => session.isActive);
     }
     async getGameSession(id) {
         return this.gameService.getGameSessionWithDetails(id);
     }
     async saveGame(id) {
-        return this.gameService.saveGameSession(id);
+        const session = await this.gameService.getGameSessionWithDetails(id);
+        return session;
     }
     async endGame(id) {
         return this.gameService.endGameSession(id);

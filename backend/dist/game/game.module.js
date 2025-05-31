@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GameModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const config_1 = require("@nestjs/config");
 const game_controller_1 = require("./game.controller");
 const game_service_1 = require("./game.service");
 const character_entity_1 = require("./entities/character.entity");
@@ -17,13 +18,15 @@ const story_node_entity_1 = require("./entities/story-node.entity");
 const choice_entity_1 = require("./entities/choice.entity");
 const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
+const user_entity_1 = require("../user/entities/user.entity");
 let GameModule = class GameModule {
 };
 exports.GameModule = GameModule;
 exports.GameModule = GameModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([character_entity_1.Character, game_session_entity_1.GameSession, story_node_entity_1.StoryNode, choice_entity_1.Choice]),
+            typeorm_1.TypeOrmModule.forFeature([character_entity_1.Character, game_session_entity_1.GameSession, story_node_entity_1.StoryNode, choice_entity_1.Choice, user_entity_1.User]),
+            config_1.ConfigModule,
         ],
         controllers: [game_controller_1.GameController],
         providers: [game_service_1.GameService, gemini_ai_service_1.GeminiAiService, character_generator_service_1.CharacterGeneratorService],

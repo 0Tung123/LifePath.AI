@@ -1,25 +1,64 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Character, GameGenre } from './entities/character.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CharacterGeneratorService {
-  private readonly generativeAI: GoogleGenerativeAI;
-  private readonly model: any;
+  private readonly defaultGenerativeAI: GoogleGenerativeAI;
+  private readonly defaultModel: any;
   private readonly logger = new Logger(CharacterGeneratorService.name);
+  private readonly allowUserApiKeys: boolean;
+  private readonly defaultApiKey: string;
 
-  constructor() {
-    // API key should be in environment variables in production
-    const API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-    this.generativeAI = new GoogleGenerativeAI(API_KEY);
-    this.model = this.generativeAI.getGenerativeModel({ model: 'gemini-pro' });
+  constructor(private configService: ConfigService) {
+    // Get configuration from environment variables
+    this.defaultApiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
+    this.allowUserApiKeys =
+      this.configService.get<string>('ALLOW_USER_API_KEYS') === 'true';
+
+    // Initialize default AI model
+    if (!this.defaultApiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is required but not provided in environment variables',
+      );
+    }
+
+    this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
+    this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+      model: 'gemini-pro',
+    });
+  }
+
+  // Get the appropriate model based on user context
+  private getModel(userApiKey?: string): any {
+    // If user API keys are allowed and a key is provided, use it
+    if (this.allowUserApiKeys && userApiKey) {
+      try {
+        const userGenerativeAI = new GoogleGenerativeAI(userApiKey);
+        return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to initialize with user API key: ${error.message}`,
+        );
+        // Fall back to default model if user's key fails
+        return this.defaultModel;
+      }
+    }
+
+    // Otherwise use the default model
+    return this.defaultModel;
   }
 
   async generateCharacterFromDescription(
     description: string,
     preferredGenre?: GameGenre,
+    userApiKey?: string,
   ): Promise<Partial<Character>> {
     try {
+      // Get the appropriate model based on user API key
+      const model = this.getModel(userApiKey);
+
       const genreText = preferredGenre
         ? `Thể loại: ${this.getGenreDescription(preferredGenre)}.`
         : 'Hãy phân tích mô tả và xác định thể loại phù hợp nhất từ các lựa chọn: Fantasy (giả tưởng), Modern (hiện đại), Sci-Fi (khoa học viễn tưởng), Xianxia (Tiên Hiệp), Wuxia (Võ Hiệp), Horror (kinh dị), Cyberpunk, Steampunk, Post-Apocalyptic (hậu tận thế), Historical (lịch sử).';
@@ -83,7 +122,7 @@ export class CharacterGeneratorService {
         Phân bổ điểm thuộc tính hợp lý, dựa trên mô tả của người chơi.
       `;
 
-      const result = await this.model.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const response = result.response;
       const responseText = response.text();
 

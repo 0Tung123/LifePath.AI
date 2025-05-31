@@ -115,11 +115,21 @@ export class GameService {
     customGenreDescription?: string,
   ): Promise<Character> {
     try {
+      // Get the user to access their API key
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
       // Use AI to generate character based on description
       const generatedCharacter =
         await this.characterGeneratorService.generateCharacterFromDescription(
           description,
           primaryGenre,
+          user.geminiApiKey || undefined,
         );
 
       // Add secondary genres and custom description if provided
@@ -542,7 +552,11 @@ export class GameService {
 
       const storyContent = await this.geminiAiService.generateStoryContent(
         initialPrompt,
-        { character, gameState: gameSession.gameState },
+        {
+          character,
+          gameState: gameSession.gameState,
+          user: character.user,
+        },
       );
 
       const storyNode = this.storyNodeRepository.create({

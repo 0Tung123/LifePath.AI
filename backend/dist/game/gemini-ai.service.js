@@ -14,12 +14,31 @@ exports.GeminiAiService = void 0;
 const common_1 = require("@nestjs/common");
 const generative_ai_1 = require("@google/generative-ai");
 const character_entity_1 = require("./entities/character.entity");
+const config_1 = require("@nestjs/config");
 let GeminiAiService = GeminiAiService_1 = class GeminiAiService {
-    constructor() {
+    constructor(configService) {
+        this.configService = configService;
         this.logger = new common_1.Logger(GeminiAiService_1.name);
-        const API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-        this.generativeAI = new generative_ai_1.GoogleGenerativeAI(API_KEY);
-        this.model = this.generativeAI.getGenerativeModel({ model: 'gemini-pro' });
+        this.defaultApiKey = this.configService.get('GEMINI_API_KEY') || '';
+        this.allowUserApiKeys =
+            this.configService.get('ALLOW_USER_API_KEYS') === 'true';
+        this.defaultGenerativeAI = new generative_ai_1.GoogleGenerativeAI(this.defaultApiKey);
+        this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
+            model: 'gemini-pro',
+        });
+    }
+    getModel(userApiKey) {
+        if (this.allowUserApiKeys && userApiKey) {
+            try {
+                const userGenerativeAI = new generative_ai_1.GoogleGenerativeAI(userApiKey);
+                return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+            }
+            catch (error) {
+                this.logger.warn(`Failed to initialize with user API key: ${error.message}`);
+                return this.defaultModel;
+            }
+        }
+        return this.defaultModel;
     }
     async generateStoryContent(prompt, gameContext) {
         try {
@@ -27,369 +46,458 @@ let GeminiAiService = GeminiAiService_1 = class GeminiAiService {
             if (!character) {
                 throw new Error('Character information is required for story generation');
             }
-            const genre = character.genre || character_entity_1.GameGenre.FANTASY;
+            const userApiKey = gameContext.user?.geminiApiKey;
+            const model = this.getModel(userApiKey);
+            const primaryGenre = character.primaryGenre || character_entity_1.GameGenre.FANTASY;
+            const secondaryGenres = character.secondaryGenres || [];
+            const customGenreDescription = character.customGenreDescription || '';
             let characterInfo = `Character: ${character.name}, a level ${character.level} ${character.characterClass}. `;
-            switch (genre) {
-                case character_entity_1.GameGenre.FANTASY:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Dexterity ${character.attributes.dexterity || 0}, ` +
-                            `Charisma ${character.attributes.charisma || 0}, ` +
-                            `Health ${character.attributes.health || 0}, ` +
-                            `Mana ${character.attributes.mana || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.XIANXIA:
-                case character_entity_1.GameGenre.WUXIA:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Cultivation Level ${character.attributes.cultivation || 0}, ` +
-                            `Qi ${character.attributes.qi || 0}, ` +
-                            `Perception ${character.attributes.perception || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.SCIFI:
-                case character_entity_1.GameGenre.CYBERPUNK:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Tech Aptitude ${character.attributes.tech || 0}, ` +
-                            `Hacking ${character.attributes.hacking || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.HORROR:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Sanity ${character.attributes.sanity || 0}, ` +
-                            `Willpower ${character.attributes.willpower || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                default:
-                    characterInfo +=
-                        'Attributes: ' +
-                            Object.entries(character.attributes)
-                                .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)} ${value}`)
-                                .join(', ') +
-                            '. ';
+            characterInfo += 'Attributes: ';
+            const attributes = character.attributes;
+            const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
+            for (const attr of relevantAttributes) {
+                if (attributes[attr] !== undefined) {
+                    characterInfo += `${this.formatAttributeName(attr)} ${attributes[attr]}, `;
+                }
+            }
+            characterInfo = characterInfo.replace(/, $/, '. ');
+            if (character.inventory && character.inventory.items) {
+                characterInfo += 'Inventory: ';
+                character.inventory.items.forEach((item, index) => {
+                    characterInfo += `${item.name} (${item.quantity})`;
+                    if (index < character.inventory.items.length - 1) {
+                        characterInfo += ', ';
+                    }
+                });
+                characterInfo += '. ';
+            }
+            if (character.inventory && character.inventory.currency) {
+                characterInfo += 'Currency: ';
+                Object.entries(character.inventory.currency).forEach(([currency, amount], index, array) => {
+                    characterInfo += `${amount} ${currency}`;
+                    if (index < array.length - 1) {
+                        characterInfo += ', ';
+                    }
+                });
+                characterInfo += '. ';
             }
             if (character.skills && character.skills.length > 0) {
-                characterInfo += `Skills: ${character.skills.join(', ')}. `;
+                characterInfo += 'Skills: ' + character.skills.join(', ') + '. ';
             }
             if (character.specialAbilities && character.specialAbilities.length > 0) {
-                characterInfo += `Special Abilities: ${character.specialAbilities.map((a) => a.name).join(', ')}. `;
+                characterInfo += 'Special Abilities: ';
+                character.specialAbilities.forEach((ability, index) => {
+                    characterInfo += `${ability.name} (${ability.description})`;
+                    if (index < character.specialAbilities.length - 1) {
+                        characterInfo += ', ';
+                    }
+                });
+                characterInfo += '. ';
             }
-            const gameState = gameContext.gameState
-                ? `Game state: Visited locations: ${gameContext.gameState.visitedLocations.join(', ')}. ` +
-                    `Completed quests: ${gameContext.gameState.completedQuests.join(', ')}.`
-                : '';
-            const genreInstructions = this.getGenreSpecificInstructions(genre);
+            let gameStateInfo = '';
+            if (gameContext.gameState) {
+                gameStateInfo = `
+        Current Location: ${gameContext.gameState.currentLocation || 'Unknown'}
+        Time: Day ${gameContext.gameState.time?.day || 1}, ${gameContext.gameState.time?.hour || 0}:${gameContext.gameState.time?.minute || 0}
+        Weather: ${gameContext.gameState.weather || 'Clear'}
+        `;
+                if (gameContext.gameState.flags &&
+                    Object.keys(gameContext.gameState.flags).length > 0) {
+                    gameStateInfo += 'Story Flags: ';
+                    Object.entries(gameContext.gameState.flags).forEach(([flag, value]) => {
+                        gameStateInfo += `${flag}: ${value}, `;
+                    });
+                    gameStateInfo = gameStateInfo.replace(/, $/, '\n');
+                }
+            }
+            let previousChoiceInfo = '';
+            if (gameContext.previousChoice) {
+                previousChoiceInfo = `The character's previous action was: "${gameContext.previousChoice}".`;
+            }
+            const genreInstructions = this.getGenreSpecificInstructions(primaryGenre);
+            let secondaryGenreInfluences = '';
+            if (secondaryGenres && secondaryGenres.length > 0) {
+                secondaryGenreInfluences =
+                    'This story also incorporates elements from: ';
+                secondaryGenres.forEach((genre, index) => {
+                    secondaryGenreInfluences += this.getGenreName(genre);
+                    if (index < secondaryGenres.length - 1) {
+                        secondaryGenreInfluences += ', ';
+                    }
+                });
+                secondaryGenreInfluences += '. ';
+            }
+            let customGenreInfo = '';
+            if (customGenreDescription) {
+                customGenreInfo = `This story has the following custom elements: ${customGenreDescription}. `;
+            }
             const fullPrompt = `
-        You are a creative storyteller for an interactive text adventure game called "Nhập Vai A.I Simulator".
-        Create an engaging and immersive story segment based on the following context:
-        
-        ${characterInfo}
-        ${gameState}
-        
-        Current situation: ${prompt}
-        
-        Genre: ${this.getGenreName(genre)}
-        ${genreInstructions}
-        
-        Provide a rich, detailed description of the scene, including sensory details, character emotions, and environmental elements.
-        The tone should be immersive and engaging, making the player feel present in the world.
-        
-        Return only the narrative text without any explanations or meta-commentary.
+      You are a creative storyteller for an interactive text adventure game.
+      
+      ${characterInfo}
+      
+      ${gameStateInfo}
+      
+      ${previousChoiceInfo}
+      
+      Primary Genre: ${this.getGenreName(primaryGenre)}
+      ${secondaryGenreInfluences}
+      ${customGenreInfo}
+      ${genreInstructions}
+      
+      Based on the above context and the following prompt, generate the next part of the story:
+      
+      "${prompt}"
+      
+      Provide a rich, detailed description of the scene, including sensory details, character emotions, and environmental elements.
+      Write in second person perspective (e.g., "You see a towering castle in the distance").
+      Keep your response focused on storytelling, without meta-commentary.
+      Response length: 150-250 words.
       `;
-            const result = await this.model.generateContent(fullPrompt);
+            const result = await model.generateContent(fullPrompt);
             const response = result.response;
             return response.text();
         }
         catch (error) {
             this.logger.error(`Error generating story content: ${error.message}`, error.stack);
-            throw new Error(`Failed to generate story content: ${error.message}`);
+            return 'The storyteller pauses, gathering thoughts before continuing the tale...';
         }
     }
-    async generateChoices(storyContext, gameContext) {
+    async generateChoices(storyContent, gameContext) {
         try {
             const character = gameContext.character;
             if (!character) {
-                throw new Error('Character information is required for choices generation');
+                throw new Error('Character information is required for choice generation');
             }
-            const genre = character.genre || character_entity_1.GameGenre.FANTASY;
+            const userApiKey = gameContext.user?.geminiApiKey;
+            const model = this.getModel(userApiKey);
+            const primaryGenre = character.primaryGenre || character_entity_1.GameGenre.FANTASY;
+            const secondaryGenres = character.secondaryGenres || [];
+            const customGenreDescription = character.customGenreDescription || '';
             let characterInfo = `Character: ${character.name}, a level ${character.level} ${character.characterClass}. `;
-            switch (genre) {
-                case character_entity_1.GameGenre.FANTASY:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Dexterity ${character.attributes.dexterity || 0}, ` +
-                            `Charisma ${character.attributes.charisma || 0}, ` +
-                            `Health ${character.attributes.health || 0}, ` +
-                            `Mana ${character.attributes.mana || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.XIANXIA:
-                case character_entity_1.GameGenre.WUXIA:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Cultivation Level ${character.attributes.cultivation || 0}, ` +
-                            `Qi ${character.attributes.qi || 0}, ` +
-                            `Perception ${character.attributes.perception || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.SCIFI:
-                case character_entity_1.GameGenre.CYBERPUNK:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Tech Aptitude ${character.attributes.tech || 0}, ` +
-                            `Hacking ${character.attributes.hacking || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.HORROR:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Sanity ${character.attributes.sanity || 0}, ` +
-                            `Willpower ${character.attributes.willpower || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                default:
-                    characterInfo +=
-                        'Attributes: ' +
-                            Object.entries(character.attributes)
-                                .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)} ${value}`)
-                                .join(', ') +
-                            '. ';
+            characterInfo += 'Attributes: ';
+            const attributes = character.attributes;
+            const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
+            for (const attr of relevantAttributes) {
+                if (attributes[attr] !== undefined) {
+                    characterInfo += `${this.formatAttributeName(attr)} ${attributes[attr]}, `;
+                }
+            }
+            characterInfo = characterInfo.replace(/, $/, '. ');
+            if (character.inventory && character.inventory.items) {
+                characterInfo += 'Inventory: ';
+                character.inventory.items.forEach((item, index) => {
+                    characterInfo += `${item.name} (${item.quantity})`;
+                    if (index < character.inventory.items.length - 1) {
+                        characterInfo += ', ';
+                    }
+                });
+                characterInfo += '. ';
             }
             if (character.skills && character.skills.length > 0) {
-                characterInfo += `Skills: ${character.skills.join(', ')}. `;
+                characterInfo += 'Skills: ' + character.skills.join(', ') + '. ';
             }
-            if (character.specialAbilities && character.specialAbilities.length > 0) {
-                characterInfo += `Special Abilities: ${character.specialAbilities.map((a) => a.name).join(', ')}. `;
+            const genreAttributes = this.getGenreAttributes(primaryGenre);
+            const genreItems = this.getGenreItems(primaryGenre);
+            let secondaryGenreInfluences = '';
+            if (secondaryGenres && secondaryGenres.length > 0) {
+                secondaryGenreInfluences = 'Also incorporate elements from: ';
+                secondaryGenres.forEach((genre, index) => {
+                    secondaryGenreInfluences += this.getGenreName(genre);
+                    if (index < secondaryGenres.length - 1) {
+                        secondaryGenreInfluences += ', ';
+                    }
+                });
+                secondaryGenreInfluences += '. ';
             }
-            if (character.inventory &&
-                character.inventory.items &&
-                character.inventory.items.length > 0) {
-                characterInfo += `Items: ${character.inventory.items.map((i) => `${i.name} (${i.quantity})`).join(', ')}. `;
+            let customGenreInfo = '';
+            if (customGenreDescription) {
+                customGenreInfo = `Consider these custom elements: ${customGenreDescription}. `;
             }
-            const genreAttributes = this.getGenreAttributes(genre);
-            const genreItems = this.getGenreItems(genre);
+            const isCombatScene = gameContext.isCombatScene || false;
+            let combatInfo = '';
+            if (isCombatScene) {
+                combatInfo = `
+        This is a COMBAT SCENE. Generate choices that include:
+        - At least one offensive action
+        - At least one defensive or evasive action
+        - At least one creative or environmental action
+        `;
+            }
             const fullPrompt = `
-        You are designing choices for an interactive text adventure game called "Nhập Vai A.I Simulator".
-        Based on the following story context and character information, generate 3-4 meaningful choices for the player.
-        
-        ${characterInfo}
-        
-        Story context: ${storyContext}
-        
-        Genre: ${this.getGenreName(genre)}
-        
-        For each choice:
-        1. Provide the choice text (what the player sees)
-        2. Include a brief description of potential consequences (not shown to player)
-        3. Indicate if any special attributes, skills, or items would be beneficial
-        
-        The choices should be appropriate for the ${this.getGenreName(genre)} genre and reflect its themes and tropes.
-        
-        Relevant attributes for this genre include: ${genreAttributes.join(', ')}
-        Relevant item types for this genre include: ${genreItems.join(', ')}
-        
-        Format your response as a JSON array with objects containing:
-        - text: The choice text shown to player
-        - requiredAttribute: Optional attribute that would be beneficial (choose from the relevant attributes)
-        - requiredAttributeValue: Minimum value for the attribute
-        - requiredSkill: Optional skill that would be beneficial
-        - requiredItem: Optional item that would be beneficial
-        - nextPrompt: Brief description of what happens next if this choice is selected
-        - consequences: Object with potential effects (attributeChanges, skillGains, itemGains, itemLosses, relationChanges, flagChanges)
+      You are generating meaningful choices for an interactive text adventure game.
+      
+      ${characterInfo}
+      
+      Based on the following story segment, generate 3-4 distinct choices for the player:
+      
+      "${storyContent}"
+      
+      Primary Genre: ${this.getGenreName(primaryGenre)}
+      ${secondaryGenreInfluences}
+      ${customGenreInfo}
+      ${combatInfo}
+      
+      The choices should be appropriate for the primary genre and reflect its themes and tropes.
+      Each choice should be a clear action the character can take.
+      
+      Relevant attributes for this genre include: ${genreAttributes.join(', ')}
+      Relevant item types for this genre include: ${genreItems.join(', ')}
+      
+      Format each choice as a JSON object with these properties:
+      1. text: The choice text shown to the player (1-15 words)
+      2. consequences: Potential outcomes (not shown to player)
+        - attributeChanges: {attribute: numericValue, ...}
+        - itemGains: [{id: string, name: string, quantity: number}, ...]
+        - itemLosses: [{id: string, name: string, quantity: number}, ...]
+        - currencyChanges: {currencyType: numericValue, ...}
+        - flags: {flagName: value, ...}
+        - locationChange: string (if applicable)
+      3. nextPrompt: Brief description of what happens next if this choice is selected
+      
+      Return ONLY a valid JSON array of choice objects, with no additional text.
       `;
-            const result = await this.model.generateContent(fullPrompt);
+            const result = await model.generateContent(fullPrompt);
             const response = result.response;
-            const choicesText = response.text();
-            const jsonMatch = choicesText.match(/\[[\s\S]*\]/);
+            const responseText = response.text();
+            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
             if (!jsonMatch) {
-                throw new Error('Failed to parse choices from AI response');
+                throw new Error('Failed to generate valid choice JSON');
             }
-            return JSON.parse(jsonMatch[0]);
+            const choicesJson = jsonMatch[0];
+            return JSON.parse(choicesJson);
         }
         catch (error) {
             this.logger.error(`Error generating choices: ${error.message}`, error.stack);
-            throw new Error(`Failed to generate choices: ${error.message}`);
+            return [
+                {
+                    text: 'Continue cautiously',
+                    consequences: {
+                        attributeChanges: {},
+                    },
+                    nextPrompt: 'The character proceeds with caution',
+                },
+                {
+                    text: 'Look for another path',
+                    consequences: {
+                        attributeChanges: {},
+                    },
+                    nextPrompt: 'The character searches for alternatives',
+                },
+                {
+                    text: 'Rest and recover',
+                    consequences: {
+                        attributeChanges: { health: 5 },
+                    },
+                    nextPrompt: 'The character takes time to rest',
+                },
+            ];
         }
     }
     async generateCombatScene(character, location) {
         try {
-            const genre = character.genre || character_entity_1.GameGenre.FANTASY;
-            let characterInfo = `Character: ${character.name}, a level ${character.level} ${character.characterClass}. `;
-            switch (genre) {
-                case character_entity_1.GameGenre.FANTASY:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Dexterity ${character.attributes.dexterity || 0}, ` +
-                            `Charisma ${character.attributes.charisma || 0}, ` +
-                            `Health ${character.attributes.health || 0}, ` +
-                            `Mana ${character.attributes.mana || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.XIANXIA:
-                case character_entity_1.GameGenre.WUXIA:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Cultivation Level ${character.attributes.cultivation || 0}, ` +
-                            `Qi ${character.attributes.qi || 0}, ` +
-                            `Perception ${character.attributes.perception || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.SCIFI:
-                case character_entity_1.GameGenre.CYBERPUNK:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Tech Aptitude ${character.attributes.tech || 0}, ` +
-                            `Hacking ${character.attributes.hacking || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                case character_entity_1.GameGenre.HORROR:
-                    characterInfo +=
-                        `Attributes: Strength ${character.attributes.strength || 0}, ` +
-                            `Intelligence ${character.attributes.intelligence || 0}, ` +
-                            `Sanity ${character.attributes.sanity || 0}, ` +
-                            `Willpower ${character.attributes.willpower || 0}, ` +
-                            `Health ${character.attributes.health || 0}. `;
-                    break;
-                default:
-                    characterInfo +=
-                        'Attributes: ' +
-                            Object.entries(character.attributes)
-                                .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)} ${value}`)
-                                .join(', ') +
-                            '. ';
+            const primaryGenre = character.primaryGenre || character_entity_1.GameGenre.FANTASY;
+            const secondaryGenres = character.secondaryGenres || [];
+            const customGenreDescription = character.customGenreDescription || '';
+            const userApiKey = character.user?.geminiApiKey;
+            const model = this.getModel(userApiKey);
+            const relevantAttributes = this.getRelevantAttributes(primaryGenre, secondaryGenres);
+            let attributesInfo = '';
+            for (const attr of relevantAttributes) {
+                if (character.attributes[attr] !== undefined) {
+                    attributesInfo += `${this.formatAttributeName(attr)}: ${character.attributes[attr]}, `;
+                }
             }
-            if (character.skills && character.skills.length > 0) {
-                characterInfo += `Skills: ${character.skills.join(', ')}. `;
+            attributesInfo = attributesInfo.replace(/, $/, '');
+            let secondaryGenreInfluences = '';
+            if (secondaryGenres && secondaryGenres.length > 0) {
+                secondaryGenreInfluences = 'Also incorporate elements from: ';
+                secondaryGenres.forEach((genre, index) => {
+                    secondaryGenreInfluences += this.getGenreName(genre);
+                    if (index < secondaryGenres.length - 1) {
+                        secondaryGenreInfluences += ', ';
+                    }
+                });
+                secondaryGenreInfluences += '. ';
             }
-            if (character.specialAbilities && character.specialAbilities.length > 0) {
-                characterInfo += `Special Abilities: ${character.specialAbilities.map((a) => a.name).join(', ')}. `;
+            let customGenreInfo = '';
+            if (customGenreDescription) {
+                customGenreInfo = `Consider these custom elements: ${customGenreDescription}. `;
             }
-            const combatInstructions = this.getGenreCombatInstructions(genre);
-            const enemyTypes = this.getGenreEnemyTypes(genre);
-            const rewardTypes = this.getGenreRewardTypes(genre);
-            const fullPrompt = `
-        You are designing a combat encounter for an interactive text adventure game called "Nhập Vai A.I Simulator".
-        Create an engaging combat scenario based on the following character and location:
-        
-        ${characterInfo}
-        
-        Location: ${location}
-        
-        Genre: ${this.getGenreName(genre)}
-        
-        ${combatInstructions}
-        
-        Appropriate enemy types for this genre include: ${enemyTypes.join(', ')}
-        Appropriate reward types for this genre include: ${rewardTypes.join(', ')}
-        
-        Generate a complete combat scene including:
-        1. A description of the enemies and the combat situation
-        2. Enemy stats appropriate for the character's level
-        3. Possible combat actions for the player
-        4. Potential rewards for victory
-        
-        Format your response as a JSON object with:
-        - description: Narrative description of the combat scene
-        - enemies: Array of enemy objects with name, level, health, attributes, and abilities
-        - playerActions: Array of possible combat actions
-        - rewards: Object containing experience, currency, and potential item drops
+            const prompt = `
+      Generate a combat encounter for an interactive text adventure game.
+      
+      Character: ${character.name}, a level ${character.level} ${character.characterClass}
+      Attributes: ${attributesInfo}
+      Location: ${location}
+      
+      Primary Genre: ${this.getGenreName(primaryGenre)}
+      ${secondaryGenreInfluences}
+      ${customGenreInfo}
+      
+      Create a JSON object with the following:
+      1. A description of the enemies and the combat situation
+      2. Enemy data appropriate for the character's level and the genre
+      
+      The JSON should have this structure:
+      {
+        "enemies": [
+          {
+            "id": string,
+            "name": string,
+            "level": number,
+            "health": number,
+            "attributes": {key-value pairs of relevant attributes},
+            "abilities": [string array of special abilities]
+          }
+        ],
+        "rewards": {
+          "experience": number,
+          "gold": number (or appropriate currency for the genre),
+          "items": [
+            {
+              "id": string,
+              "name": string,
+              "quantity": number,
+              "dropChance": number (0-1)
+            }
+          ]
+        },
+        "description": Narrative description of the combat scene
+      }
+      
+      Return ONLY a valid JSON object, with no additional text.
       `;
-            const result = await this.model.generateContent(fullPrompt);
+            const result = await model.generateContent(prompt);
             const response = result.response;
-            const combatText = response.text();
-            const jsonMatch = combatText.match(/\{[\s\S]*\}/);
+            const responseText = response.text();
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
-                throw new Error('Failed to parse combat scene from AI response');
+                throw new Error('Failed to generate valid combat scene JSON');
             }
-            return JSON.parse(jsonMatch[0]);
+            const combatJson = jsonMatch[0];
+            return JSON.parse(combatJson);
         }
         catch (error) {
             this.logger.error(`Error generating combat scene: ${error.message}`, error.stack);
-            throw new Error(`Failed to generate combat scene: ${error.message}`);
+            return {
+                enemies: [
+                    {
+                        id: 'default-enemy',
+                        name: 'Mysterious Opponent',
+                        level: character.level,
+                        health: 50,
+                        attributes: {
+                            strength: 10,
+                            dexterity: 10,
+                        },
+                        abilities: ['Basic Attack'],
+                    },
+                ],
+                rewards: {
+                    experience: 50,
+                    gold: 25,
+                    items: [
+                        {
+                            id: 'minor-healing',
+                            name: 'Minor Healing Potion',
+                            quantity: 1,
+                            dropChance: 0.7,
+                        },
+                    ],
+                },
+                description: 'A shadowy figure emerges, challenging you to combat. Prepare yourself!',
+            };
         }
     }
     getGenreName(genre) {
         switch (genre) {
             case character_entity_1.GameGenre.FANTASY:
-                return 'Fantasy (giả tưởng)';
-            case character_entity_1.GameGenre.MODERN:
-                return 'Modern (hiện đại)';
+                return 'Fantasy';
             case character_entity_1.GameGenre.SCIFI:
-                return 'Sci-Fi (khoa học viễn tưởng)';
-            case character_entity_1.GameGenre.XIANXIA:
-                return 'Xianxia (Tiên Hiệp)';
-            case character_entity_1.GameGenre.WUXIA:
-                return 'Wuxia (Võ Hiệp)';
-            case character_entity_1.GameGenre.HORROR:
-                return 'Horror (kinh dị)';
+                return 'Science Fiction';
             case character_entity_1.GameGenre.CYBERPUNK:
                 return 'Cyberpunk';
+            case character_entity_1.GameGenre.XIANXIA:
+                return 'Xianxia (Cultivation)';
+            case character_entity_1.GameGenre.WUXIA:
+                return 'Wuxia (Martial Arts)';
+            case character_entity_1.GameGenre.HORROR:
+                return 'Horror';
+            case character_entity_1.GameGenre.MODERN:
+                return 'Modern';
+            case character_entity_1.GameGenre.POSTAPOCALYPTIC:
+                return 'Post-Apocalyptic';
             case character_entity_1.GameGenre.STEAMPUNK:
                 return 'Steampunk';
-            case character_entity_1.GameGenre.POSTAPOCALYPTIC:
-                return 'Post-Apocalyptic (hậu tận thế)';
             case character_entity_1.GameGenre.HISTORICAL:
-                return 'Historical (lịch sử)';
+                return 'Historical';
             default:
-                return 'Fantasy (giả tưởng)';
+                return 'Fantasy';
         }
     }
     getGenreSpecificInstructions(genre) {
         switch (genre) {
             case character_entity_1.GameGenre.FANTASY:
                 return `
-          This is a fantasy world with magic, knights, dragons, and mythical creatures.
-          Use rich descriptions of magical elements, ancient ruins, mystical forests, and fantastical creatures.
-          The tone should be epic and wondrous, with elements of heroism and adventure.
-        `;
-            case character_entity_1.GameGenre.XIANXIA:
-                return `
-          This is a Xianxia (Tiên Hiệp) world with cultivation, immortal sects, spiritual energy, and martial arts.
-          Use terminology like cultivation realms, qi, meridians, spiritual energy, immortal sects, and heavenly tribulations.
-          The tone should emphasize personal growth, enlightenment, and the pursuit of immortality.
-          Include references to Taoist philosophy, alchemy, and the balance of yin and yang.
-        `;
-            case character_entity_1.GameGenre.WUXIA:
-                return `
-          This is a Wuxia (Võ Hiệp) world with martial arts, jianghu (martial world), sects, and honor codes.
-          Focus on martial arts techniques, internal energy, swordplay, and the code of xia (chivalry).
-          The tone should emphasize honor, righteousness, loyalty, and the martial arts journey.
-          Include references to martial arts sects, famous weapons, and the jianghu society.
+        Create a high fantasy narrative with elements of magic, mythical creatures, and epic quests.
+        Use rich descriptions of magical elements, ancient ruins, mystical forests, and fantastical creatures.
+        Incorporate themes of heroism, destiny, and the struggle between good and evil.
         `;
             case character_entity_1.GameGenre.SCIFI:
                 return `
-          This is a science fiction world with advanced technology, space travel, and futuristic societies.
-          Use terminology related to technology, space, alien species, and scientific concepts.
-          The tone should balance wonder at technological marvels with thoughtful exploration of their implications.
+        Create a science fiction narrative with advanced technology, space exploration, and futuristic societies.
+        Use descriptions that emphasize technology, alien worlds, spacecraft, and scientific concepts.
+        Incorporate themes of discovery, the impact of technology on society, and humanity's place in the universe.
         `;
             case character_entity_1.GameGenre.CYBERPUNK:
                 return `
-          This is a cyberpunk world with high tech and low life, megacorporations, and cybernetic enhancements.
-          Use terminology related to hacking, cyberspace, augmentations, and corporate dystopia.
-          The tone should be gritty, cynical, and noir-inspired, with themes of rebellion against corporate control.
+        Create a cyberpunk narrative with high tech and low life, corporate dominance, and digital realms.
+        Use descriptions that contrast advanced technology with urban decay, neon-lit streets, and digital interfaces.
+        Incorporate themes of rebellion against corporate control, transhumanism, and the blurring line between human and machine.
+        `;
+            case character_entity_1.GameGenre.XIANXIA:
+            case character_entity_1.GameGenre.WUXIA:
+                return `
+        Create a narrative of martial arts, cultivation, and Eastern mysticism.
+        Use descriptions that emphasize qi manipulation, martial techniques, ancient sects, and spiritual growth.
+        Incorporate themes of personal cultivation, honor, martial hierarchies, and the pursuit of immortality.
         `;
             case character_entity_1.GameGenre.HORROR:
                 return `
-          This is a horror world with supernatural threats, psychological terror, and survival against the unknown.
-          Use descriptions that evoke fear, dread, and unease, with attention to atmosphere and tension.
-          The tone should be suspenseful and unsettling, with a sense of vulnerability and limited resources.
+        Create a horror narrative with elements of fear, the unknown, and psychological tension.
+        Use descriptions that evoke fear, dread, and unease, with attention to atmosphere and tension.
+        Incorporate themes of survival, sanity, and confronting the unknown or supernatural.
         `;
             case character_entity_1.GameGenre.MODERN:
                 return `
-          This is a modern world similar to our contemporary reality, but with unique story elements.
-          Use realistic descriptions of modern settings, technology, and social dynamics.
-          The tone should be grounded and relatable, with conflicts based on realistic human motivations.
+        Create a contemporary narrative set in the present day with realistic elements.
+        Use realistic descriptions of modern settings, technology, and social dynamics.
+        Incorporate themes relevant to contemporary life, relationships, and societal challenges.
+        `;
+            case character_entity_1.GameGenre.POSTAPOCALYPTIC:
+                return `
+        Create a narrative set after a global catastrophe, focusing on survival and rebuilding.
+        Use descriptions of ruined landscapes, scarcity, makeshift communities, and environmental hazards.
+        Incorporate themes of survival, adaptation, hope in adversity, and the rebuilding of society.
+        `;
+            case character_entity_1.GameGenre.STEAMPUNK:
+                return `
+        Create a narrative with Victorian aesthetics, steam-powered technology, and retrofuturistic elements.
+        Use descriptions of brass machinery, steam engines, airships, and alternative history technologies.
+        Incorporate themes of invention, exploration, class dynamics, and the impact of technology.
+        `;
+            case character_entity_1.GameGenre.HISTORICAL:
+                return `
+        Create a narrative set in a specific historical period with attention to historical accuracy.
+        Use descriptions that capture the setting, customs, technology, and social dynamics of the era.
+        Incorporate themes relevant to the historical period while maintaining an engaging narrative.
         `;
             default:
-                return '';
+                return `
+        Create an engaging narrative with vivid descriptions and meaningful choices.
+        Focus on character development, world-building, and an immersive story experience.
+        `;
         }
     }
     getGenreAttributes(genre) {
@@ -405,253 +513,73 @@ let GeminiAiService = GeminiAiService_1 = class GeminiAiService {
                 ];
             case character_entity_1.GameGenre.XIANXIA:
             case character_entity_1.GameGenre.WUXIA:
-                return [
-                    'strength',
-                    'intelligence',
-                    'dexterity',
-                    'cultivation',
-                    'qi',
-                    'perception',
-                ];
+                return ['strength', 'dexterity', 'qi', 'cultivation', 'perception'];
             case character_entity_1.GameGenre.SCIFI:
             case character_entity_1.GameGenre.CYBERPUNK:
-                return [
-                    'strength',
-                    'intelligence',
-                    'dexterity',
-                    'tech',
-                    'hacking',
-                    'health',
-                ];
+                return ['intelligence', 'tech', 'hacking', 'piloting'];
             case character_entity_1.GameGenre.HORROR:
-                return [
-                    'strength',
-                    'intelligence',
-                    'dexterity',
-                    'sanity',
-                    'willpower',
-                    'health',
-                ];
+                return ['sanity', 'willpower', 'perception'];
             case character_entity_1.GameGenre.MODERN:
-                return [
-                    'strength',
-                    'intelligence',
-                    'charisma',
-                    'education',
-                    'wealth',
-                    'health',
-                ];
+                return ['charisma', 'education', 'wealth', 'influence'];
+            case character_entity_1.GameGenre.POSTAPOCALYPTIC:
+                return ['strength', 'survival', 'scavenging', 'radiation resistance'];
+            case character_entity_1.GameGenre.STEAMPUNK:
+                return ['intelligence', 'engineering', 'social standing'];
             default:
-                return ['strength', 'intelligence', 'dexterity', 'charisma', 'health'];
+                return ['strength', 'intelligence', 'dexterity', 'charisma'];
         }
     }
     getGenreItems(genre) {
         switch (genre) {
             case character_entity_1.GameGenre.FANTASY:
-                return [
-                    'weapon',
-                    'armor',
-                    'potion',
-                    'scroll',
-                    'magical artifact',
-                    'quest item',
-                ];
+                return ['weapon', 'armor', 'potion', 'scroll', 'magical artifact'];
             case character_entity_1.GameGenre.XIANXIA:
             case character_entity_1.GameGenre.WUXIA:
                 return [
                     'weapon',
                     'cultivation manual',
-                    'medicinal pill',
-                    'spiritual herb',
+                    'medicinal herb',
+                    'qi pill',
                     'talisman',
-                    'sect treasure',
                 ];
             case character_entity_1.GameGenre.SCIFI:
             case character_entity_1.GameGenre.CYBERPUNK:
-                return [
-                    'weapon',
-                    'implant',
-                    'gadget',
-                    'medkit',
-                    'data chip',
-                    'hacking tool',
-                ];
+                return ['weapon', 'implant', 'gadget', 'medkit', 'data chip'];
             case character_entity_1.GameGenre.HORROR:
                 return [
                     'weapon',
                     'light source',
                     'medical supply',
-                    'protective item',
                     'ritual item',
-                    'evidence',
+                    'key',
                 ];
             case character_entity_1.GameGenre.MODERN:
-                return [
-                    'weapon',
-                    'tool',
-                    'medicine',
-                    'document',
-                    'electronic device',
-                    'key item',
-                ];
+                return ['smartphone', 'weapon', 'tool', 'medicine', 'document'];
+            case character_entity_1.GameGenre.POSTAPOCALYPTIC:
+                return ['weapon', 'scrap', 'food', 'water', 'medicine', 'fuel'];
+            case character_entity_1.GameGenre.STEAMPUNK:
+                return ['gadget', 'weapon', 'tool', 'blueprint', 'mechanical part'];
             default:
-                return ['weapon', 'armor', 'consumable', 'key item'];
+                return ['weapon', 'tool', 'consumable', 'key item'];
         }
     }
-    getGenreCombatInstructions(genre) {
-        switch (genre) {
-            case character_entity_1.GameGenre.FANTASY:
-                return `
-          Combat in fantasy settings involves weapons, magic spells, and tactical positioning.
-          Enemies should have fantasy-appropriate abilities and weaknesses.
-          Player actions should include physical attacks, magical abilities, and strategic options.
-        `;
-            case character_entity_1.GameGenre.XIANXIA:
-            case character_entity_1.GameGenre.WUXIA:
-                return `
-          Combat in Xianxia/Wuxia settings involves martial arts techniques, qi manipulation, and flying swords.
-          Enemies should have cultivation levels, martial arts styles, and special techniques.
-          Player actions should include martial arts moves, qi-based attacks, and cultivation techniques.
-        `;
-            case character_entity_1.GameGenre.SCIFI:
-            case character_entity_1.GameGenre.CYBERPUNK:
-                return `
-          Combat in sci-fi settings involves advanced weapons, technological gadgets, and tactical systems.
-          Enemies should have tech-based abilities, cybernetic enhancements, or alien traits.
-          Player actions should include tech-based attacks, hacking options, and environmental interactions.
-        `;
-            case character_entity_1.GameGenre.HORROR:
-                return `
-          Combat in horror settings emphasizes survival, resource management, and vulnerability.
-          Enemies should be terrifying, with supernatural abilities or overwhelming physical threats.
-          Player actions should include desperate attacks, evasion options, and psychological responses.
-        `;
-            case character_entity_1.GameGenre.MODERN:
-                return `
-          Combat in modern settings involves realistic weapons, physical abilities, and environmental advantages.
-          Enemies should have believable motivations, equipment, and tactics.
-          Player actions should include physical attacks, use of modern tools, and social options.
-        `;
-            default:
-                return '';
+    getRelevantAttributes(primaryGenre, secondaryGenres) {
+        const attributes = new Set(this.getGenreAttributes(primaryGenre));
+        if (secondaryGenres && secondaryGenres.length > 0) {
+            secondaryGenres.forEach((genre) => {
+                this.getGenreAttributes(genre).forEach((attr) => attributes.add(attr));
+            });
         }
+        ['strength', 'intelligence', 'dexterity', 'charisma', 'health'].forEach((attr) => attributes.add(attr));
+        return Array.from(attributes);
     }
-    getGenreEnemyTypes(genre) {
-        switch (genre) {
-            case character_entity_1.GameGenre.FANTASY:
-                return [
-                    'goblin',
-                    'orc',
-                    'troll',
-                    'undead',
-                    'dragon',
-                    'dark mage',
-                    'bandit',
-                    'demon',
-                ];
-            case character_entity_1.GameGenre.XIANXIA:
-            case character_entity_1.GameGenre.WUXIA:
-                return [
-                    'rival cultivator',
-                    'sect disciple',
-                    'demonic cultivator',
-                    'spirit beast',
-                    'bandit',
-                    'corrupt official',
-                    'ancient guardian',
-                ];
-            case character_entity_1.GameGenre.SCIFI:
-            case character_entity_1.GameGenre.CYBERPUNK:
-                return [
-                    'corporate security',
-                    'street gang',
-                    'rogue AI',
-                    'cyborg',
-                    'mutant',
-                    'alien species',
-                    'mercenary',
-                ];
-            case character_entity_1.GameGenre.HORROR:
-                return [
-                    'zombie',
-                    'ghost',
-                    'cultist',
-                    'eldritch horror',
-                    'serial killer',
-                    'mutated creature',
-                    'possessed human',
-                ];
-            case character_entity_1.GameGenre.MODERN:
-                return [
-                    'criminal',
-                    'corrupt official',
-                    'mercenary',
-                    'terrorist',
-                    'rival agent',
-                    'wild animal',
-                    'gang member',
-                ];
-            default:
-                return ['enemy fighter', 'monster', 'hostile creature', 'antagonist'];
-        }
-    }
-    getGenreRewardTypes(genre) {
-        switch (genre) {
-            case character_entity_1.GameGenre.FANTASY:
-                return [
-                    'gold coins',
-                    'magical items',
-                    'enchanted weapons',
-                    'spell scrolls',
-                    'potions',
-                    'rare materials',
-                ];
-            case character_entity_1.GameGenre.XIANXIA:
-            case character_entity_1.GameGenre.WUXIA:
-                return [
-                    'spirit stones',
-                    'cultivation manuals',
-                    'medicinal pills',
-                    'spiritual herbs',
-                    'ancient weapons',
-                    'cultivation insights',
-                ];
-            case character_entity_1.GameGenre.SCIFI:
-            case character_entity_1.GameGenre.CYBERPUNK:
-                return [
-                    'credits',
-                    'cybernetic implants',
-                    'advanced weapons',
-                    'rare tech',
-                    'data files',
-                    'medical supplies',
-                ];
-            case character_entity_1.GameGenre.HORROR:
-                return [
-                    'ammunition',
-                    'medical supplies',
-                    'ritual items',
-                    'clues',
-                    'survival tools',
-                    'rare artifacts',
-                ];
-            case character_entity_1.GameGenre.MODERN:
-                return [
-                    'money',
-                    'weapons',
-                    'information',
-                    'contacts',
-                    'equipment',
-                    'valuable items',
-                ];
-            default:
-                return ['currency', 'equipment', 'consumables', 'key items'];
-        }
+    formatAttributeName(attr) {
+        return attr.charAt(0).toUpperCase() + attr.slice(1);
     }
 };
 exports.GeminiAiService = GeminiAiService;
 exports.GeminiAiService = GeminiAiService = GeminiAiService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], GeminiAiService);
 //# sourceMappingURL=gemini-ai.service.js.map

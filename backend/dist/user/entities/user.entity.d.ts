@@ -14,5 +14,6 @@ export declare class User {
     updatedAt: Date;
     googleId?: string | null;
     profilePicture?: string | null;
+    geminiApiKey?: string | null;
     characters: Character[];
 }

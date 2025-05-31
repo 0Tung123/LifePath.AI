@@ -36,7 +36,9 @@ export declare class Character {
     id: string;
     name: string;
     characterClass: string;
-    genre: GameGenre;
+    primaryGenre: GameGenre;
+    secondaryGenres: GameGenre[];
+    customGenreDescription: string;
     attributes: CharacterAttributes;
     skills: string[];
     specialAbilities: {

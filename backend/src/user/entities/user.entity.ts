@@ -97,6 +97,14 @@ export class User {
   @Column({ nullable: true, type: 'varchar', length: 255 })
   profilePicture?: string | null;
 
+  @ApiProperty({
+    example: 'api_key_value',
+    description: "User's personal Gemini API key",
+    nullable: true,
+  })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  geminiApiKey?: string | null;
+
   @OneToMany(() => Character, (character) => character.user)
   characters: Character[];
 }

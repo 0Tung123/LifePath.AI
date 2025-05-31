@@ -117,6 +117,15 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "profilePicture", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'api_key_value',
+        description: "User's personal Gemini API key",
+        nullable: true,
+    }),
+    (0, typeorm_1.Column)({ nullable: true, type: 'varchar', length: 255 }),
+    __metadata("design:type", Object)
+], User.prototype, "geminiApiKey", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => character_entity_1.Character, (character) => character.user),
     __metadata("design:type", Array)
 ], User.prototype, "characters", void 0);

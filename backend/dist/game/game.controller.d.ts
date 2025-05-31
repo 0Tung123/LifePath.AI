@@ -7,7 +7,9 @@ export declare class GameController {
     createCharacter(req: any, characterData: Partial<Character>): Promise<Character>;
     generateCharacter(req: any, data: {
         description: string;
-        genre?: GameGenre;
+        primaryGenre?: GameGenre;
+        secondaryGenres?: GameGenre[];
+        customGenreDescription?: string;
     }): Promise<Character>;
     getMyCharacters(req: any): Promise<Character[]>;
     getCharacter(id: string): Promise<Character>;
