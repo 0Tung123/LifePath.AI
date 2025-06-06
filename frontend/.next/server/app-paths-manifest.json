@@ -1,11 +1,12 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/game/characters/generate/route": "app/api/game/characters/generate/route.js",
+  "/api/auth/status/route": "app/api/auth/status/route.js",
   "/api/game/characters/route": "app/api/game/characters/route.js",
   "/api/game/sessions/route": "app/api/game/sessions/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/game/characters/create/page": "app/game/characters/create/page.js",
   "/game/page": "app/game/page.js",
+  "/game/play/[id]/page": "app/game/play/[id]/page.js",
   "/login/page": "app/login/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/register/page": "app/register/page.js"
 }

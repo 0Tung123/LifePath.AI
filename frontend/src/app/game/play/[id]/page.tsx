@@ -81,6 +81,7 @@ export default function GamePlayPage({
   const { id } = use(params);
 
   const [gameSession, setGameSession] = useState<GameSession | null>(null);
+  const [storyHistory, setStoryHistory] = useState<StoryNode[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [makingChoice, setMakingChoice] = useState<boolean>(false);
@@ -99,8 +100,13 @@ export default function GamePlayPage({
     const fetchGameSession = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/game/sessions/${id}`);
-        setGameSession(response.data);
+        const [sessionResponse, historyResponse] = await Promise.all([
+          axios.get(`/api/game/sessions/${id}`),
+          axios.get(`/api/game/sessions/${id}/history`)
+        ]);
+        
+        setGameSession(sessionResponse.data);
+        setStoryHistory(historyResponse.data);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching game session:", err);
@@ -114,21 +120,26 @@ export default function GamePlayPage({
     }
   }, [id]);
 
-  // Hiệu ứng hiển thị văn bản từng chữ một
+  // Hiệu ứng hiển thị văn bản từng chữ một cho story node mới nhất
   useEffect(() => {
-    if (!gameSession || !animateText || textComplete) return;
+    if (!gameSession || !animateText || textComplete || storyHistory.length === 0) return;
 
-    const content = gameSession.currentStoryNode?.content || "";
+    const latestStoryNode = storyHistory[storyHistory.length - 1];
+    const content = latestStoryNode?.content || "";
     const contentElement = contentRef.current;
 
     if (!contentElement) return;
 
-    contentElement.innerHTML = "";
+    // Chỉ animate nội dung của story node mới nhất
+    const latestContentElement = contentElement.querySelector('.latest-story-content');
+    if (!latestContentElement) return;
+
+    latestContentElement.innerHTML = "";
     let index = 0;
 
     const interval = setInterval(() => {
       if (index < content.length) {
-        contentElement.innerHTML += content.charAt(index);
+        latestContentElement.innerHTML += content.charAt(index);
         index++;
 
         // Tự động cuộn xuống khi văn bản dài
@@ -141,7 +152,7 @@ export default function GamePlayPage({
     }, 30); // Tốc độ hiển thị chữ
 
     return () => clearInterval(interval);
-  }, [gameSession, animateText, textComplete]);
+  }, [gameSession, animateText, textComplete, storyHistory]);
 
   // Cuộn xuống khi hiển thị lựa chọn
   useEffect(() => {
@@ -158,19 +169,28 @@ export default function GamePlayPage({
       setMakingChoice(true);
       setSelectedChoiceId(choiceId);
 
-      const response = await axios.post(
-        `/api/game/sessions/${id}/choices/${choiceId}`
-      );
+      const [sessionResponse, historyResponse] = await Promise.all([
+        axios.post(`/api/game/sessions/${id}/choices/${choiceId}`),
+        axios.get(`/api/game/sessions/${id}/history`)
+      ]);
 
-      // Reset các trạng thái
-      setGameSession(response.data);
+      // Cập nhật game session và lịch sử
+      setGameSession(sessionResponse.data);
+      setStoryHistory(historyResponse.data);
+      
+      // Reset các trạng thái cho story node mới
       setTextComplete(false);
       setShowChoices(false);
       setMakingChoice(false);
       setSelectedChoiceId(null);
+      setAnimateText(true);
 
-      // Cuộn lên đầu khi chuyển sang nút truyện mới
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Cuộn xuống story node mới
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = contentRef.current.scrollHeight;
+        }
+      }, 100);
     } catch (err) {
       console.error("Error making choice:", err);
       setError("Không thể thực hiện lựa chọn. Vui lòng thử lại.");

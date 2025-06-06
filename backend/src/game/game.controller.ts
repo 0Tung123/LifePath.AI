@@ -145,6 +145,11 @@ export class GameController {
     return this.gameService.getGameSessionWithDetails(id);
   }
 
+  @Get('sessions/:id/history')
+  async getGameSessionHistory(@Param('id') id: string) {
+    return this.gameService.getGameSessionHistory(id);
+  }
+
   @Put('sessions/:id/save')
   async saveGame(@Param('id') id: string): Promise<GameSession> {
     // Lấy phiên game hiện tại

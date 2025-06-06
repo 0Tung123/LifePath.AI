@@ -23,6 +23,7 @@ export declare class GameController {
     }): Promise<GameSession>;
     getMyActiveSessions(req: any): Promise<GameSession[]>;
     getGameSession(id: string): Promise<GameSession>;
+    getGameSessionHistory(id: string): Promise<import("./entities/story-node.entity").StoryNode[]>;
     saveGame(id: string): Promise<GameSession>;
     endGame(id: string): Promise<GameSession>;
     makeChoice(id: string, choiceId: string): Promise<GameSession>;

@@ -168,7 +168,7 @@ __turbopack_context__.s({
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/axios/lib/axios.js [app-route] (ecmascript)");
 ;
 // Get the base URL from environment variables or use default
-const getBaseUrl = ()=>("TURBOPACK compile-time value", "http://localhost:3001") || "http://localhost:3000";
+const getBaseUrl = ()=>("TURBOPACK compile-time value", "http://localhost:3000") || "http://localhost:3000";
 const apiRouteClient = (cookie)=>{
     const config = {
         baseURL: getBaseUrl(),

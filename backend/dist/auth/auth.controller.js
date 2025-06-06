@@ -20,6 +20,7 @@ const google_guard_1 = require("./google.guard");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
 const register_dto_1 = require("./dto/register.dto");
+const verify_email_dto_1 = require("./dto/verify-email.dto");
 const resend_verification_dto_1 = require("./dto/resend-verification.dto");
 const swagger_1 = require("@nestjs/swagger");
 const config_1 = require("@nestjs/config");
@@ -49,6 +50,9 @@ let AuthController = class AuthController {
     }
     async verifyEmail(token) {
         return this.authService.verifyEmail(token);
+    }
+    async verifyEmailPost(verifyEmailDto) {
+        return this.authService.verifyEmail(verifyEmailDto.token);
     }
     async resendVerification(resendVerificationDto) {
         return this.authService.resendVerificationEmail(resendVerificationDto.email);
@@ -185,7 +189,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('verify-email'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Verify email address' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify email address (GET)' }),
     (0, swagger_1.ApiQuery)({ name: 'token', description: 'Email verification token' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Email verified successfully' }),
     (0, swagger_1.ApiResponse)({
@@ -197,6 +201,21 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "verifyEmail", null);
+__decorate([
+    (0, common_1.Post)('verify-email'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Verify email address (POST)' }),
+    (0, swagger_1.ApiBody)({ type: verify_email_dto_1.VerifyEmailDto }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Email verified successfully' }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid verification token or token expired',
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [verify_email_dto_1.VerifyEmailDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyEmailPost", null);
 __decorate([
     (0, common_1.Post)('resend-verification'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

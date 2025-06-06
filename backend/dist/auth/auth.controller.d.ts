@@ -2,6 +2,7 @@ import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -27,6 +28,7 @@ export declare class AuthController {
     forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<any>;
     resetPassword(resetPasswordDto: ResetPasswordDto): Promise<any>;
     verifyEmail(token: string): Promise<any>;
+    verifyEmailPost(verifyEmailDto: VerifyEmailDto): Promise<any>;
     resendVerification(resendVerificationDto: ResendVerificationDto): Promise<any>;
     googleAuth(): void;
     googleAuthRedirect(req: any, res: Response): Promise<void>;

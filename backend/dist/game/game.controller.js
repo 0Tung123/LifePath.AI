@@ -97,6 +97,9 @@ let GameController = class GameController {
     async getGameSession(id) {
         return this.gameService.getGameSessionWithDetails(id);
     }
+    async getGameSessionHistory(id) {
+        return this.gameService.getGameSessionHistory(id);
+    }
     async saveGame(id) {
         const session = await this.gameService.getGameSessionWithDetails(id);
         return session;
@@ -166,6 +169,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], GameController.prototype, "getGameSession", null);
+__decorate([
+    (0, common_1.Get)('sessions/:id/history'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "getGameSessionHistory", null);
 __decorate([
     (0, common_1.Put)('sessions/:id/save'),
     __param(0, (0, common_1.Param)('id')),
