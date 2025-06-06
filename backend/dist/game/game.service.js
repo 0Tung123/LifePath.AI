@@ -528,6 +528,9 @@ let GameService = GameService_1 = class GameService {
                 const location = gameSession.currentStoryNode.location || 'unknown location';
                 combatData = await this.geminiAiService.generateCombatScene(character, location);
             }
+            gameSession.currentStoryNode.selectedChoiceId = choice.id;
+            gameSession.currentStoryNode.selectedChoiceText = choice.text;
+            await this.storyNodeRepository.save(gameSession.currentStoryNode);
             const storyContent = await this.geminiAiService.generateStoryContent(nextPrompt, {
                 character,
                 gameState: gameSession.gameState,

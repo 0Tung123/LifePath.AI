@@ -49,6 +49,14 @@ __decorate([
     __metadata("design:type", Boolean)
 ], StoryNode.prototype, "isEnding", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "selectedChoiceId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "selectedChoiceText", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => game_session_entity_1.GameSession, (gameSession) => gameSession.storyNodes),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", game_session_entity_1.GameSession)

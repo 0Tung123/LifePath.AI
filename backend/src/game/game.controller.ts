@@ -150,6 +150,24 @@ export class GameController {
     return this.gameService.getGameSessionHistory(id);
   }
 
+  @Get('sessions/:id/path-history')
+  async getActualPathHistory(@Param('id') id: string) {
+    return this.gameService.getActualPathHistory(id);
+  }
+
+  @Get('sessions/:id/branches')
+  async getAllBranches(@Param('id') id: string) {
+    return this.gameService.getAllBranches(id);
+  }
+
+  @Post('sessions/:id/restore-branch/:branchId')
+  async restoreBranch(
+    @Param('id') sessionId: string,
+    @Param('branchId') branchId: string,
+  ) {
+    return this.gameService.restoreBranch(sessionId, branchId);
+  }
+
   @Put('sessions/:id/save')
   async saveGame(@Param('id') id: string): Promise<GameSession> {
     // Lấy phiên game hiện tại
@@ -170,5 +188,18 @@ export class GameController {
     @Param('choiceId') choiceId: string,
   ): Promise<GameSession> {
     return this.gameService.makeChoice(id, choiceId);
+  }
+
+  @Post('sessions/:id/go-back/:nodeId')
+  async goBackToNode(
+    @Param('id') sessionId: string,
+    @Param('nodeId') nodeId: string,
+  ) {
+    return this.gameService.goBackToNode(sessionId, nodeId);
+  }
+
+  @Get('sessions/:id/tree')
+  async getStoryTree(@Param('id') sessionId: string) {
+    return this.gameService.getStoryTree(sessionId);
   }
 }

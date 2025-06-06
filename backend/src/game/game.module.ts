@@ -7,13 +7,21 @@ import { Character } from './entities/character.entity';
 import { GameSession } from './entities/game-session.entity';
 import { StoryNode } from './entities/story-node.entity';
 import { Choice } from './entities/choice.entity';
+import { StoryPath } from './entities/story-path.entity';
 import { GeminiAiService } from './gemini-ai.service';
 import { CharacterGeneratorService } from './character-generator.service';
 import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Character, GameSession, StoryNode, Choice, User]),
+    TypeOrmModule.forFeature([
+      Character,
+      GameSession,
+      StoryNode,
+      Choice,
+      StoryPath,
+      User,
+    ]),
     ConfigModule,
   ],
   controllers: [GameController],

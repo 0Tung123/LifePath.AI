@@ -32,6 +32,8 @@ export declare class StoryNode {
     };
     createdAt: Date;
     isEnding: boolean;
+    selectedChoiceId: string;
+    selectedChoiceText: string;
     gameSession: GameSession;
     choices: Choice[];
 }

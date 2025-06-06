@@ -4,6 +4,13 @@ import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import { useFirebaseAuth } from "@/contexts/FirebaseAuthContext";
+import { useGameStats } from "@/hooks/useFirebase";
+import { FirebaseAuthButtons } from "@/components/firebase/FirebaseAuthButtons";
+import { GameBackup } from "@/components/firebase/GameBackup";
+import { StoryTimeline } from "@/components/game/StoryTimeline";
+import { AdvancedTimeline } from "@/components/game/AdvancedTimeline";
+import { BranchTreeVisualization } from "@/components/game/BranchTreeVisualization";
 
 // TypeScript interfaces
 interface Choice {
@@ -26,6 +33,7 @@ interface CombatData {
 }
 
 interface StoryNode {
+  id?: string;
   content: string;
   location?: string;
   sceneDescription?: string;
@@ -33,6 +41,23 @@ interface StoryNode {
   isCombatScene?: boolean;
   combatData?: CombatData;
   isEnding?: boolean;
+  selectedChoiceId?: string;
+  selectedChoiceText?: string;
+  parentNodeId?: string;
+  choiceIdFromParent?: string;
+  depth?: number;
+  isVisited?: boolean;
+  childNodes?: StoryNode[];
+  parentNode?: StoryNode;
+}
+
+interface StoryPath {
+  id: string;
+  nodeId: string;
+  choiceId: string;
+  choiceText: string;
+  stepOrder: number;
+  createdAt: string;
 }
 
 interface InventoryItem {
@@ -67,9 +92,16 @@ interface GameState {
 }
 
 interface GameSession {
+  id: string;
   character: Character;
   currentStoryNode: StoryNode;
   gameState?: GameState;
+  storyNodes?: StoryNode[];
+  storyPaths?: StoryPath[];
+  isActive?: boolean;
+  startedAt?: string;
+  lastSavedAt?: string;
+  endedAt?: string;
 }
 
 export default function GamePlayPage({
@@ -80,8 +112,13 @@ export default function GamePlayPage({
   const router = useRouter();
   const { id } = use(params);
 
+  // Firebase hooks
+  const { firebaseUser } = useFirebaseAuth();
+  const { incrementChoicesMade, updatePlayTime } = useGameStats();
+
   const [gameSession, setGameSession] = useState<GameSession | null>(null);
   const [storyHistory, setStoryHistory] = useState<StoryNode[]>([]);
+  const [storyTree, setStoryTree] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [makingChoice, setMakingChoice] = useState<boolean>(false);
@@ -92,9 +129,23 @@ export default function GamePlayPage({
   const [animateText, setAnimateText] = useState<boolean>(true);
   const [textComplete, setTextComplete] = useState<boolean>(false);
   const [showChoices, setShowChoices] = useState<boolean>(false);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [timelineKey, setTimelineKey] = useState(0); // Force timeline reload
 
   const contentRef = useRef<HTMLDivElement>(null);
   const choicesRef = useRef<HTMLDivElement>(null);
+
+  const toggleNodeExpansion = (nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     const fetchGameSession = async () => {
@@ -102,11 +153,12 @@ export default function GamePlayPage({
         setLoading(true);
         const [sessionResponse, historyResponse] = await Promise.all([
           axios.get(`/api/game/sessions/${id}`),
-          axios.get(`/api/game/sessions/${id}/history`)
+          axios.get(`/api/game/sessions/${id}/history`),
         ]);
-        
+
         setGameSession(sessionResponse.data);
         setStoryHistory(historyResponse.data);
+        await loadStoryTree();
         setLoading(false);
       } catch (err) {
         console.error("Error fetching game session:", err);
@@ -122,7 +174,13 @@ export default function GamePlayPage({
 
   // Hiệu ứng hiển thị văn bản từng chữ một cho story node mới nhất
   useEffect(() => {
-    if (!gameSession || !animateText || textComplete || storyHistory.length === 0) return;
+    if (
+      !gameSession ||
+      !animateText ||
+      textComplete ||
+      storyHistory.length === 0
+    )
+      return;
 
     const latestStoryNode = storyHistory[storyHistory.length - 1];
     const content = latestStoryNode?.content || "";
@@ -131,7 +189,9 @@ export default function GamePlayPage({
     if (!contentElement) return;
 
     // Chỉ animate nội dung của story node mới nhất
-    const latestContentElement = contentElement.querySelector('.latest-story-content');
+    const latestContentElement = contentElement.querySelector(
+      ".latest-story-content"
+    );
     if (!latestContentElement) return;
 
     latestContentElement.innerHTML = "";
@@ -164,6 +224,76 @@ export default function GamePlayPage({
     }
   }, [showChoices]);
 
+  // Load story tree
+  const loadStoryTree = async () => {
+    try {
+      const response = await axios.get(`/api/game/sessions/${id}/tree`);
+      setStoryTree(response.data);
+    } catch (error) {
+      console.error("Failed to load story tree:", error);
+    }
+  };
+
+  // Go back to previous node
+  const goBackToNode = async (nodeId: string) => {
+    try {
+      setLoading(true);
+      const [sessionResponse, historyResponse] = await Promise.all([
+        axios.post(`/api/game/sessions/${id}/go-back/${nodeId}`),
+        axios.get(`/api/game/sessions/${id}/history`),
+      ]);
+
+      setGameSession(sessionResponse.data);
+      setStoryHistory(historyResponse.data);
+      await loadStoryTree();
+
+      // Force timeline reload
+      setTimelineKey((prev) => prev + 1);
+
+      // Reset UI states
+      setMakingChoice(false);
+      setSelectedChoiceId(null);
+      setAnimateText(true);
+      setTextComplete(false);
+      setShowChoices(false);
+    } catch (error) {
+      console.error("Failed to go back to node:", error);
+      setError("Không thể quay lại node này");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Restore branch
+  const restoreBranch = async (branchId: string) => {
+    try {
+      setLoading(true);
+      const [sessionResponse, historyResponse] = await Promise.all([
+        axios.post(`/api/game/sessions/${id}/restore-branch/${branchId}`),
+        axios.get(`/api/game/sessions/${id}/history`),
+      ]);
+
+      setGameSession(sessionResponse.data);
+      setStoryHistory(historyResponse.data);
+      await loadStoryTree();
+
+      // Force timeline reload
+      setTimelineKey((prev) => prev + 1);
+
+      // Reset UI states
+      setMakingChoice(false);
+      setSelectedChoiceId(null);
+      setAnimateText(true);
+      setTextComplete(false);
+      setShowChoices(false);
+    } catch (error) {
+      console.error("Failed to restore branch:", error);
+      setError("Không thể khôi phục nhánh này");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const makeChoice = async (choiceId: string) => {
     try {
       setMakingChoice(true);
@@ -171,13 +301,17 @@ export default function GamePlayPage({
 
       const [sessionResponse, historyResponse] = await Promise.all([
         axios.post(`/api/game/sessions/${id}/choices/${choiceId}`),
-        axios.get(`/api/game/sessions/${id}/history`)
+        axios.get(`/api/game/sessions/${id}/history`),
       ]);
 
       // Cập nhật game session và lịch sử
       setGameSession(sessionResponse.data);
       setStoryHistory(historyResponse.data);
-      
+      await loadStoryTree();
+
+      // Force timeline reload
+      setTimelineKey((prev) => prev + 1);
+
       // Reset các trạng thái cho story node mới
       setTextComplete(false);
       setShowChoices(false);
@@ -185,10 +319,13 @@ export default function GamePlayPage({
       setSelectedChoiceId(null);
       setAnimateText(true);
 
-      // Cuộn xuống story node mới
+      // Cuộn xuống story node mới với hiệu ứng mượt
       setTimeout(() => {
         if (contentRef.current) {
-          contentRef.current.scrollTop = contentRef.current.scrollHeight;
+          contentRef.current.scrollTo({
+            top: contentRef.current.scrollHeight,
+            behavior: "smooth",
+          });
         }
       }, 100);
     } catch (err) {
@@ -510,14 +647,248 @@ export default function GamePlayPage({
             </div>
           )}
 
-          {/* Story Content */}
+          {/* Story Content - Hệ thống diễn biến với thanh trượt */}
           <div className="container mx-auto p-6">
             <div className="mb-8">
-              <div ref={contentRef} className="prose prose-invert max-w-none">
-                {!animateText && gameSession.currentStoryNode?.content}
+              {/* Header cho lịch sử câu chuyện */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">
+                  Diễn biến câu chuyện
+                </h2>
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-400">
+                    {storyHistory.length} đoạn truyện
+                  </div>
+                  <button
+                    onClick={() => {
+                      const allNodeIds = storyHistory
+                        .slice(0, -1)
+                        .map((node, index) => node.id || `node-${index}`);
+                      const allExpanded = allNodeIds.every((id) =>
+                        expandedNodes.has(id)
+                      );
+
+                      if (allExpanded) {
+                        setExpandedNodes(new Set());
+                      } else {
+                        setExpandedNodes(new Set(allNodeIds));
+                      }
+                    }}
+                    className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded transition-colors"
+                    title="Mở rộng/Thu gọn tất cả"
+                  >
+                    {storyHistory
+                      .slice(0, -1)
+                      .every((node, index) =>
+                        expandedNodes.has(node.id || `node-${index}`)
+                      )
+                      ? "Thu gọn tất cả"
+                      : "Mở rộng tất cả"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (contentRef.current) {
+                        contentRef.current.scrollTo({
+                          top: contentRef.current.scrollHeight,
+                          behavior: "smooth",
+                        });
+                      }
+                    }}
+                    className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center space-x-1"
+                    title="Cuộn xuống mới nhất"
+                  >
+                    <span>↓</span>
+                    <span>Mới nhất</span>
+                  </button>
+                </div>
               </div>
 
-              {animateText && !textComplete && (
+              {/* Container có thanh trượt cho lịch sử câu chuyện */}
+              <div
+                ref={contentRef}
+                className="max-h-96 overflow-y-auto bg-gray-800/30 rounded-lg p-4 space-y-6 border border-gray-700 scrollbar-thin"
+                style={{ scrollBehavior: "smooth" }}
+              >
+                {storyHistory.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    <div className="animate-pulse">
+                      Đang tải lịch sử câu chuyện...
+                    </div>
+                  </div>
+                ) : (
+                  storyHistory.map((storyNode, index) => {
+                    const isLatest = index === storyHistory.length - 1;
+                    const isCurrentNode =
+                      storyNode.id === gameSession.currentStoryNode?.id;
+                    const nodeId = storyNode.id || `node-${index}`;
+                    const isExpanded = isLatest || expandedNodes.has(nodeId);
+
+                    return (
+                      <div
+                        key={nodeId}
+                        className={`story-segment relative ${
+                          isLatest
+                            ? "latest-story bg-gray-700/20"
+                            : "past-story bg-gray-800/20"
+                        } ${
+                          isCurrentNode
+                            ? "border-l-4 border-blue-500 pl-4"
+                            : "pl-2"
+                        } rounded-lg p-4 ${
+                          isLatest ? "ring-2 ring-blue-500/30" : ""
+                        }`}
+                      >
+                        {/* Header với số thứ tự và nút thu gọn/mở rộng */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                            #{index + 1}
+                          </div>
+                          {!isLatest && (
+                            <button
+                              onClick={() => toggleNodeExpansion(nodeId)}
+                              className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+                              title={isExpanded ? "Thu gọn" : "Mở rộng"}
+                            >
+                              {isExpanded ? "−" : "+"}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Hiển thị preview khi thu gọn */}
+                        {!isExpanded && (
+                          <div className="text-sm text-gray-400 italic">
+                            {storyNode.content.substring(0, 100)}...
+                            {storyNode.selectedChoiceText && (
+                              <div className="mt-1 text-green-400">
+                                → {storyNode.selectedChoiceText}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Nội dung đầy đủ khi mở rộng */}
+                        {isExpanded && (
+                          <>
+                            {/* Hiển thị location nếu có */}
+                            {storyNode.location && (
+                              <div className="flex items-center text-sm text-gray-400 mb-2">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4 mr-1"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                {storyNode.location}
+                              </div>
+                            )}
+
+                            {/* Nội dung câu chuyện */}
+                            <div
+                              className={`prose prose-invert max-w-none ${
+                                isLatest ? "text-white" : "text-gray-300"
+                              }`}
+                            >
+                              {isLatest && animateText && !textComplete ? (
+                                <div className="latest-story-content"></div>
+                              ) : (
+                                <div>{storyNode.content}</div>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Combat scene cho story node này */}
+                        {isExpanded &&
+                          storyNode.isCombatScene &&
+                          storyNode.combatData && (
+                            <div className="mt-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
+                              <h4 className="text-lg font-bold mb-2 text-red-400">
+                                Trận chiến!
+                              </h4>
+                              <div className="space-y-2">
+                                {storyNode.combatData.enemies.map(
+                                  (enemy, enemyIndex) => (
+                                    <div
+                                      key={enemyIndex}
+                                      className="flex justify-between items-center bg-gray-800/30 p-2 rounded"
+                                    >
+                                      <div>
+                                        <div className="font-bold text-sm">
+                                          {enemy.name}
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                          Cấp {enemy.level}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm font-bold">
+                                        {enemy.health}/100 HP
+                                      </div>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Hiển thị lựa chọn đã được chọn */}
+                        {isExpanded &&
+                          !isLatest &&
+                          storyNode.selectedChoiceText && (
+                            <div className="mt-4">
+                              <h4 className="text-sm font-semibold text-green-400 mb-2">
+                                Lựa chọn đã chọn:
+                              </h4>
+                              <div className="text-sm p-3 bg-green-900/20 border border-green-800/30 rounded border-l-4 border-green-500 text-green-300">
+                                ✓ {storyNode.selectedChoiceText}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Hiển thị tất cả choices cho story node này (nếu không phải là node mới nhất) */}
+                        {isExpanded &&
+                          !isLatest &&
+                          storyNode.choices &&
+                          storyNode.choices.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                              <h4 className="text-sm font-semibold text-gray-400">
+                                Tất cả lựa chọn có sẵn:
+                              </h4>
+                              {storyNode.choices.map((choice) => {
+                                const wasSelected =
+                                  choice.id === storyNode.selectedChoiceId;
+                                return (
+                                  <div
+                                    key={choice.id}
+                                    className={`text-sm p-2 rounded border-l-2 ${
+                                      wasSelected
+                                        ? "bg-green-900/20 border-green-600 text-green-300"
+                                        : "bg-gray-700/30 border-gray-600 text-gray-400"
+                                    }`}
+                                  >
+                                    {wasSelected && (
+                                      <span className="mr-2">✓</span>
+                                    )}
+                                    {choice.text}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Nút hiển thị toàn bộ cho story node mới nhất */}
+              {animateText && !textComplete && storyHistory.length > 0 && (
                 <button
                   onClick={() => {
                     setAnimateText(false);
@@ -530,52 +901,6 @@ export default function GamePlayPage({
                 </button>
               )}
             </div>
-
-            {/* Combat Scene */}
-            {gameSession.currentStoryNode?.isCombatScene &&
-              gameSession.currentStoryNode?.combatData && (
-                <div className="mb-8 bg-red-900/30 border border-red-800/50 rounded-lg p-4">
-                  <h3 className="text-xl font-bold mb-4 text-red-400">
-                    Trận chiến!
-                  </h3>
-
-                  <div className="space-y-4">
-                    {gameSession.currentStoryNode.combatData.enemies.map(
-                      (enemy, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center bg-gray-800/50 p-3 rounded-lg"
-                        >
-                          <div>
-                            <div className="font-bold">{enemy.name}</div>
-                            <div className="text-sm text-gray-400">
-                              Cấp {enemy.level}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center">
-                            <div className="mr-3">
-                              <div className="text-xs text-gray-400">HP</div>
-                              <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-red-500"
-                                  style={{
-                                    width: `${(enemy.health / 100) * 100}%`,
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            <div className="text-lg font-bold">
-                              {enemy.health}/100
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
 
             {/* Choices */}
             {showChoices &&
@@ -1021,6 +1346,86 @@ export default function GamePlayPage({
             </div>
           </div>
         )}
+
+        {/* Firebase Sidebar */}
+        <div className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
+          <div className="p-4">
+            <h3 className="text-lg font-bold mb-4 text-white">🔥 Firebase</h3>
+
+            {/* Advanced Timeline */}
+            <div className="mb-6">
+              <AdvancedTimeline
+                key={timelineKey}
+                sessionId={id}
+                onNodeSelect={goBackToNode}
+                onBranchRestore={restoreBranch}
+                currentNodeId={gameSession?.currentStoryNode?.id}
+              />
+            </div>
+
+            {/* Branch Tree Visualization */}
+            <div className="mb-6">
+              <BranchTreeVisualization
+                key={timelineKey}
+                sessionId={id}
+                onNodeClick={goBackToNode}
+                currentNodeId={gameSession?.currentStoryNode?.id}
+              />
+            </div>
+
+            {/* Firebase Auth */}
+            <div className="mb-6">
+              <FirebaseAuthButtons
+                onSuccess={() => console.log("Firebase auth success")}
+                onError={(error) =>
+                  console.error("Firebase auth error:", error)
+                }
+              />
+            </div>
+
+            {/* Game Backup */}
+            {firebaseUser && (
+              <div className="mb-6">
+                <GameBackup
+                  gameSession={gameSession}
+                  character={gameSession?.character}
+                  onBackupSuccess={() => console.log("Backup success")}
+                  onBackupError={(error) =>
+                    console.error("Backup error:", error)
+                  }
+                />
+              </div>
+            )}
+
+            {/* Story Tree Navigation */}
+            {storyTree && (
+              <div className="mb-6">
+                <h4 className="text-md font-semibold mb-3 text-white">
+                  🌳 Cây câu chuyện
+                </h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {storyTree.currentPath &&
+                    storyTree.currentPath.map(
+                      (nodeId: string, index: number) => (
+                        <button
+                          key={nodeId}
+                          onClick={() => goBackToNode(nodeId)}
+                          className={`w-full text-left p-2 rounded text-sm transition-colors ${
+                            nodeId === storyTree.currentNodeId
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                          }`}
+                        >
+                          {index + 1}. Node {nodeId.substring(0, 8)}...
+                          {nodeId === storyTree.currentNodeId && " (Hiện tại)"}
+                        </button>
+                      )
+                    )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

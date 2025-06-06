@@ -58,10 +58,35 @@ export class StoryNode {
   @Column({ default: false })
   isEnding: boolean;
 
+  @Column({ nullable: true })
+  selectedChoiceId: string;
+
+  @Column({ nullable: true })
+  selectedChoiceText: string;
+
+  @Column({ nullable: true })
+  parentNodeId: string;
+
+  @Column({ nullable: true })
+  choiceIdFromParent: string;
+
+  @Column({ default: 0 })
+  depth: number;
+
+  @Column({ default: false })
+  isVisited: boolean;
+
   @ManyToOne(() => GameSession, (gameSession) => gameSession.storyNodes)
   @JoinColumn()
   gameSession: GameSession;
 
   @OneToMany(() => Choice, (choice) => choice.storyNode, { cascade: true })
   choices: Choice[];
+
+  @OneToMany(() => StoryNode, (storyNode) => storyNode.parentNode)
+  childNodes: StoryNode[];
+
+  @ManyToOne(() => StoryNode, (storyNode) => storyNode.childNodes)
+  @JoinColumn({ name: 'parentNodeId' })
+  parentNode: StoryNode;
 }

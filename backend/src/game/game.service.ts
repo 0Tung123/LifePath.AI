@@ -14,6 +14,7 @@ import {
 import { GameSession } from './entities/game-session.entity';
 import { StoryNode } from './entities/story-node.entity';
 import { Choice } from './entities/choice.entity';
+import { StoryPath } from './entities/story-path.entity';
 import { GeminiAiService } from './gemini-ai.service';
 import { CharacterGeneratorService } from './character-generator.service';
 import { User } from '../user/entities/user.entity';
@@ -48,6 +49,8 @@ export class GameService {
     private storyNodeRepository: Repository<StoryNode>,
     @InjectRepository(Choice)
     private choiceRepository: Repository<Choice>,
+    @InjectRepository(StoryPath)
+    private storyPathRepository: Repository<StoryPath>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private geminiAiService: GeminiAiService,
@@ -788,6 +791,36 @@ export class GameService {
         );
       }
 
+      // Mark current node as visited
+      gameSession.currentStoryNode.isVisited = true;
+      await this.storyNodeRepository.save(gameSession.currentStoryNode);
+
+      // Save the choice path
+      const currentStepOrder = await this.storyPathRepository.count({
+        where: { gameSession: { id: gameSession.id }, isActive: true },
+      });
+
+      // Get current active branch ID or create new one
+      const lastActivePath = await this.storyPathRepository.findOne({
+        where: { gameSession: { id: gameSession.id }, isActive: true },
+        order: { stepOrder: 'DESC' },
+      });
+
+      const branchId = lastActivePath?.branchId || `main-branch-${gameSession.id}`;
+
+      const storyPath = this.storyPathRepository.create({
+        nodeId: gameSession.currentStoryNode.id,
+        choiceId: choice.id,
+        choiceText: choice.text,
+        stepOrder: currentStepOrder,
+        isActive: true,
+        branchId,
+        parentPathId: lastActivePath?.id,
+        gameSession,
+        storyNode: gameSession.currentStoryNode,
+      });
+      await this.storyPathRepository.save(storyPath);
+
       // Generate story content
       const storyContent = await this.geminiAiService.generateStoryContent(
         nextPrompt,
@@ -798,35 +831,60 @@ export class GameService {
         },
       );
 
-      // Create the new story node
-      const storyNode = this.storyNodeRepository.create({
-        content: storyContent,
-        location: gameSession.currentStoryNode.location, // Can be updated based on the story
-        gameSession,
-        isCombatScene,
-        combatData,
+      // Check if this choice already leads to an existing node
+      let existingNode = await this.storyNodeRepository.findOne({
+        where: {
+          parentNodeId: gameSession.currentStoryNode.id,
+          choiceIdFromParent: choice.id,
+        },
+        relations: ['choices'],
       });
 
-      const savedStoryNode = await this.storyNodeRepository.save(storyNode);
+      let storyNode: StoryNode;
 
-      // Generate choices for the new story node
-      const choices = await this.geminiAiService.generateChoices(storyContent, {
-        character,
-        gameState: gameSession.gameState,
-        isCombatScene,
-      });
-
-      // Save the choices
-      for (const choiceData of choices) {
-        const newChoice = this.choiceRepository.create({
-          ...choiceData,
-          storyNode: savedStoryNode,
+      if (existingNode) {
+        // Use existing node
+        storyNode = existingNode;
+      } else {
+        // Create new story node
+        storyNode = this.storyNodeRepository.create({
+          content: storyContent,
+          location: gameSession.currentStoryNode.location,
+          gameSession,
+          isCombatScene,
+          combatData,
+          parentNodeId: gameSession.currentStoryNode.id,
+          choiceIdFromParent: choice.id,
+          depth: gameSession.currentStoryNode.depth + 1,
+          parentNode: gameSession.currentStoryNode,
         });
-        await this.choiceRepository.save(newChoice);
+
+        const savedStoryNode = await this.storyNodeRepository.save(storyNode);
+
+        // Generate choices for the new story node only if it's newly created
+        const choices = await this.geminiAiService.generateChoices(
+          storyContent,
+          {
+            character,
+            gameState: gameSession.gameState,
+            isCombatScene,
+          },
+        );
+
+        // Save the choices
+        for (const choiceData of choices) {
+          const newChoice = this.choiceRepository.create({
+            ...choiceData,
+            storyNode: savedStoryNode,
+          });
+          await this.choiceRepository.save(newChoice);
+        }
+
+        storyNode = savedStoryNode;
       }
 
       // Update the game session with the current story node
-      gameSession.currentStoryNode = savedStoryNode;
+      gameSession.currentStoryNode = storyNode;
       await this.gameSessionRepository.save(gameSession);
 
       return this.getGameSessionWithDetails(gameSession.id);
@@ -835,6 +893,129 @@ export class GameService {
       throw new BadRequestException(
         `Failed to process choice: ${error.message}`,
       );
+    }
+  }
+
+  async goBackToNode(sessionId: string, nodeId: string): Promise<GameSession> {
+    try {
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: sessionId },
+        relations: ['character', 'currentStoryNode', 'storyPaths'],
+      });
+
+      if (!gameSession) {
+        throw new NotFoundException('Game session not found');
+      }
+
+      // Find the target node
+      const targetNode = await this.storyNodeRepository.findOne({
+        where: { id: nodeId, gameSession: { id: sessionId } },
+        relations: ['choices'],
+      });
+
+      if (!targetNode) {
+        throw new NotFoundException('Story node not found');
+      }
+
+      // Update current story node
+      gameSession.currentStoryNode = targetNode;
+      await this.gameSessionRepository.save(gameSession);
+
+      // Mark story paths after this node as inactive instead of deleting
+      const nodeStepOrder = await this.storyPathRepository.findOne({
+        where: { nodeId: nodeId, gameSession: { id: sessionId }, isActive: true },
+      });
+
+      if (nodeStepOrder) {
+        // Mark paths after this node as inactive instead of deleting
+        const pathsToDeactivate = await this.storyPathRepository.find({
+          where: { 
+            gameSession: { id: sessionId },
+            stepOrder: { $gt: nodeStepOrder.stepOrder } as any,
+            isActive: true
+          },
+        });
+
+        // Create new branch ID for the paths being deactivated
+        const branchId = `branch-${Date.now()}`;
+        
+        for (const path of pathsToDeactivate) {
+          path.isActive = false;
+          path.branchId = branchId;
+          await this.storyPathRepository.save(path);
+        }
+      }
+
+      return this.getGameSessionWithDetails(gameSession.id);
+    } catch (error) {
+      this.logger.error(
+        `Error going back to node: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to go back to node');
+    }
+  }
+
+  async getStoryTree(sessionId: string): Promise<any> {
+    try {
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: sessionId },
+        relations: ['storyNodes', 'storyNodes.choices', 'storyPaths'],
+      });
+
+      if (!gameSession) {
+        throw new NotFoundException('Game session not found');
+      }
+
+      // Build tree structure
+      const nodeMap = new Map();
+      const rootNodes = [];
+
+      // First pass: create all nodes
+      for (const node of gameSession.storyNodes) {
+        nodeMap.set(node.id, {
+          ...node,
+          children: [],
+          isOnCurrentPath: false,
+        });
+      }
+
+      // Second pass: build parent-child relationships
+      for (const node of gameSession.storyNodes) {
+        const nodeData = nodeMap.get(node.id);
+        if (node.parentNodeId) {
+          const parent = nodeMap.get(node.parentNodeId);
+          if (parent) {
+            parent.children.push(nodeData);
+          }
+        } else {
+          rootNodes.push(nodeData);
+        }
+      }
+
+      // Mark nodes on current path
+      const currentPath = gameSession.storyPaths
+        .sort((a, b) => a.stepOrder - b.stepOrder)
+        .map((path) => path.nodeId);
+
+      for (const nodeId of currentPath) {
+        const node = nodeMap.get(nodeId);
+        if (node) {
+          node.isOnCurrentPath = true;
+        }
+      }
+
+      return {
+        tree: rootNodes,
+        currentPath: currentPath,
+        currentNodeId: gameSession.currentStoryNode?.id,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting story tree: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to get story tree');
     }
   }
 
@@ -862,6 +1043,186 @@ export class GameService {
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
+  }
+
+  // Get actual path history based on story paths
+  async getActualPathHistory(sessionId: string): Promise<{
+    pathNodes: StoryNode[];
+    allNodes: StoryNode[];
+    currentPath: string[];
+  }> {
+    const gameSession = await this.gameSessionRepository.findOne({
+      where: { id: sessionId },
+      relations: ['storyPaths', 'storyNodes', 'storyNodes.choices'],
+    });
+
+    if (!gameSession) {
+      throw new NotFoundException(
+        `Game session with ID ${sessionId} not found`,
+      );
+    }
+
+    // Get only active story paths in order
+    const orderedPaths = gameSession.storyPaths
+      .filter(path => path.isActive)
+      .sort((a, b) => a.stepOrder - b.stepOrder);
+    
+    // Build current path from story paths
+    const currentPath = orderedPaths.map(path => path.nodeId);
+    
+    // Get nodes for the current path
+    const pathNodes: StoryNode[] = [];
+    for (const path of orderedPaths) {
+      const node = gameSession.storyNodes.find(n => n.id === path.nodeId);
+      if (node) {
+        // Add choice information to node
+        node.selectedChoiceId = path.choiceId;
+        node.selectedChoiceText = path.choiceText;
+        pathNodes.push(node);
+      }
+    }
+
+    // Add current node if not in path yet
+    if (gameSession.currentStoryNode && 
+        !pathNodes.find(n => n.id === gameSession.currentStoryNode.id)) {
+      pathNodes.push(gameSession.currentStoryNode);
+      currentPath.push(gameSession.currentStoryNode.id);
+    }
+
+    return {
+      pathNodes,
+      allNodes: gameSession.storyNodes.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      ),
+      currentPath,
+    };
+  }
+
+  // Get all branches for advanced timeline visualization
+  async getAllBranches(sessionId: string): Promise<{
+    activeBranch: any[];
+    inactiveBranches: any[];
+    branchPoints: any[];
+  }> {
+    const gameSession = await this.gameSessionRepository.findOne({
+      where: { id: sessionId },
+      relations: ['storyPaths', 'storyNodes'],
+    });
+
+    if (!gameSession) {
+      throw new NotFoundException(
+        `Game session with ID ${sessionId} not found`,
+      );
+    }
+
+    // Group paths by branch ID
+    const branchGroups = gameSession.storyPaths.reduce((groups, path) => {
+      const branchId = path.branchId || 'main';
+      if (!groups[branchId]) {
+        groups[branchId] = [];
+      }
+      groups[branchId].push(path);
+      return groups;
+    }, {} as Record<string, any[]>);
+
+    // Get active branch
+    const activeBranch = gameSession.storyPaths
+      .filter(path => path.isActive)
+      .sort((a, b) => a.stepOrder - b.stepOrder);
+
+    // Get inactive branches
+    const inactiveBranches = Object.entries(branchGroups)
+      .filter(([branchId]) => branchId !== 'main' && !branchId.includes('main-branch'))
+      .map(([branchId, paths]) => ({
+        branchId,
+        paths: paths.sort((a, b) => a.stepOrder - b.stepOrder),
+        createdAt: Math.min(...paths.map(p => new Date(p.createdAt).getTime())),
+      }));
+
+    // Find branch points (nodes where multiple choices were made)
+    const branchPoints = [];
+    const nodeChoiceCounts = {};
+    
+    for (const path of gameSession.storyPaths) {
+      if (!nodeChoiceCounts[path.nodeId]) {
+        nodeChoiceCounts[path.nodeId] = [];
+      }
+      nodeChoiceCounts[path.nodeId].push(path);
+    }
+
+    for (const [nodeId, paths] of Object.entries(nodeChoiceCounts)) {
+      if ((paths as any[]).length > 1) {
+        branchPoints.push({
+          nodeId,
+          paths: paths,
+          branchCount: (paths as any[]).length,
+        });
+      }
+    }
+
+    return {
+      activeBranch,
+      inactiveBranches,
+      branchPoints,
+    };
+  }
+
+  // Restore a specific branch
+  async restoreBranch(sessionId: string, branchId: string): Promise<GameSession> {
+    try {
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: sessionId },
+        relations: ['storyPaths', 'currentStoryNode'],
+      });
+
+      if (!gameSession) {
+        throw new NotFoundException('Game session not found');
+      }
+
+      // Deactivate current active paths
+      const currentActivePaths = await this.storyPathRepository.find({
+        where: { gameSession: { id: sessionId }, isActive: true },
+      });
+
+      const newInactiveBranchId = `deactivated-${Date.now()}`;
+      for (const path of currentActivePaths) {
+        path.isActive = false;
+        path.branchId = newInactiveBranchId;
+        await this.storyPathRepository.save(path);
+      }
+
+      // Activate the target branch
+      const branchPaths = await this.storyPathRepository.find({
+        where: { gameSession: { id: sessionId }, branchId },
+      });
+
+      for (const path of branchPaths) {
+        path.isActive = true;
+        await this.storyPathRepository.save(path);
+      }
+
+      // Update current story node to the last node of the restored branch
+      if (branchPaths.length > 0) {
+        const lastPath = branchPaths.sort((a, b) => b.stepOrder - a.stepOrder)[0];
+        const lastNode = await this.storyNodeRepository.findOne({
+          where: { id: lastPath.nodeId },
+          relations: ['choices'],
+        });
+
+        if (lastNode) {
+          gameSession.currentStoryNode = lastNode;
+          await this.gameSessionRepository.save(gameSession);
+        }
+      }
+
+      return this.getGameSessionWithDetails(gameSession.id);
+    } catch (error) {
+      this.logger.error(
+        `Error restoring branch: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to restore branch');
+    }
   }
 
   async getGameSessionsByCharacterId(

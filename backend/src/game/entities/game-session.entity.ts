@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Character } from './character.entity';
 import { StoryNode } from './story-node.entity';
+import { StoryPath } from './story-path.entity';
 
 @Entity()
 export class GameSession {
@@ -57,4 +58,7 @@ export class GameSession {
 
   @OneToMany(() => StoryNode, (storyNode) => storyNode.gameSession)
   storyNodes: StoryNode[];
+
+  @OneToMany(() => StoryPath, (storyPath) => storyPath.gameSession)
+  storyPaths: StoryPath[];
 }
