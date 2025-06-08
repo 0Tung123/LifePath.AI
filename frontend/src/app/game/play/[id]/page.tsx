@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
+import ReactDOM from "react-dom";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
@@ -195,13 +196,137 @@ export default function GamePlayPage({
     );
     if (!latestContentElement) return;
 
+    // Trước tiên, phân tích nội dung để xác định các phần màu khác nhau
+    // Các regex để nhận diện các phần khác nhau của câu chuyện
+    const characterSpeechRegex =
+      /([A-Za-z\u00C0-\u1EF9\s]+)\s*\(\s*màu\s+([a-zA-Z]+)\s*\)\s*:(.*?)(?=\n[A-Za-z\u00C0-\u1EF9\s]+\s*\(|\n\n|$)/g;
+    const skillRegex = /\[([\w\s\u00C0-\u1EF9]+)\]/g;
+    const itemRegex = /<([\w\s\u00C0-\u1EF9]+)>/g;
+
+    // Màu sắc tương ứng với từng loại
+    const colorMap: Record<string, string> = {
+      xanh: "color: #60A5FA;", // text-blue-400
+      đỏ: "color: #F87171;", // text-red-400
+      lục: "color: #4ADE80;", // text-green-400
+      tím: "color: #C084FC;", // text-purple-400
+      vàng: "color: #FBBF24;", // text-yellow-400
+      cam: "color: #FB923C;", // text-orange-400
+      hồng: "color: #F472B6;", // text-pink-400
+      lam: "color: #818CF8;", // text-indigo-400
+      ngọc: "color: #2DD4BF;", // text-teal-400
+      xám: "color: #9CA3AF;", // text-gray-400
+      default: "color: #60A5FA;", // Màu mặc định
+    };
+
+    // Chia nội dung thành các đoạn để hiển thị từng phần với màu sắc tương ứng
+    const segments: { text: string; style?: string }[] = [];
+    let lastIndex = 0;
+
+    // Xử lý lời thoại nhân vật
+    content.replace(
+      characterSpeechRegex,
+      (match, name, color, speech, index) => {
+        // Thêm văn bản thường trước đoạn thoại
+        if (index > lastIndex) {
+          segments.push({
+            text: content.substring(lastIndex, index),
+          });
+        }
+
+        // Thêm tên nhân vật với màu
+        const colorStyle = colorMap[color.toLowerCase()] || colorMap.default;
+        segments.push({
+          text: `${name}: `,
+          style: `font-weight: bold; ${colorStyle}`,
+        });
+
+        // Thêm lời thoại
+        segments.push({
+          text: speech,
+        });
+
+        lastIndex = index + match.length;
+        return match;
+      }
+    );
+
+    // Thêm phần văn bản còn lại sau đoạn thoại cuối
+    if (lastIndex < content.length) {
+      segments.push({
+        text: content.substring(lastIndex),
+      });
+    }
+
+    // Nếu không có đoạn thoại nào, hiển thị toàn bộ nội dung như văn bản thường
+    if (segments.length === 0) {
+      segments.push({
+        text: content,
+      });
+    }
+
+    // Xử lý kỹ năng và vật phẩm trong mỗi đoạn
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+
+      // Xử lý kỹ năng
+      let processedText = segment.text.replace(skillRegex, (match, skill) => {
+        return `<span style="color: #C084FC; font-weight: bold;">[${skill}]</span>`;
+      });
+
+      // Xử lý vật phẩm
+      processedText = processedText.replace(itemRegex, (match, item) => {
+        return `<span style="color: #FBBF24; font-style: italic;">&lt;${item}&gt;</span>`;
+      });
+
+      // Cập nhật đoạn
+      segment.text = processedText;
+    }
+
+    // Bắt đầu hiển thị từng ký tự
     latestContentElement.innerHTML = "";
-    let index = 0;
+    let segmentIndex = 0;
+    let charIndex = 0;
+    let currentHTML = "";
 
     const interval = setInterval(() => {
-      if (index < content.length) {
-        latestContentElement.innerHTML += content.charAt(index);
-        index++;
+      if (segmentIndex < segments.length) {
+        const segment = segments[segmentIndex];
+
+        // Nếu đoạn hiện tại chứa HTML tags (kỹ năng/vật phẩm đã xử lý)
+        if (segment.text.includes("<span")) {
+          // Hiển thị toàn bộ đoạn cùng lúc khi gặp HTML
+          if (segment.style) {
+            currentHTML += `<span style="${segment.style}">${segment.text}</span>`;
+          } else {
+            currentHTML += segment.text;
+          }
+          segmentIndex++;
+          charIndex = 0;
+        } else {
+          // Hiển thị từng ký tự cho văn bản thường
+          if (charIndex < segment.text.length) {
+            const char = segment.text.charAt(charIndex);
+            if (segment.style) {
+              // Ký tự đầu tiên của đoạn có style
+              if (charIndex === 0) {
+                currentHTML += `<span style="${segment.style}">`;
+              }
+              currentHTML += char;
+              // Ký tự cuối cùng của đoạn có style
+              if (charIndex === segment.text.length - 1) {
+                currentHTML += "</span>";
+              }
+            } else {
+              currentHTML += char;
+            }
+            charIndex++;
+          } else {
+            segmentIndex++;
+            charIndex = 0;
+          }
+        }
+
+        latestContentElement.innerHTML = currentHTML;
 
         // Tự động cuộn xuống khi văn bản dài
         contentElement.scrollTop = contentElement.scrollHeight;
@@ -456,6 +581,68 @@ export default function GamePlayPage({
     };
 
     return gradients[genre || ""] || "from-gray-900/70 to-blue-900/70";
+  };
+
+  // Xử lý nội dung câu chuyện và thêm màu sắc
+  const processStoryContent = (content: string) => {
+    if (!content) return null;
+
+    // Các regex để nhận diện các phần khác nhau của câu chuyện
+    const characterNameRegex =
+      /([A-Za-z\u00C0-\u1EF9\s]+)\s*\(\s*màu\s+([a-zA-Z]+)\s*\)\s*:/g;
+    const skillRegex = /\[([\w\s\u00C0-\u1EF9]+)\]/g;
+    const itemRegex = /<([\w\s\u00C0-\u1EF9]+)>/g;
+
+    // Màu sắc tương ứng với từng loại
+    const colorMap: Record<string, string> = {
+      xanh: "text-blue-400",
+      đỏ: "text-red-400",
+      lục: "text-green-400",
+      tím: "text-purple-400",
+      vàng: "text-yellow-400",
+      cam: "text-orange-400",
+      hồng: "text-pink-400",
+      lam: "text-indigo-400",
+      ngọc: "text-teal-400",
+      xám: "text-gray-400",
+      trắng: "text-white",
+      default: "text-blue-400", // Màu mặc định nếu không xác định
+    };
+
+    // Tạo các phần HTML
+    const processedContent = content
+      // Xử lý tên nhân vật và lời nói
+      .replace(characterNameRegex, (match, name, color) => {
+        const colorClass = colorMap[color.toLowerCase()] || colorMap.default;
+        return `<span class="${colorClass} font-semibold">${name}:</span>`;
+      })
+      // Xử lý kỹ năng
+      .replace(skillRegex, (match, skill) => {
+        return `<span class="text-purple-400 font-bold">[${skill}]</span>`;
+      })
+      // Xử lý vật phẩm
+      .replace(itemRegex, (match, item) => {
+        return `<span class="text-yellow-400 italic">&lt;${item}&gt;</span>`;
+      });
+
+    // Chia đoạn văn thành các phần để xử lý
+    const parts = processedContent.split(/(<span.*?<\/span>)/g);
+
+    return (
+      <>
+        {parts.map((part, idx) => {
+          if (part.startsWith("<span")) {
+            // Đây là phần đã được xử lý (tên nhân vật, kỹ năng, vật phẩm)
+            return (
+              <span key={idx} dangerouslySetInnerHTML={{ __html: part }} />
+            );
+          } else {
+            // Đây là phần diễn biến câu chuyện bình thường
+            return <span key={idx}>{part}</span>;
+          }
+        })}
+      </>
+    );
   };
 
   return (
@@ -774,7 +961,9 @@ export default function GamePlayPage({
                           {isLatest && animateText && !textComplete ? (
                             <div className="latest-story-content"></div>
                           ) : (
-                            <div>{storyNode.content}</div>
+                            <div className="story-content">
+                              {processStoryContent(storyNode.content)}
+                            </div>
                           )}
                         </div>
 

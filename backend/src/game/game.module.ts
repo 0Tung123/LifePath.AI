@@ -11,6 +11,8 @@ import { StoryPath } from './entities/story-path.entity';
 import { GeminiAiService } from './gemini-ai.service';
 import { CharacterGeneratorService } from './character-generator.service';
 import { User } from '../user/entities/user.entity';
+import { StoryPromptService } from './story-prompt.service';
+import { StoryPromptController } from './story-prompt.controller';
 
 @Module({
   imports: [
@@ -24,8 +26,8 @@ import { User } from '../user/entities/user.entity';
     ]),
     ConfigModule,
   ],
-  controllers: [GameController],
-  providers: [GameService, GeminiAiService, CharacterGeneratorService],
-  exports: [GameService, CharacterGeneratorService],
+  controllers: [GameController, StoryPromptController],
+  providers: [GameService, GeminiAiService, CharacterGeneratorService, StoryPromptService],
+  exports: [GameService, CharacterGeneratorService, StoryPromptService],
 })
 export class GameModule {}

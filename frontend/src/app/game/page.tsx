@@ -194,6 +194,35 @@ export default function GameHomePage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
+        {/* AI Story Banner */}
+        <div className="mb-10 bg-gradient-to-r from-purple-900/70 to-indigo-900/70 rounded-xl p-6 shadow-lg">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="mb-6 md:mb-0 md:mr-6">
+              <h2 className="text-3xl font-bold mb-3 text-white">
+                <span className="text-purple-400">AI Story</span> - Chế Độ Mới!
+              </h2>
+              <p className="text-gray-200 max-w-2xl mb-4">
+                Trải nghiệm câu chuyện được viết bởi trí tuệ nhân tạo với phong cách truyện Trung Quốc hoặc Hàn Quốc.
+                Mỗi lựa chọn của bạn sẽ dẫn đến những diễn biến khác nhau trong cuộc phiêu lưu.
+              </p>
+              <Link
+                href="/game/ai-story"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors inline-flex items-center text-lg font-medium"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+                Bắt Đầu AI Story
+              </Link>
+            </div>
+            <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 bg-purple-800/50 rounded-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 md:w-20 md:h-20 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Active Sessions */}
           <div className="bg-gray-800 rounded-xl p-6 shadow-lg transform transition-all hover:scale-[1.02]">
