@@ -100,6 +100,15 @@ let GameController = class GameController {
     async getGameSessionHistory(id) {
         return this.gameService.getGameSessionHistory(id);
     }
+    async getActualPathHistory(id) {
+        return this.gameService.getActualPathHistory(id);
+    }
+    async getAllBranches(id) {
+        return this.gameService.getAllBranches(id);
+    }
+    async restoreBranch(sessionId, branchId) {
+        return this.gameService.restoreBranch(sessionId, branchId);
+    }
     async saveGame(id) {
         const session = await this.gameService.getGameSessionWithDetails(id);
         return session;
@@ -107,8 +116,20 @@ let GameController = class GameController {
     async endGame(id) {
         return this.gameService.endGameSession(id);
     }
+    async deleteGameSession(id, req) {
+        return this.gameService.deleteGameSession(id, req.user.id);
+    }
+    async deleteCharacter(id, req) {
+        return this.gameService.deleteCharacter(id, req.user.id);
+    }
     async makeChoice(id, choiceId) {
         return this.gameService.makeChoice(id, choiceId);
+    }
+    async goBackToNode(sessionId, nodeId) {
+        return this.gameService.goBackToNode(sessionId, nodeId);
+    }
+    async getStoryTree(sessionId) {
+        return this.gameService.getStoryTree(sessionId);
     }
 };
 exports.GameController = GameController;
@@ -177,6 +198,28 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], GameController.prototype, "getGameSessionHistory", null);
 __decorate([
+    (0, common_1.Get)('sessions/:id/path-history'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "getActualPathHistory", null);
+__decorate([
+    (0, common_1.Get)('sessions/:id/branches'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "getAllBranches", null);
+__decorate([
+    (0, common_1.Post)('sessions/:id/restore-branch/:branchId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('branchId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "restoreBranch", null);
+__decorate([
     (0, common_1.Put)('sessions/:id/save'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -191,6 +234,22 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], GameController.prototype, "endGame", null);
 __decorate([
+    (0, common_1.Delete)('sessions/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "deleteGameSession", null);
+__decorate([
+    (0, common_1.Delete)('characters/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "deleteCharacter", null);
+__decorate([
     (0, common_1.Post)('sessions/:id/choices/:choiceId'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Param)('choiceId')),
@@ -198,6 +257,21 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], GameController.prototype, "makeChoice", null);
+__decorate([
+    (0, common_1.Post)('sessions/:id/go-back/:nodeId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('nodeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "goBackToNode", null);
+__decorate([
+    (0, common_1.Get)('sessions/:id/tree'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "getStoryTree", null);
 exports.GameController = GameController = __decorate([
     (0, common_1.Controller)('game'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

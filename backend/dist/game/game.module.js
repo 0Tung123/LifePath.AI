@@ -16,6 +16,7 @@ const character_entity_1 = require("./entities/character.entity");
 const game_session_entity_1 = require("./entities/game-session.entity");
 const story_node_entity_1 = require("./entities/story-node.entity");
 const choice_entity_1 = require("./entities/choice.entity");
+const story_path_entity_1 = require("./entities/story-path.entity");
 const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
 const user_entity_1 = require("../user/entities/user.entity");
@@ -25,7 +26,14 @@ exports.GameModule = GameModule;
 exports.GameModule = GameModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([character_entity_1.Character, game_session_entity_1.GameSession, story_node_entity_1.StoryNode, choice_entity_1.Choice, user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([
+                character_entity_1.Character,
+                game_session_entity_1.GameSession,
+                story_node_entity_1.StoryNode,
+                choice_entity_1.Choice,
+                story_path_entity_1.StoryPath,
+                user_entity_1.User,
+            ]),
             config_1.ConfigModule,
         ],
         controllers: [game_controller_1.GameController],

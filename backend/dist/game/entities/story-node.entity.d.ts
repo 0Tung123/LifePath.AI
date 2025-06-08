@@ -34,6 +34,12 @@ export declare class StoryNode {
     isEnding: boolean;
     selectedChoiceId: string;
     selectedChoiceText: string;
+    parentNodeId: string;
+    choiceIdFromParent: string;
+    depth: number;
+    isVisited: boolean;
     gameSession: GameSession;
     choices: Choice[];
+    childNodes: StoryNode[];
+    parentNode: StoryNode;
 }

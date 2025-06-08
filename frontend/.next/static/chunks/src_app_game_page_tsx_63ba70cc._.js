@@ -27,29 +27,66 @@ function GameHomePage() {
     const [characters, setCharacters] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [deletingCharacter, setDeletingCharacter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [deletingSession, setDeletingSession] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [deleteType, setDeleteType] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [deleteItemName, setDeleteItemName] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const fetchData = async ()=>{
+        try {
+            setLoading(true);
+            // Fetch active game sessions
+            const sessionsResponse = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/api/game/sessions");
+            setActiveSessions(sessionsResponse.data);
+            // Fetch characters
+            const charactersResponse = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/api/game/characters");
+            setCharacters(charactersResponse.data);
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching data:", err);
+            setError("Failed to load game data. Please try again later.");
+            setLoading(false);
+        }
+    };
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "GameHomePage.useEffect": ()=>{
-            const fetchData = {
-                "GameHomePage.useEffect.fetchData": async ()=>{
-                    try {
-                        setLoading(true);
-                        // Fetch active game sessions
-                        const sessionsResponse = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/api/game/sessions");
-                        setActiveSessions(sessionsResponse.data);
-                        // Fetch characters
-                        const charactersResponse = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/api/game/characters");
-                        setCharacters(charactersResponse.data);
-                        setLoading(false);
-                    } catch (err) {
-                        console.error("Error fetching data:", err);
-                        setError("Failed to load game data. Please try again later.");
-                        setLoading(false);
-                    }
-                }
-            }["GameHomePage.useEffect.fetchData"];
             fetchData();
         }
     }["GameHomePage.useEffect"], []);
+    // Xử lý xóa character hoặc game session
+    const handleDelete = async ()=>{
+        try {
+            if (deleteType === "character" && deletingCharacter) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/api/game/characters/${deletingCharacter}`);
+                setCharacters((prevCharacters)=>prevCharacters.filter((char)=>char.id !== deletingCharacter));
+            } else if (deleteType === "session" && deletingSession) {
+                await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/api/game/sessions/${deletingSession}`);
+                setActiveSessions((prevSessions)=>prevSessions.filter((session)=>session.id !== deletingSession));
+            }
+            // Đóng modal xác nhận và reset các state
+            setShowDeleteConfirm(false);
+            setDeleteType(null);
+            setDeletingCharacter(null);
+            setDeletingSession(null);
+            setDeleteItemName("");
+            // Refresh data
+            fetchData();
+        } catch (err) {
+            console.error("Error deleting item:", err);
+            setError("Không thể xóa. Vui lòng thử lại sau.");
+        }
+    };
+    // Hiển thị modal xác nhận xóa
+    const confirmDelete = (type, id, name)=>{
+        if (type === "character") {
+            setDeletingCharacter(id);
+        } else {
+            setDeletingSession(id);
+        }
+        setDeleteType(type);
+        setDeleteItemName(name);
+        setShowDeleteConfirm(true);
+    };
     if (loading) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
             className: "min-h-screen bg-gray-900 text-white flex items-center justify-center",
@@ -61,25 +98,25 @@ function GameHomePage() {
                         children: "Đang tải thế giới..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 57,
+                        lineNumber: 112,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin mx-auto"
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 60,
+                        lineNumber: 115,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/page.tsx",
-                lineNumber: 56,
+                lineNumber: 111,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/game/page.tsx",
-            lineNumber: 55,
+            lineNumber: 110,
             columnNumber: 7
         }, this);
     }
@@ -94,14 +131,14 @@ function GameHomePage() {
                         children: "Lỗi"
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 70,
+                        lineNumber: 125,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                         children: error
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 71,
+                        lineNumber: 126,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -110,24 +147,112 @@ function GameHomePage() {
                         children: "Thử lại"
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 72,
+                        lineNumber: 127,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/page.tsx",
-                lineNumber: 69,
+                lineNumber: 124,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/game/page.tsx",
-            lineNumber: 68,
+            lineNumber: 123,
             columnNumber: 7
         }, this);
     }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen bg-gray-900 text-white",
         children: [
+            showDeleteConfirm && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "bg-gray-800 p-6 rounded-lg max-w-md w-full",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                            className: "text-xl font-bold mb-4 text-red-400",
+                            children: "Xác nhận xóa"
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/game/page.tsx",
+                            lineNumber: 144,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                            className: "mb-6",
+                            children: [
+                                "Bạn có chắc chắn muốn xóa",
+                                " ",
+                                deleteType === "character" ? "nhân vật" : "phiên game",
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "font-bold",
+                                    children: [
+                                        " ",
+                                        deleteItemName
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/src/app/game/page.tsx",
+                                    lineNumber: 150,
+                                    columnNumber: 15
+                                }, this),
+                                "?",
+                                deleteType === "character" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "block mt-2 text-red-400",
+                                    children: "Tất cả phiên game liên quan đến nhân vật này cũng sẽ bị xóa!"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/game/page.tsx",
+                                    lineNumber: 152,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/game/page.tsx",
+                            lineNumber: 147,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex justify-end space-x-3",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>{
+                                        setShowDeleteConfirm(false);
+                                        setDeleteType(null);
+                                        setDeletingCharacter(null);
+                                        setDeletingSession(null);
+                                    },
+                                    className: "px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors",
+                                    children: "Hủy"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/game/page.tsx",
+                                    lineNumber: 158,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: handleDelete,
+                                    className: "px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition-colors",
+                                    children: "Xóa"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/game/page.tsx",
+                                    lineNumber: 169,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/game/page.tsx",
+                            lineNumber: 157,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/game/page.tsx",
+                    lineNumber: 143,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/game/page.tsx",
+                lineNumber: 142,
+                columnNumber: 9
+            }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "relative h-[50vh] flex items-center justify-center overflow-hidden",
                 children: [
@@ -135,14 +260,14 @@ function GameHomePage() {
                         className: "absolute inset-0 bg-gradient-to-b from-transparent to-gray-900 z-10"
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 87,
+                        lineNumber: 182,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "absolute inset-0 bg-[url('/images/game-hero.jpg')] bg-cover bg-center"
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 88,
+                        lineNumber: 183,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -153,7 +278,7 @@ function GameHomePage() {
                                 children: "Thế Giới Phiêu Lưu"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 90,
+                                lineNumber: 185,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -161,19 +286,19 @@ function GameHomePage() {
                                 children: "Bước vào cuộc hành trình kỳ diệu, nơi mỗi lựa chọn định hình số phận của bạn"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 93,
+                                lineNumber: 188,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 89,
+                        lineNumber: 184,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/page.tsx",
-                lineNumber: 86,
+                lineNumber: 181,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -190,7 +315,7 @@ function GameHomePage() {
                                         children: "Phiên Game Đang Hoạt Động"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 105,
+                                        lineNumber: 200,
                                         columnNumber: 13
                                     }, this),
                                     activeSessions.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -207,7 +332,7 @@ function GameHomePage() {
                                                                     children: session.character?.name || "Nhân vật không xác định"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 118,
+                                                                    lineNumber: 213,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -219,38 +344,57 @@ function GameHomePage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 121,
+                                                                    lineNumber: 216,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/game/page.tsx",
-                                                            lineNumber: 117,
+                                                            lineNumber: 212,
                                                             columnNumber: 23
                                                         }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
-                                                            href: `/game/play/${session.id}`,
-                                                            className: "px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
-                                                            children: "Tiếp tục"
-                                                        }, void 0, false, {
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "flex space-x-2",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                                    href: `/game/play/${session.id}`,
+                                                                    className: "px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors",
+                                                                    children: "Tiếp tục"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/app/game/page.tsx",
+                                                                    lineNumber: 222,
+                                                                    columnNumber: 25
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                    onClick: ()=>confirmDelete("session", session.id, session.character?.name || "Phiên game"),
+                                                                    className: "px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition-colors",
+                                                                    title: "Xóa phiên game",
+                                                                    children: "Xóa"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/app/game/page.tsx",
+                                                                    lineNumber: 228,
+                                                                    columnNumber: 25
+                                                                }, this)
+                                                            ]
+                                                        }, void 0, true, {
                                                             fileName: "[project]/src/app/game/page.tsx",
-                                                            lineNumber: 126,
+                                                            lineNumber: 221,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                    lineNumber: 116,
+                                                    lineNumber: 211,
                                                     columnNumber: 21
                                                 }, this)
                                             }, session.id, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 112,
+                                                lineNumber: 207,
                                                 columnNumber: 19
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 110,
+                                        lineNumber: 205,
                                         columnNumber: 15
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "text-center py-8",
@@ -260,7 +404,7 @@ function GameHomePage() {
                                                 children: "Bạn chưa có phiên game nào đang hoạt động"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 138,
+                                                lineNumber: 248,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -268,19 +412,19 @@ function GameHomePage() {
                                                 children: "Hãy tạo nhân vật và bắt đầu cuộc phiêu lưu mới!"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 141,
+                                                lineNumber: 251,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 137,
+                                        lineNumber: 247,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 104,
+                                lineNumber: 199,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -291,7 +435,7 @@ function GameHomePage() {
                                         children: "Nhân Vật Của Bạn"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 150,
+                                        lineNumber: 260,
                                         columnNumber: 13
                                     }, this),
                                     characters.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -308,7 +452,7 @@ function GameHomePage() {
                                                                     children: character.name
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 163,
+                                                                    lineNumber: 273,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -320,7 +464,7 @@ function GameHomePage() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 166,
+                                                                    lineNumber: 276,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -328,13 +472,13 @@ function GameHomePage() {
                                                                     children: character.primaryGenre
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 169,
+                                                                    lineNumber: 279,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/game/page.tsx",
-                                                            lineNumber: 162,
+                                                            lineNumber: 272,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -346,7 +490,7 @@ function GameHomePage() {
                                                                     children: "Chi tiết"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 174,
+                                                                    lineNumber: 284,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -365,29 +509,39 @@ function GameHomePage() {
                                                                     children: "Bắt đầu"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                                    lineNumber: 180,
+                                                                    lineNumber: 290,
+                                                                    columnNumber: 25
+                                                                }, this),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                    onClick: ()=>confirmDelete("character", character.id, character.name),
+                                                                    className: "px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md transition-colors",
+                                                                    title: "Xóa nhân vật",
+                                                                    children: "Xóa"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/app/game/page.tsx",
+                                                                    lineNumber: 309,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/game/page.tsx",
-                                                            lineNumber: 173,
+                                                            lineNumber: 283,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/game/page.tsx",
-                                                    lineNumber: 161,
+                                                    lineNumber: 271,
                                                     columnNumber: 21
                                                 }, this)
                                             }, character.id, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 157,
+                                                lineNumber: 267,
                                                 columnNumber: 19
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 155,
+                                        lineNumber: 265,
                                         columnNumber: 15
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "text-center py-8",
@@ -397,7 +551,7 @@ function GameHomePage() {
                                                 children: "Bạn chưa có nhân vật nào"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 206,
+                                                lineNumber: 329,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -406,13 +560,13 @@ function GameHomePage() {
                                                 children: "Tạo nhân vật mới"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 207,
+                                                lineNumber: 330,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 205,
+                                        lineNumber: 328,
                                         columnNumber: 15
                                     }, this),
                                     characters.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -423,24 +577,24 @@ function GameHomePage() {
                                             children: "Tạo nhân vật mới"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/game/page.tsx",
-                                            lineNumber: 218,
+                                            lineNumber: 341,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 217,
+                                        lineNumber: 340,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 149,
+                                lineNumber: 259,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 102,
+                        lineNumber: 197,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -451,7 +605,7 @@ function GameHomePage() {
                                 children: "Khám Phá Các Thế Giới"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 231,
+                                lineNumber: 354,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -494,7 +648,7 @@ function GameHomePage() {
                                                 className: `absolute inset-0 bg-gradient-to-br ${genre.color} opacity-75 group-hover:opacity-90 transition-opacity`
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 275,
+                                                lineNumber: 398,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -505,7 +659,7 @@ function GameHomePage() {
                                                         children: genre.name
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/game/page.tsx",
-                                                        lineNumber: 279,
+                                                        lineNumber: 402,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -513,7 +667,7 @@ function GameHomePage() {
                                                         children: genre.description
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/game/page.tsx",
-                                                        lineNumber: 280,
+                                                        lineNumber: 403,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -522,46 +676,46 @@ function GameHomePage() {
                                                         children: "Tạo nhân vật"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/app/game/page.tsx",
-                                                        lineNumber: 283,
+                                                        lineNumber: 406,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/app/game/page.tsx",
-                                                lineNumber: 278,
+                                                lineNumber: 401,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, genre.id, true, {
                                         fileName: "[project]/src/app/game/page.tsx",
-                                        lineNumber: 271,
+                                        lineNumber: 394,
                                         columnNumber: 15
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/page.tsx",
-                                lineNumber: 235,
+                                lineNumber: 358,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/page.tsx",
-                        lineNumber: 230,
+                        lineNumber: 353,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/page.tsx",
-                lineNumber: 101,
+                lineNumber: 196,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/game/page.tsx",
-        lineNumber: 84,
+        lineNumber: 139,
         columnNumber: 5
     }, this);
 }
-_s(GameHomePage, "nlVqmfpAQLGCtV/o0Lry6r9KyBg=", false, function() {
+_s(GameHomePage, "CyhQXERmjCaspzY+DOpCszQPgFE=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];

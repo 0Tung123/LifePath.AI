@@ -1,5 +1,6 @@
 import { Character } from './character.entity';
 import { StoryNode } from './story-node.entity';
+import { StoryPath } from './story-path.entity';
 export declare class GameSession {
     id: string;
     isActive: boolean;
@@ -26,4 +27,5 @@ export declare class GameSession {
     character: Character;
     currentStoryNode: StoryNode;
     storyNodes: StoryNode[];
+    storyPaths: StoryPath[];
 }

@@ -57,6 +57,22 @@ __decorate([
     __metadata("design:type", String)
 ], StoryNode.prototype, "selectedChoiceText", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "parentNodeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "choiceIdFromParent", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], StoryNode.prototype, "depth", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], StoryNode.prototype, "isVisited", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => game_session_entity_1.GameSession, (gameSession) => gameSession.storyNodes),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", game_session_entity_1.GameSession)
@@ -65,6 +81,15 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => choice_entity_1.Choice, (choice) => choice.storyNode, { cascade: true }),
     __metadata("design:type", Array)
 ], StoryNode.prototype, "choices", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => StoryNode, (storyNode) => storyNode.parentNode),
+    __metadata("design:type", Array)
+], StoryNode.prototype, "childNodes", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => StoryNode, (storyNode) => storyNode.childNodes),
+    (0, typeorm_1.JoinColumn)({ name: 'parentNodeId' }),
+    __metadata("design:type", StoryNode)
+], StoryNode.prototype, "parentNode", void 0);
 exports.StoryNode = StoryNode = __decorate([
     (0, typeorm_1.Entity)()
 ], StoryNode);

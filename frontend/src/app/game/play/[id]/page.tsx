@@ -4,13 +4,6 @@ import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
-import { useFirebaseAuth } from "@/contexts/FirebaseAuthContext";
-import { useGameStats } from "@/hooks/useFirebase";
-import { FirebaseAuthButtons } from "@/components/firebase/FirebaseAuthButtons";
-import { GameBackup } from "@/components/firebase/GameBackup";
-import { StoryTimeline } from "@/components/game/StoryTimeline";
-import { AdvancedTimeline } from "@/components/game/AdvancedTimeline";
-import { BranchTreeVisualization } from "@/components/game/BranchTreeVisualization";
 
 // TypeScript interfaces
 interface Choice {
@@ -112,41 +105,15 @@ export default function GamePlayPage({
   const router = useRouter();
   const { id } = use(params);
 
-  // Firebase hooks
-  const { firebaseUser } = useFirebaseAuth();
-  const { incrementChoicesMade, updatePlayTime } = useGameStats();
-
   const [gameSession, setGameSession] = useState<GameSession | null>(null);
   const [storyHistory, setStoryHistory] = useState<StoryNode[]>([]);
-  const [storyTree, setStoryTree] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [makingChoice, setMakingChoice] = useState<boolean>(false);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
-  const [showCharacterInfo, setShowCharacterInfo] = useState<boolean>(false);
-  const [showInventory, setShowInventory] = useState<boolean>(false);
-  const [showQuestLog, setShowQuestLog] = useState<boolean>(false);
-  const [animateText, setAnimateText] = useState<boolean>(true);
-  const [textComplete, setTextComplete] = useState<boolean>(false);
-  const [showChoices, setShowChoices] = useState<boolean>(false);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [timelineKey, setTimelineKey] = useState(0); // Force timeline reload
-  const [showFullStoryView, setShowFullStoryView] = useState<boolean>(true); // Hiển thị toàn bộ diễn biến câu chuyện
 
   const contentRef = useRef<HTMLDivElement>(null);
   const choicesRef = useRef<HTMLDivElement>(null);
-
-  const toggleNodeExpansion = (nodeId: string) => {
-    setExpandedNodes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(nodeId)) {
-        newSet.delete(nodeId);
-      } else {
-        newSet.add(nodeId);
-      }
-      return newSet;
-    });
-  };
 
   useEffect(() => {
     const fetchGameSession = async () => {
@@ -159,7 +126,6 @@ export default function GamePlayPage({
 
         setGameSession(sessionResponse.data);
         setStoryHistory(historyResponse.data);
-        await loadStoryTree();
         setLoading(false);
       } catch (err) {
         console.error("Error fetching game session:", err);
@@ -173,69 +139,7 @@ export default function GamePlayPage({
     }
   }, [id]);
 
-  // Hiệu ứng hiển thị văn bản từng chữ một cho story node mới nhất
-  useEffect(() => {
-    if (
-      !gameSession ||
-      !animateText ||
-      textComplete ||
-      storyHistory.length === 0
-    )
-      return;
-
-    const latestStoryNode = storyHistory[storyHistory.length - 1];
-    const content = latestStoryNode?.content || "";
-    const contentElement = contentRef.current;
-
-    if (!contentElement) return;
-
-    // Chỉ animate nội dung của story node mới nhất
-    const latestContentElement = contentElement.querySelector(
-      ".latest-story-content"
-    );
-    if (!latestContentElement) return;
-
-    latestContentElement.innerHTML = "";
-    let index = 0;
-
-    const interval = setInterval(() => {
-      if (index < content.length) {
-        latestContentElement.innerHTML += content.charAt(index);
-        index++;
-
-        // Tự động cuộn xuống khi văn bản dài
-        contentElement.scrollTop = contentElement.scrollHeight;
-      } else {
-        clearInterval(interval);
-        setTextComplete(true);
-        setShowChoices(true);
-      }
-    }, 30); // Tốc độ hiển thị chữ
-
-    return () => clearInterval(interval);
-  }, [gameSession, animateText, textComplete, storyHistory]);
-
-  // Cuộn xuống khi hiển thị lựa chọn
-  useEffect(() => {
-    if (showChoices && choicesRef.current) {
-      const element = choicesRef.current;
-      setTimeout(() => {
-        element.scrollIntoView({ behavior: "smooth" });
-      }, 300);
-    }
-  }, [showChoices]);
-
-  // Load story tree
-  const loadStoryTree = async () => {
-    try {
-      const response = await axios.get(`/api/game/sessions/${id}/tree`);
-      setStoryTree(response.data);
-    } catch (error) {
-      console.error("Failed to load story tree:", error);
-    }
-  };
-
-  // Go back to previous node
+  // Go back to previous node - Quay lại lựa chọn trước đó
   const goBackToNode = async (nodeId: string) => {
     try {
       setLoading(true);
@@ -246,55 +150,19 @@ export default function GamePlayPage({
 
       setGameSession(sessionResponse.data);
       setStoryHistory(historyResponse.data);
-      await loadStoryTree();
-
-      // Force timeline reload
-      setTimelineKey((prev) => prev + 1);
 
       // Reset UI states
       setMakingChoice(false);
       setSelectedChoiceId(null);
-      setAnimateText(true);
-      setTextComplete(false);
-      setShowChoices(false);
     } catch (error) {
       console.error("Failed to go back to node:", error);
-      setError("Không thể quay lại node này");
+      setError("Không thể quay lại lựa chọn trước");
     } finally {
       setLoading(false);
     }
   };
 
-  // Restore branch
-  const restoreBranch = async (branchId: string) => {
-    try {
-      setLoading(true);
-      const [sessionResponse, historyResponse] = await Promise.all([
-        axios.post(`/api/game/sessions/${id}/restore-branch/${branchId}`),
-        axios.get(`/api/game/sessions/${id}/history`),
-      ]);
-
-      setGameSession(sessionResponse.data);
-      setStoryHistory(historyResponse.data);
-      await loadStoryTree();
-
-      // Force timeline reload
-      setTimelineKey((prev) => prev + 1);
-
-      // Reset UI states
-      setMakingChoice(false);
-      setSelectedChoiceId(null);
-      setAnimateText(true);
-      setTextComplete(false);
-      setShowChoices(false);
-    } catch (error) {
-      console.error("Failed to restore branch:", error);
-      setError("Không thể khôi phục nhánh này");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Thực hiện lựa chọn
   const makeChoice = async (choiceId: string) => {
     try {
       setMakingChoice(true);
@@ -308,19 +176,12 @@ export default function GamePlayPage({
       // Cập nhật game session và lịch sử
       setGameSession(sessionResponse.data);
       setStoryHistory(historyResponse.data);
-      await loadStoryTree();
 
-      // Force timeline reload
-      setTimelineKey((prev) => prev + 1);
-
-      // Reset các trạng thái cho story node mới
-      setTextComplete(false);
-      setShowChoices(false);
+      // Reset trạng thái UI
       setMakingChoice(false);
       setSelectedChoiceId(null);
-      setAnimateText(true);
 
-      // Cuộn xuống story node mới với hiệu ứng mượt
+      // Cuộn xuống diễn biến mới
       setTimeout(() => {
         if (contentRef.current) {
           contentRef.current.scrollTo({
@@ -344,16 +205,6 @@ export default function GamePlayPage({
     } catch (err) {
       console.error("Error ending game:", err);
       setError("Không thể kết thúc phiên game. Vui lòng thử lại.");
-    }
-  };
-
-  const saveGame = async () => {
-    try {
-      await axios.put(`/api/game/sessions/${id}/save`);
-      alert("Đã lưu phiên game thành công!");
-    } catch (err) {
-      console.error("Error saving game:", err);
-      setError("Không thể lưu phiên game. Vui lòng thử lại.");
     }
   };
 
@@ -440,943 +291,212 @@ export default function GamePlayPage({
     );
   }
 
-  // Xác định màu nền dựa trên thể loại
-  const getGenreGradient = (genre: string | undefined): string => {
-    const gradients: Record<string, string> = {
-      fantasy: "from-blue-900/70 to-purple-900/70",
-      modern: "from-gray-900/70 to-blue-900/70",
-      scifi: "from-cyan-900/70 to-blue-900/70",
-      xianxia: "from-yellow-900/70 to-orange-900/70",
-      wuxia: "from-red-900/70 to-pink-900/70",
-      horror: "from-gray-900/70 to-red-900/70",
-      cyberpunk: "from-purple-900/70 to-pink-900/70",
-      steampunk: "from-amber-900/70 to-yellow-900/70",
-      postapocalyptic: "from-green-900/70 to-yellow-900/70",
-      historical: "from-amber-900/70 to-yellow-900/70",
-    };
-
-    return gradients[genre || ""] || "from-gray-900/70 to-blue-900/70";
-  };
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Game Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center">
-            <button
-              onClick={() => router.push("/game")}
-              className="mr-4 text-gray-400 hover:text-white transition-colors"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
-            </button>
-
+      <div className="bg-gray-800 shadow-md">
+        <div className="container mx-auto py-4 px-4">
+          <div className="flex justify-between items-center">
+            {/* Game Title and Character */}
             <div>
-              <h1 className="text-xl font-bold">
-                {gameSession.character?.name || "Nhân vật không xác định"}
+              <h1 className="text-2xl font-bold">
+                {gameSession.character.name}{" "}
+                <span className="text-gray-400">
+                  Lvl. {gameSession.character.level}
+                </span>
               </h1>
-              <div className="flex text-sm text-gray-400">
-                <span>{gameSession.character?.characterClass || ""}</span>
-                {gameSession.character?.level && (
-                  <>
-                    <span className="mx-1">•</span>
-                    <span>Cấp {gameSession.character.level}</span>
-                  </>
-                )}
+              <div className="text-sm text-gray-400">
+                {gameSession.character.characterClass}
               </div>
             </div>
-          </div>
 
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowCharacterInfo(!showCharacterInfo)}
-              className={`p-2 rounded-md transition-colors ${
-                showCharacterInfo
-                  ? "bg-blue-600"
-                  : "bg-gray-700 hover:bg-gray-600"
-              }`}
-              title="Thông tin nhân vật"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            {/* Actions */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Bạn có chắc muốn kết thúc phiên game này không?"
+                    )
+                  ) {
+                    endGame();
+                  }
+                }}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => setShowInventory(!showInventory)}
-              className={`p-2 rounded-md transition-colors ${
-                showInventory ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"
-              }`}
-              title="Hành trang"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+                Kết thúc
+              </button>
+              <Link
+                href="/game"
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => setShowQuestLog(!showQuestLog)}
-              className={`p-2 rounded-md transition-colors ${
-                showQuestLog ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"
-              }`}
-              title="Nhật ký nhiệm vụ"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path
-                  fillRule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-
-            <button
-              onClick={saveGame}
-              className="p-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
-              title="Lưu game"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-              </svg>
-            </button>
-
-            <button
-              onClick={endGame}
-              className="p-2 bg-red-700 hover:bg-red-600 rounded-md transition-colors"
-              title="Kết thúc phiên game"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+                Trang chủ
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Game Content */}
-      <div className="flex-1 flex">
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Location Info */}
-          {gameSession.currentStoryNode?.location && (
-            <div className="bg-gray-800 p-4 border-b border-gray-700">
-              <div className="container mx-auto">
-                <div className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-gray-400 mr-2"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-medium">
-                    {gameSession.currentStoryNode.location}
-                  </span>
-                </div>
+      <div className="container mx-auto p-6">
+        {/* Story Content */}
+        <div
+          ref={contentRef}
+          className="max-h-[60vh] overflow-y-auto bg-gray-800/30 rounded-lg p-4 space-y-6 border border-gray-700"
+        >
+          {storyHistory.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">
+              <div className="animate-pulse">
+                Đang tải lịch sử câu chuyện...
               </div>
             </div>
-          )}
+          ) : (
+            storyHistory.map((storyNode, index) => {
+              const isLatest = index === storyHistory.length - 1;
+              const nodeId = storyNode.id || `node-${index}`;
 
-          {/* Scene Description */}
-          {gameSession.currentStoryNode?.sceneDescription && (
-            <div
-              className={`bg-gradient-to-b ${getGenreGradient(
-                gameSession.character?.primaryGenre
-              )} p-6 border-b border-gray-700`}
-            >
-              <div className="container mx-auto">
-                <p className="italic text-gray-300">
-                  {gameSession.currentStoryNode.sceneDescription}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Story Content - Hiển thị diễn biến câu chuyện tuyến tính */}
-          <div className="container mx-auto p-6">
-            <div className="mb-8">
-              {/* Header cho lịch sử câu chuyện */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">
-                  Diễn biến câu chuyện
-                </h2>
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-400">
-                    {storyHistory.length} đoạn truyện
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (contentRef.current) {
-                        contentRef.current.scrollTo({
-                          top: contentRef.current.scrollHeight,
-                          behavior: "smooth",
-                        });
-                      }
-                    }}
-                    className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center space-x-1"
-                    title="Cuộn xuống mới nhất"
-                  >
-                    <span>↓</span>
-                    <span>Mới nhất</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Container có thanh trượt cho lịch sử câu chuyện - Hiển thị tuyến tính */}
-              <div
-                ref={contentRef}
-                className="max-h-[60vh] overflow-y-auto bg-gray-800/30 rounded-lg p-4 space-y-6 border border-gray-700 scrollbar-thin"
-                style={{ scrollBehavior: "smooth" }}
-              >
-                {storyHistory.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
-                    <div className="animate-pulse">
-                      Đang tải lịch sử câu chuyện...
-                    </div>
-                  </div>
-                ) : (
-                  storyHistory.map((storyNode, index) => {
-                    const isLatest = index === storyHistory.length - 1;
-                    const isCurrentNode =
-                      storyNode.id === gameSession.currentStoryNode?.id;
-                    const nodeId = storyNode.id || `node-${index}`;
-
-                    return (
-                      <div
-                        key={nodeId}
-                        className={`story-segment relative ${
-                          isLatest
-                            ? "latest-story bg-gray-700/20"
-                            : "past-story bg-gray-800/20"
-                        } ${
-                          isCurrentNode
-                            ? "border-l-4 border-blue-500 pl-4"
-                            : "border-l-4 border-gray-600 pl-4"
-                        } rounded-lg p-4 ${
-                          isLatest ? "ring-2 ring-blue-500/30" : ""
-                        }`}
-                      >
-                        {/* Header với số thứ tự và nút quay lại */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-gray-400 bg-gray-800/50 px-2 py-1 rounded flex items-center">
-                            <span className="mr-2">Diễn biến #{index + 1}</span>
-                            {storyNode.location && (
-                              <span className="flex items-center text-xs text-gray-500">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3 w-3 mr-1"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                {storyNode.location}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Nút quay lại (hiển thị cho tất cả các node ngoại trừ node đầu tiên) */}
-                          {!isLatest && index > 0 && (
-                            <button
-                              onClick={() => goBackToNode(nodeId)}
-                              className="text-xs px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded transition-colors flex items-center"
-                              title="Quay lại điểm này và chọn lại"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3 mr-1"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Quay lại chọn lại
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Nội dung câu chuyện */}
-                        <div className="prose prose-invert max-w-none text-white">
-                          {/* Hiển thị lựa chọn đã chọn từ node trước đó (nếu có) */}
-                          {index > 0 &&
-                            storyHistory[index - 1]?.selectedChoiceText && (
-                              <div className="mb-4 text-green-400 font-semibold border-l-4 border-green-500 pl-3 py-1">
-                                <span className="opacity-75">Bạn đã chọn:</span>{" "}
-                                {storyHistory[index - 1].selectedChoiceText}
-                              </div>
-                            )}
-
-                          {/* Nội dung chính của node */}
-                          {isLatest && animateText && !textComplete ? (
-                            <div className="latest-story-content"></div>
-                          ) : (
-                            <div>{storyNode.content}</div>
-                          )}
-                        </div>
-
-                        {/* Combat scene cho story node này */}
-                        {storyNode.isCombatScene && storyNode.combatData && (
-                          <div className="mt-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
-                            <h4 className="text-lg font-bold mb-2 text-red-400">
-                              Trận chiến!
-                            </h4>
-                            <div className="space-y-2">
-                              {storyNode.combatData.enemies.map(
-                                (enemy, enemyIndex) => (
-                                  <div
-                                    key={enemyIndex}
-                                    className="flex justify-between items-center bg-gray-800/30 p-2 rounded"
-                                  >
-                                    <div>
-                                      <div className="font-bold text-sm">
-                                        {enemy.name}
-                                      </div>
-                                      <div className="text-xs text-gray-400">
-                                        Cấp {enemy.level}
-                                      </div>
-                                    </div>
-                                    <div className="text-sm font-bold">
-                                      {enemy.health}/100 HP
-                                    </div>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Hiển thị lựa chọn đã được chọn nếu không phải là node cuối cùng */}
-                        {!isLatest && storyNode.selectedChoiceText && (
-                          <div className="mt-4 p-2 bg-green-900/20 border border-green-800/30 rounded-lg">
-                            <div className="text-sm text-green-400 flex items-center">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4 mr-1"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Lựa chọn đã chọn:{" "}
-                              <span className="font-semibold ml-1">
-                                {storyNode.selectedChoiceText}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Nút hiển thị toàn bộ cho story node mới nhất */}
-              {animateText && !textComplete && storyHistory.length > 0 && (
-                <button
-                  onClick={() => {
-                    setAnimateText(false);
-                    setTextComplete(true);
-                    setShowChoices(true);
-                  }}
-                  className="mt-4 text-blue-400 hover:text-blue-300 transition-colors text-sm"
+              return (
+                <div
+                  key={nodeId}
+                  id={`story-node-${nodeId}`}
+                  className="relative rounded-lg p-4 bg-gray-800/20 border border-gray-700/30"
                 >
-                  Bấm để hiển thị toàn bộ
-                </button>
-              )}
-            </div>
+                  {/* Diễn biến */}
+                  <div className="prose prose-invert max-w-none text-white">
+                    {/* Hiển thị lựa chọn đã chọn từ node trước đó (nếu có) */}
+                    {index > 0 &&
+                      storyHistory[index - 1]?.selectedChoiceText && (
+                        <div className="mb-4 text-green-400 font-semibold border-l-4 border-green-500 pl-3 py-1">
+                          <span className="opacity-75">Bạn đã chọn:</span>{" "}
+                          {storyHistory[index - 1].selectedChoiceText}
+                        </div>
+                      )}
 
-            {/* Choices */}
-            {showChoices &&
-              gameSession.currentStoryNode?.choices &&
-              gameSession.currentStoryNode.choices.length > 0 && (
-                <div ref={choicesRef} className="space-y-4 mt-8">
-                  <h3 className="text-xl font-bold mb-4">Lựa chọn của bạn</h3>
+                    {/* Nội dung chính của node */}
+                    <div>{storyNode.content}</div>
+                  </div>
 
-                  {gameSession.currentStoryNode.choices.map((choice) => {
-                    const canChoose = canMakeChoice(choice);
-
-                    return (
+                  {/* Nút quay lại - chỉ hiển thị nút quay lại khi đây không phải là node cuối cùng */}
+                  {!isLatest && (
+                    <div className="mt-4 flex justify-end">
                       <button
-                        key={choice.id}
-                        onClick={() => canChoose && makeChoice(choice.id)}
-                        disabled={!canChoose || makingChoice}
-                        className={`w-full text-left p-4 rounded-lg transition-all ${
-                          selectedChoiceId === choice.id
-                            ? "bg-blue-600 text-white"
-                            : canChoose
-                            ? "bg-gray-800 hover:bg-gray-700 text-white"
-                            : "bg-gray-800/50 text-gray-500 cursor-not-allowed"
-                        }`}
+                        onClick={() => goBackToNode(nodeId)}
+                        className="text-sm px-3 py-1.5 bg-amber-600 hover:bg-amber-700 rounded transition-colors flex items-center space-x-1"
                       >
-                        <div className="flex items-start">
-                          <div className="flex-1">
-                            <p>{choice.text}</p>
-
-                            {/* Hiển thị yêu cầu nếu không đáp ứng */}
-                            {!canChoose && (
-                              <div className="mt-2 text-sm text-red-400">
-                                {choice.requiredAttribute &&
-                                  choice.requiredAttributeValue && (
-                                    <p>
-                                      Yêu cầu: {choice.requiredAttribute} ≥{" "}
-                                      {choice.requiredAttributeValue}
-                                    </p>
-                                  )}
-
-                                {choice.requiredSkill && (
-                                  <p>Yêu cầu kỹ năng: {choice.requiredSkill}</p>
-                                )}
-
-                                {choice.requiredItem && (
-                                  <p>Yêu cầu vật phẩm: {choice.requiredItem}</p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {makingChoice && selectedChoiceId === choice.id && (
-                            <svg
-                              className="animate-spin h-5 w-5 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                          )}
-                        </div>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-1"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Quay lại chọn lại
                       </button>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
-              )}
-
-            {/* Ending */}
-            {gameSession.currentStoryNode?.isEnding && (
-              <div className="mt-12 text-center">
-                <h3 className="text-2xl font-bold mb-4">Kết thúc</h3>
-                <p className="text-gray-400 mb-6">
-                  Cuộc phiêu lưu của bạn đã kết thúc.
-                </p>
-                <button
-                  onClick={endGame}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-                >
-                  Trở về trang chủ
-                </button>
-              </div>
-            )}
-          </div>
+              );
+            })
+          )}
         </div>
 
-        {/* Sidebars */}
-        {showCharacterInfo && (
-          <div className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">Thông tin nhân vật</h3>
-                <button
-                  onClick={() => setShowCharacterInfo(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+        {/* Choices - Hiển thị lựa chọn cho node hiện tại */}
+        {gameSession.currentStoryNode?.choices &&
+          gameSession.currentStoryNode.choices.length > 0 && (
+            <div ref={choicesRef} className="space-y-4 mt-8">
+              <h3 className="text-xl font-bold mb-4">Lựa chọn của bạn</h3>
+
+              {gameSession.currentStoryNode.choices.map((choice) => {
+                const canChoose = canMakeChoice(choice);
+
+                return (
+                  <button
+                    key={choice.id}
+                    onClick={() => canChoose && makeChoice(choice.id)}
+                    disabled={!canChoose || makingChoice}
+                    className={`w-full text-left p-4 rounded-lg transition-all ${
+                      selectedChoiceId === choice.id
+                        ? "bg-blue-600 text-white"
+                        : canChoose
+                        ? "bg-gray-800 hover:bg-gray-700 text-white"
+                        : "bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                    }`}
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
+                    <div className="flex items-start">
+                      <div className="flex-1">
+                        <p>{choice.text}</p>
 
-            <div className="p-4">
-              <div className="mb-6">
-                <div className="flex items-center mb-2">
-                  <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mr-3">
-                    <span className="text-xl font-bold">
-                      {gameSession.character?.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold">{gameSession.character?.name}</h4>
-                    <div className="text-sm text-gray-400">
-                      {gameSession.character?.characterClass} • Cấp{" "}
-                      {gameSession.character?.level}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-400">Kinh nghiệm</span>
-                  <span>{gameSession.character?.experience || 0}</span>
-                </div>
-                <div className="h-1 bg-gray-700 rounded-full overflow-hidden mb-4">
-                  <div
-                    className="h-full bg-blue-500"
-                    style={{
-                      width: `${
-                        (gameSession.character?.experience || 0) % 100
-                      }%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="font-bold mb-3 text-blue-400">Thuộc tính</h4>
-                <div className="space-y-2">
-                  {gameSession.character?.attributes &&
-                    Object.entries(gameSession.character.attributes).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-400 capitalize">
-                            {key === "strength"
-                              ? "Sức mạnh"
-                              : key === "intelligence"
-                              ? "Trí tuệ"
-                              : key === "dexterity"
-                              ? "Nhanh nhẹn"
-                              : key === "charisma"
-                              ? "Quyến rũ"
-                              : key === "health"
-                              ? "Sinh lực"
-                              : key === "mana"
-                              ? "Năng lượng"
-                              : key}
-                          </span>
-                          <span>{value}</span>
-                        </div>
-                      )
-                    )}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="font-bold mb-3 text-green-400">Kỹ năng</h4>
-                {gameSession.character?.skills &&
-                gameSession.character.skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {gameSession.character.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="bg-gray-700 px-2 py-1 rounded-full text-xs"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">Chưa có kỹ năng nào</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showInventory && (
-          <div className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">Hành trang</h3>
-                <button
-                  onClick={() => setShowInventory(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4">
-              {gameSession.character?.inventory ? (
-                <>
-                  {/* Currency */}
-                  {gameSession.character.inventory.currency &&
-                    Object.keys(gameSession.character.inventory.currency)
-                      .length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-bold mb-3 text-yellow-400">
-                          Tiền tệ
-                        </h4>
-                        <div className="space-y-2">
-                          {Object.entries(
-                            gameSession.character.inventory.currency
-                          ).map(([currency, amount]) => (
-                            <div key={currency} className="flex items-center">
-                              <span className="text-yellow-300 mr-2">
-                                {currency === "gold"
-                                  ? "💰"
-                                  : currency === "credits"
-                                  ? "💳"
-                                  : currency === "yuan"
-                                  ? "💴"
-                                  : currency === "spirit_stones"
-                                  ? "💎"
-                                  : "🪙"}
-                              </span>
-                              <span>
-                                {amount}{" "}
-                                {currency === "gold"
-                                  ? "Vàng"
-                                  : currency === "credits"
-                                  ? "Credits"
-                                  : currency === "yuan"
-                                  ? "Yuan"
-                                  : currency === "spirit_stones"
-                                  ? "Linh thạch"
-                                  : currency.replace("_", " ")}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Items */}
-                  <div>
-                    <h4 className="font-bold mb-3 text-blue-400">Vật phẩm</h4>
-                    {gameSession.character.inventory.items &&
-                    gameSession.character.inventory.items.length > 0 ? (
-                      <div className="space-y-3">
-                        {gameSession.character.inventory.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="bg-gray-700 p-3 rounded-lg"
-                          >
-                            <div className="flex justify-between">
-                              <h5 className="font-medium">
-                                {item.name}
-                                {item.quantity > 1 && (
-                                  <span className="text-gray-400 text-sm ml-1">
-                                    x{item.quantity}
-                                  </span>
-                                )}
-                              </h5>
-                              {item.rarity && (
-                                <span
-                                  className={`text-xs px-1.5 py-0.5 rounded ${
-                                    item.rarity === "common"
-                                      ? "bg-gray-600 text-gray-300"
-                                      : item.rarity === "uncommon"
-                                      ? "bg-green-800 text-green-300"
-                                      : item.rarity === "rare"
-                                      ? "bg-blue-800 text-blue-300"
-                                      : item.rarity === "epic"
-                                      ? "bg-purple-800 text-purple-300"
-                                      : item.rarity === "legendary"
-                                      ? "bg-orange-800 text-orange-300"
-                                      : "bg-gray-600 text-gray-300"
-                                  }`}
-                                >
-                                  {item.rarity === "common"
-                                    ? "Thường"
-                                    : item.rarity === "uncommon"
-                                    ? "Không phổ biến"
-                                    : item.rarity === "rare"
-                                    ? "Hiếm"
-                                    : item.rarity === "epic"
-                                    ? "Sử thi"
-                                    : item.rarity === "legendary"
-                                    ? "Huyền thoại"
-                                    : item.rarity}
-                                </span>
+                        {/* Hiển thị yêu cầu nếu không đáp ứng */}
+                        {!canChoose && (
+                          <div className="mt-2 text-sm text-red-400">
+                            {choice.requiredAttribute &&
+                              choice.requiredAttributeValue && (
+                                <p>
+                                  Yêu cầu: {choice.requiredAttribute} ≥{" "}
+                                  {choice.requiredAttributeValue}
+                                </p>
                               )}
-                            </div>
-                            {item.description && (
-                              <p className="text-gray-400 text-sm mt-1">
-                                {item.description}
-                              </p>
+
+                            {choice.requiredSkill && (
+                              <p>Yêu cầu kỹ năng: {choice.requiredSkill}</p>
                             )}
-                            <div className="flex justify-between text-xs text-gray-400 mt-1">
-                              {item.type && <span>{item.type}</span>}
-                              {item.value && <span>{item.value} vàng</span>}
-                            </div>
+
+                            {choice.requiredItem && (
+                              <p>Yêu cầu vật phẩm: {choice.requiredItem}</p>
+                            )}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm">Hành trang trống</p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-gray-400">Không có thông tin hành trang</p>
-              )}
-            </div>
-          </div>
-        )}
 
-        {showQuestLog && (
-          <div className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">Nhật ký nhiệm vụ</h3>
-                <button
-                  onClick={() => setShowQuestLog(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4">
-              {gameSession.gameState?.questLog &&
-              gameSession.gameState.questLog.length > 0 ? (
-                <div className="space-y-4">
-                  {gameSession.gameState.questLog.map((quest, index) => (
-                    <div key={index} className="bg-gray-700 p-3 rounded-lg">
-                      <p>{quest}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto text-gray-600 mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                  <p className="text-gray-400">Chưa có nhiệm vụ nào</p>
-                </div>
-              )}
-
-              <div className="mt-6">
-                <h4 className="font-bold mb-3 text-green-400">
-                  Nhiệm vụ đã hoàn thành
-                </h4>
-                {gameSession.gameState?.completedQuests &&
-                gameSession.gameState.completedQuests.length > 0 ? (
-                  <div className="space-y-2">
-                    {gameSession.gameState.completedQuests.map(
-                      (quest, index) => (
-                        <div
-                          key={index}
-                          className="bg-gray-700 p-2 rounded-lg flex items-center"
+                      {makingChoice && selectedChoiceId === choice.id && (
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-green-500 mr-2"
-                            viewBox="0 0 20 20"
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
                             fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <p className="text-sm">{quest}</p>
-                        </div>
-                      )
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-sm">
-                    Chưa có nhiệm vụ nào được hoàn thành
-                  </p>
-                )}
-              </div>
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+          )}
+
+        {/* Ending */}
+        {gameSession.currentStoryNode?.isEnding && (
+          <div className="mt-12 text-center">
+            <h3 className="text-2xl font-bold mb-4">Kết thúc</h3>
+            <p className="text-gray-400 mb-6">
+              Cuộc phiêu lưu của bạn đã kết thúc.
+            </p>
+            <button
+              onClick={endGame}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+            >
+              Trở về trang chủ
+            </button>
           </div>
         )}
-
-        {/* Firebase Sidebar */}
-        <div className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-lg font-bold mb-4 text-white">🔥 Firebase</h3>
-
-            {/* Advanced Timeline */}
-            <div className="mb-6">
-              <AdvancedTimeline
-                key={timelineKey}
-                sessionId={id}
-                onNodeSelect={goBackToNode}
-                onBranchRestore={restoreBranch}
-                currentNodeId={gameSession?.currentStoryNode?.id}
-              />
-            </div>
-
-            {/* Branch Tree Visualization */}
-            <div className="mb-6">
-              <BranchTreeVisualization
-                key={timelineKey}
-                sessionId={id}
-                onNodeClick={goBackToNode}
-                currentNodeId={gameSession?.currentStoryNode?.id}
-              />
-            </div>
-
-            {/* Firebase Auth */}
-            <div className="mb-6">
-              <FirebaseAuthButtons
-                onSuccess={() => console.log("Firebase auth success")}
-                onError={(error) =>
-                  console.error("Firebase auth error:", error)
-                }
-              />
-            </div>
-
-            {/* Game Backup */}
-            {firebaseUser && (
-              <div className="mb-6">
-                <GameBackup
-                  gameSession={gameSession}
-                  character={gameSession?.character}
-                  onBackupSuccess={() => console.log("Backup success")}
-                  onBackupError={(error) =>
-                    console.error("Backup error:", error)
-                  }
-                />
-              </div>
-            )}
-
-            {/* Story Tree Navigation */}
-            {storyTree && (
-              <div className="mb-6">
-                <h4 className="text-md font-semibold mb-3 text-white">
-                  🌳 Cây câu chuyện
-                </h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {storyTree.currentPath &&
-                    storyTree.currentPath.map(
-                      (nodeId: string, index: number) => (
-                        <button
-                          key={nodeId}
-                          onClick={() => goBackToNode(nodeId)}
-                          className={`w-full text-left p-2 rounded text-sm transition-colors ${
-                            nodeId === storyTree.currentNodeId
-                              ? "bg-blue-600 text-white"
-                              : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                          }`}
-                        >
-                          {index + 1}. Node {nodeId.substring(0, 8)}...
-                          {nodeId === storyTree.currentNodeId && " (Hiện tại)"}
-                        </button>
-                      )
-                    )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

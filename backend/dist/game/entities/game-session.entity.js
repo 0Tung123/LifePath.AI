@@ -13,6 +13,7 @@ exports.GameSession = void 0;
 const typeorm_1 = require("typeorm");
 const character_entity_1 = require("./character.entity");
 const story_node_entity_1 = require("./story-node.entity");
+const story_path_entity_1 = require("./story-path.entity");
 let GameSession = class GameSession {
 };
 exports.GameSession = GameSession;
@@ -58,6 +59,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => story_node_entity_1.StoryNode, (storyNode) => storyNode.gameSession),
     __metadata("design:type", Array)
 ], GameSession.prototype, "storyNodes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => story_path_entity_1.StoryPath, (storyPath) => storyPath.gameSession),
+    __metadata("design:type", Array)
+], GameSession.prototype, "storyPaths", void 0);
 exports.GameSession = GameSession = __decorate([
     (0, typeorm_1.Entity)()
 ], GameSession);

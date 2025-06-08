@@ -24,7 +24,28 @@ export declare class GameController {
     getMyActiveSessions(req: any): Promise<GameSession[]>;
     getGameSession(id: string): Promise<GameSession>;
     getGameSessionHistory(id: string): Promise<import("./entities/story-node.entity").StoryNode[]>;
+    getActualPathHistory(id: string): Promise<{
+        pathNodes: import("./entities/story-node.entity").StoryNode[];
+        allNodes: import("./entities/story-node.entity").StoryNode[];
+        currentPath: string[];
+    }>;
+    getAllBranches(id: string): Promise<{
+        activeBranch: any[];
+        inactiveBranches: any[];
+        branchPoints: any[];
+    }>;
+    restoreBranch(sessionId: string, branchId: string): Promise<GameSession>;
     saveGame(id: string): Promise<GameSession>;
     endGame(id: string): Promise<GameSession>;
+    deleteGameSession(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    deleteCharacter(id: string, req: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     makeChoice(id: string, choiceId: string): Promise<GameSession>;
+    goBackToNode(sessionId: string, nodeId: string): Promise<GameSession>;
+    getStoryTree(sessionId: string): Promise<any>;
 }
