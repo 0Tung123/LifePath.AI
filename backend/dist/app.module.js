@@ -10,18 +10,22 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const config_1 = require("@nestjs/config");
+const schedule_1 = require("@nestjs/schedule");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const auth_module_1 = require("./auth/auth.module");
 const mail_module_1 = require("./mail/mail.module");
 const users_module_1 = require("./user/users.module");
 const game_module_1 = require("./game/game.module");
+const memory_module_1 = require("./memory/memory.module");
 const user_entity_1 = require("./user/entities/user.entity");
 const password_reset_token_entity_1 = require("./auth/entities/password-reset-token.entity");
 const character_entity_1 = require("./game/entities/character.entity");
 const game_session_entity_1 = require("./game/entities/game-session.entity");
 const story_node_entity_1 = require("./game/entities/story-node.entity");
 const choice_entity_1 = require("./game/entities/choice.entity");
+const quest_entity_1 = require("./game/entities/quest.entity");
+const memory_record_entity_1 = require("./memory/entities/memory-record.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,6 +33,7 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot(),
+            schedule_1.ScheduleModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
@@ -46,6 +51,8 @@ exports.AppModule = AppModule = __decorate([
                         game_session_entity_1.GameSession,
                         story_node_entity_1.StoryNode,
                         choice_entity_1.Choice,
+                        quest_entity_1.Quest,
+                        memory_record_entity_1.MemoryRecord,
                     ],
                     synchronize: true,
                     autoLoadEntities: true,
@@ -57,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             mail_module_1.MailModule,
             users_module_1.UsersModule,
+            memory_module_1.MemoryModule,
             game_module_1.GameModule,
         ],
         controllers: [app_controller_1.AppController],

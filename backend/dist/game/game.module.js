@@ -16,21 +16,64 @@ const character_entity_1 = require("./entities/character.entity");
 const game_session_entity_1 = require("./entities/game-session.entity");
 const story_node_entity_1 = require("./entities/story-node.entity");
 const choice_entity_1 = require("./entities/choice.entity");
+const quest_entity_1 = require("./entities/quest.entity");
+const character_death_entity_1 = require("./entities/character-death.entity");
+const legacy_entity_1 = require("./entities/legacy.entity");
+const consequence_entity_1 = require("./entities/consequence.entity");
 const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
+const world_state_service_1 = require("./world-state.service");
+const quest_service_1 = require("./quest.service");
+const quest_controller_1 = require("./quest.controller");
+const permadeath_service_1 = require("./permadeath.service");
+const legacy_service_1 = require("./legacy.service");
+const consequence_service_1 = require("./consequence.service");
+const custom_input_service_1 = require("./custom-input.service");
+const custom_input_controller_1 = require("./custom-input.controller");
 const user_entity_1 = require("../user/entities/user.entity");
+const memory_module_1 = require("../memory/memory.module");
 let GameModule = class GameModule {
 };
 exports.GameModule = GameModule;
 exports.GameModule = GameModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([character_entity_1.Character, game_session_entity_1.GameSession, story_node_entity_1.StoryNode, choice_entity_1.Choice, user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([
+                character_entity_1.Character,
+                game_session_entity_1.GameSession,
+                story_node_entity_1.StoryNode,
+                choice_entity_1.Choice,
+                quest_entity_1.Quest,
+                user_entity_1.User,
+                character_death_entity_1.CharacterDeath,
+                legacy_entity_1.Legacy,
+                consequence_entity_1.Consequence
+            ]),
             config_1.ConfigModule,
+            memory_module_1.MemoryModule,
         ],
-        controllers: [game_controller_1.GameController],
-        providers: [game_service_1.GameService, gemini_ai_service_1.GeminiAiService, character_generator_service_1.CharacterGeneratorService],
-        exports: [game_service_1.GameService, character_generator_service_1.CharacterGeneratorService],
+        controllers: [game_controller_1.GameController, quest_controller_1.QuestController, custom_input_controller_1.CustomInputController],
+        providers: [
+            game_service_1.GameService,
+            gemini_ai_service_1.GeminiAiService,
+            character_generator_service_1.CharacterGeneratorService,
+            world_state_service_1.WorldStateService,
+            quest_service_1.QuestService,
+            permadeath_service_1.PermadeathService,
+            legacy_service_1.LegacyService,
+            consequence_service_1.ConsequenceService,
+            custom_input_service_1.CustomInputService
+        ],
+        exports: [
+            game_service_1.GameService,
+            character_generator_service_1.CharacterGeneratorService,
+            world_state_service_1.WorldStateService,
+            quest_service_1.QuestService,
+            permadeath_service_1.PermadeathService,
+            legacy_service_1.LegacyService,
+            consequence_service_1.ConsequenceService,
+            custom_input_service_1.CustomInputService
+        ],
     })
 ], GameModule);
 //# sourceMappingURL=game.module.js.map

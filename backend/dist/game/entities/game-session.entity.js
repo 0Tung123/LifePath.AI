@@ -25,9 +25,13 @@ __decorate([
     __metadata("design:type", Boolean)
 ], GameSession.prototype, "isActive", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }),
+    (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], GameSession.prototype, "startedAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], GameSession.prototype, "updatedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)
@@ -44,6 +48,18 @@ __decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Object)
 ], GameSession.prototype, "gameState", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 'normal' }),
+    __metadata("design:type", String)
+], GameSession.prototype, "difficultyLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], GameSession.prototype, "permadeathEnabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], GameSession.prototype, "deathReason", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => character_entity_1.Character, (character) => character.gameSessions),
     (0, typeorm_1.JoinColumn)(),

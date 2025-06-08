@@ -576,6 +576,18 @@ let GeminiAiService = GeminiAiService_1 = class GeminiAiService {
     formatAttributeName(attr) {
         return attr.charAt(0).toUpperCase() + attr.slice(1);
     }
+    async generateContent(prompt, userApiKey) {
+        try {
+            const model = this.getModel(userApiKey);
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            return response.text();
+        }
+        catch (error) {
+            this.logger.error(`Error generating content: ${error.message}`, error.stack);
+            return 'Unable to generate content at this time.';
+        }
+    }
 };
 exports.GeminiAiService = GeminiAiService;
 exports.GeminiAiService = GeminiAiService = GeminiAiService_1 = __decorate([

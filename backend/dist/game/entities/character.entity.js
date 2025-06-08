@@ -102,6 +102,26 @@ __decorate([
     __metadata("design:type", Date)
 ], Character.prototype, "updatedAt", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Character.prototype, "isDead", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Character.prototype, "deathDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Character.prototype, "epitaph", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Character.prototype, "legacyId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], Character.prototype, "survivalStats", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (user) => user.characters),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", user_entity_1.User)

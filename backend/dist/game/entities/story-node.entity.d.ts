@@ -6,6 +6,17 @@ export declare class StoryNode {
     location: string;
     sceneDescription: string;
     isCombatScene: boolean;
+    isRoot: boolean;
+    parentNodeId: string;
+    gameSessionId: string;
+    metadata: {
+        inputType?: string;
+        userInput?: string;
+        dangerLevel?: number;
+        tags?: string[];
+        mood?: string;
+        [key: string]: any;
+    };
     combatData: {
         enemies: {
             id: string;

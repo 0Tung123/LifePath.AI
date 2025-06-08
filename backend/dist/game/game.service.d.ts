@@ -5,7 +5,10 @@ import { StoryNode } from './entities/story-node.entity';
 import { Choice } from './entities/choice.entity';
 import { GeminiAiService } from './gemini-ai.service';
 import { CharacterGeneratorService } from './character-generator.service';
+import { PermadeathService } from './permadeath.service';
+import { ConsequenceService } from './consequence.service';
 import { User } from '../user/entities/user.entity';
+import { MemoryService } from '../memory/memory.service';
 export declare class GameService {
     private characterRepository;
     private gameSessionRepository;
@@ -14,8 +17,11 @@ export declare class GameService {
     private userRepository;
     private geminiAiService;
     private characterGeneratorService;
+    private permadeathService;
+    private consequenceService;
+    private memoryService;
     private readonly logger;
-    constructor(characterRepository: Repository<Character>, gameSessionRepository: Repository<GameSession>, storyNodeRepository: Repository<StoryNode>, choiceRepository: Repository<Choice>, userRepository: Repository<User>, geminiAiService: GeminiAiService, characterGeneratorService: CharacterGeneratorService);
+    constructor(characterRepository: Repository<Character>, gameSessionRepository: Repository<GameSession>, storyNodeRepository: Repository<StoryNode>, choiceRepository: Repository<Choice>, userRepository: Repository<User>, geminiAiService: GeminiAiService, characterGeneratorService: CharacterGeneratorService, permadeathService: PermadeathService, consequenceService: ConsequenceService, memoryService: MemoryService);
     createCharacter(userId: string, characterData: Partial<Character>): Promise<Character>;
     generateCharacterFromDescription(userId: string, description: string, primaryGenre?: GameGenre, secondaryGenres?: GameGenre[], customGenreDescription?: string): Promise<Character>;
     private getDefaultAttributes;
@@ -35,4 +41,5 @@ export declare class GameService {
     endGameSession(sessionId: string): Promise<GameSession>;
     getGameSessionHistory(sessionId: string): Promise<StoryNode[]>;
     getGameSessionsByCharacterId(characterId: string): Promise<GameSession[]>;
+    processUserInput(gameSessionId: string, inputType: string, content: string, target?: string): Promise<GameSession>;
 }

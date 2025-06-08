@@ -9,6 +9,8 @@ import {
   Put,
   Delete,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { GameService } from './game.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -165,5 +167,19 @@ export class GameController {
     @Param('choiceId') choiceId: string,
   ): Promise<GameSession> {
     return this.gameService.makeChoice(id, choiceId);
+  }
+  
+  @Post('sessions/:id/input')
+  @HttpCode(HttpStatus.OK)
+  async processUserInput(
+    @Param('id') id: string,
+    @Body() inputData: { type: string; content: string; target?: string }
+  ): Promise<GameSession> {
+    return this.gameService.processUserInput(
+      id,
+      inputData.type,
+      inputData.content,
+      inputData.target
+    );
   }
 }

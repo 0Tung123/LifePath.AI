@@ -23,9 +23,12 @@ const story_node_entity_1 = require("./entities/story-node.entity");
 const choice_entity_1 = require("./entities/choice.entity");
 const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
+const permadeath_service_1 = require("./permadeath.service");
+const consequence_service_1 = require("./consequence.service");
 const user_entity_1 = require("../user/entities/user.entity");
+const memory_service_1 = require("../memory/memory.service");
 let GameService = GameService_1 = class GameService {
-    constructor(characterRepository, gameSessionRepository, storyNodeRepository, choiceRepository, userRepository, geminiAiService, characterGeneratorService) {
+    constructor(characterRepository, gameSessionRepository, storyNodeRepository, choiceRepository, userRepository, geminiAiService, characterGeneratorService, permadeathService, consequenceService, memoryService) {
         this.characterRepository = characterRepository;
         this.gameSessionRepository = gameSessionRepository;
         this.storyNodeRepository = storyNodeRepository;
@@ -33,6 +36,9 @@ let GameService = GameService_1 = class GameService {
         this.userRepository = userRepository;
         this.geminiAiService = geminiAiService;
         this.characterGeneratorService = characterGeneratorService;
+        this.permadeathService = permadeathService;
+        this.consequenceService = consequenceService;
+        this.memoryService = memoryService;
         this.logger = new common_1.Logger(GameService_1.name);
     }
     async createCharacter(userId, characterData) {
@@ -435,6 +441,9 @@ let GameService = GameService_1 = class GameService {
         try {
             const gameSession = await this.getGameSessionWithDetails(sessionId);
             const character = await this.getCharacterById(gameSession.character.id);
+            if (character.isDead) {
+                throw new common_1.ForbiddenException('This character is dead and cannot make choices');
+            }
             const choice = await this.choiceRepository.findOne({
                 where: { id: choiceId },
                 relations: ['storyNode'],
@@ -445,6 +454,7 @@ let GameService = GameService_1 = class GameService {
             if (choice.storyNode.id !== gameSession.currentStoryNode.id) {
                 throw new common_1.BadRequestException('The selected choice does not belong to the current story node');
             }
+            const dangerLevel = await this.permadeathService.calculateCurrentDangerLevel(sessionId);
             if (choice.consequences) {
                 if (choice.consequences.attributeChanges) {
                     for (const [attr, change] of Object.entries(choice.consequences.attributeChanges)) {
@@ -584,6 +594,149 @@ let GameService = GameService_1 = class GameService {
             order: { startedAt: 'DESC' },
         });
     }
+    async processUserInput(gameSessionId, inputType, content, target) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+            relations: ['character', 'currentStoryNode'],
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        if (!gameSession.isActive) {
+            throw new common_1.BadRequestException('This game session is no longer active');
+        }
+        const character = gameSession.character;
+        if (character.isDead) {
+            throw new common_1.BadRequestException('This character is dead and cannot perform actions');
+        }
+        let formattedInput = '';
+        switch (inputType) {
+            case 'action':
+                formattedInput = `${character.name} decides to ${content}.`;
+                break;
+            case 'thought':
+                formattedInput = `${character.name} thinks to themself: "${content}"`;
+                break;
+            case 'speech':
+                if (target) {
+                    formattedInput = `${character.name} says to ${target}: "${content}"`;
+                }
+                else {
+                    formattedInput = `${character.name} says: "${content}"`;
+                }
+                break;
+            default:
+                formattedInput = content;
+        }
+        const currentNode = gameSession.currentStoryNode;
+        const contextPrompt = `
+      Current situation: ${currentNode.content}
+      
+      Character: ${character.name}, a ${character.characterClass} (Level ${character.level})
+      
+      ${formattedInput}
+      
+      Respond with how the world and NPCs react to this ${inputType}. Be descriptive and engaging.
+      Then, provide 4 possible choices for what ${character.name} could do next.
+      
+      Format your response as follows:
+      [NARRATIVE]
+      Your detailed narrative response here, describing what happens after the ${inputType}.
+      [/NARRATIVE]
+      
+      [CHOICES]
+      1. First choice option
+      2. Second choice option
+      3. Third choice option
+      4. Custom action...
+      [/CHOICES]
+    `;
+        const aiResponse = await this.geminiAiService.generateContent(contextPrompt);
+        const narrativeMatch = aiResponse.match(/\[NARRATIVE\]([\s\S]*?)\[\/NARRATIVE\]/);
+        const choicesMatch = aiResponse.match(/\[CHOICES\]([\s\S]*?)\[\/CHOICES\]/);
+        const narrative = narrativeMatch ? narrativeMatch[1].trim() : aiResponse;
+        let choicesText = choicesMatch ? choicesMatch[1].trim() : '';
+        if (!choicesText) {
+            choicesText =
+                '1. Continue\n2. Investigate further\n3. Talk to someone\n4. Custom action...';
+        }
+        const storyNode = new story_node_entity_1.StoryNode();
+        storyNode.gameSessionId = gameSession.id;
+        storyNode.content = narrative;
+        storyNode.isRoot = false;
+        storyNode.parentNodeId = currentNode.id;
+        storyNode.metadata = {
+            inputType,
+            userInput: formattedInput,
+        };
+        storyNode.createdAt = new Date();
+        const savedNode = await this.storyNodeRepository.save(storyNode);
+        const choiceLines = choicesText
+            .split('\n')
+            .filter((line) => line.trim().length > 0)
+            .map((line) => line.replace(/^\d+\.\s*/, '').trim());
+        if (choiceLines.length === 0) {
+            choiceLines.push('Continue');
+            choiceLines.push('Do something else');
+            choiceLines.push('Talk to someone');
+            choiceLines.push('Custom action...');
+        }
+        const choices = choiceLines.map((choiceText, index) => {
+            const choice = new choice_entity_1.Choice();
+            choice.storyNodeId = savedNode.id;
+            choice.text = choiceText;
+            choice.order = index;
+            if (choiceText.toLowerCase().includes('custom action')) {
+                choice.metadata = { isCustomAction: true };
+            }
+            return choice;
+        });
+        await this.choiceRepository.save(choices);
+        savedNode.choices = choices;
+        gameSession.currentStoryNodeId = savedNode.id;
+        gameSession.currentStoryNode = savedNode;
+        gameSession.lastSavedAt = new Date();
+        await this.gameSessionRepository.save(gameSession);
+        const dangerLevel = await this.permadeathService.calculateCurrentDangerLevel(gameSessionId);
+        if (inputType === 'action' && gameSession.permadeathEnabled) {
+            const deathEvaluation = await this.permadeathService.evaluateLethalSituation(gameSessionId, content, dangerLevel);
+            if (deathEvaluation.died) {
+                const updatedSession = await this.gameSessionRepository.findOne({
+                    where: { id: gameSessionId },
+                    relations: ['character', 'currentStoryNode'],
+                });
+                if (!updatedSession) {
+                    throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+                }
+                return updatedSession;
+            }
+        }
+        if (inputType === 'action' || inputType === 'speech') {
+            const gameContext = {
+                gameSessionId,
+                characterId: character.id,
+                currentSituation: savedNode.content,
+                characterDescription: `${character.name}, a level ${character.level} ${character.characterClass}`,
+            };
+            await this.consequenceService.evaluateActionConsequences(content, gameContext);
+            if (inputType === 'action') {
+                if (!character.survivalStats) {
+                    character.survivalStats = {
+                        daysSurvived: 0,
+                        dangerousSituationsOvercome: 0,
+                        nearDeathExperiences: 0,
+                        majorDecisionsMade: 0,
+                    };
+                }
+                character.survivalStats.majorDecisionsMade++;
+                if (dangerLevel >= 7) {
+                    character.survivalStats.dangerousSituationsOvercome++;
+                }
+                await this.characterRepository.save(character);
+            }
+        }
+        return gameSession;
+    }
 };
 exports.GameService = GameService;
 exports.GameService = GameService = GameService_1 = __decorate([
@@ -599,6 +752,9 @@ exports.GameService = GameService = GameService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         gemini_ai_service_1.GeminiAiService,
-        character_generator_service_1.CharacterGeneratorService])
+        character_generator_service_1.CharacterGeneratorService,
+        permadeath_service_1.PermadeathService,
+        consequence_service_1.ConsequenceService,
+        memory_service_1.MemoryService])
 ], GameService);
 //# sourceMappingURL=game.service.js.map

@@ -37,6 +37,22 @@ __decorate([
     __metadata("design:type", Boolean)
 ], StoryNode.prototype, "isCombatScene", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], StoryNode.prototype, "isRoot", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "parentNodeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "gameSessionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], StoryNode.prototype, "metadata", void 0);
+__decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Object)
 ], StoryNode.prototype, "combatData", void 0);

@@ -24,6 +24,10 @@ __decorate([
     __metadata("design:type", String)
 ], Choice.prototype, "text", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Choice.prototype, "order", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Choice.prototype, "requiredAttribute", void 0);
@@ -39,6 +43,14 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Choice.prototype, "requiredItem", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Choice.prototype, "storyNodeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], Choice.prototype, "metadata", void 0);
 __decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Object)

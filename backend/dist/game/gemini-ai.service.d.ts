@@ -17,4 +17,5 @@ export declare class GeminiAiService {
     private getGenreItems;
     private getRelevantAttributes;
     private formatAttributeName;
+    generateContent(prompt: string, userApiKey?: string): Promise<string>;
 }

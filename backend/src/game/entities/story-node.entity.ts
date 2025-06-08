@@ -25,6 +25,25 @@ export class StoryNode {
 
   @Column({ default: false })
   isCombatScene: boolean;
+  
+  @Column({ default: false })
+  isRoot: boolean;
+  
+  @Column({ nullable: true })
+  parentNodeId: string;
+  
+  @Column({ nullable: true })
+  gameSessionId: string;
+  
+  @Column('simple-json', { nullable: true })
+  metadata: {
+    inputType?: string;
+    userInput?: string;
+    dangerLevel?: number;
+    tags?: string[];
+    mood?: string;
+    [key: string]: any;
+  };
 
   @Column('simple-json', { nullable: true })
   combatData: {

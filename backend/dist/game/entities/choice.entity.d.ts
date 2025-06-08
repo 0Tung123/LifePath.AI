@@ -2,10 +2,19 @@ import { StoryNode } from './story-node.entity';
 export declare class Choice {
     id: string;
     text: string;
+    order: number;
     requiredAttribute: string;
     requiredAttributeValue: number;
     requiredSkill: string;
     requiredItem: string;
+    storyNodeId: string;
+    metadata: {
+        isCustomAction?: boolean;
+        customActionType?: string;
+        successProbability?: number;
+        dangerLevel?: number;
+        [key: string]: any;
+    };
     consequences: {
         attributeChanges: Record<string, number>;
         skillGains: string[];

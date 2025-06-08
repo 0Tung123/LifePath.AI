@@ -26,4 +26,9 @@ export declare class GameController {
     saveGame(id: string): Promise<GameSession>;
     endGame(id: string): Promise<GameSession>;
     makeChoice(id: string, choiceId: string): Promise<GameSession>;
+    processUserInput(id: string, inputData: {
+        type: string;
+        content: string;
+        target?: string;
+    }): Promise<GameSession>;
 }

@@ -4,6 +4,7 @@ export declare class GameSession {
     id: string;
     isActive: boolean;
     startedAt: Date;
+    updatedAt: Date;
     lastSavedAt: Date;
     endedAt: Date;
     currentStoryNodeId: string;
@@ -22,7 +23,15 @@ export declare class GameSession {
             minute: number;
         };
         weather?: string;
+        dangerLevel: number;
+        survivalChance: number;
+        dangerWarnings: string[];
+        nearDeathExperiences: number;
+        pendingConsequences: string[];
     };
+    difficultyLevel: 'easy' | 'normal' | 'hard' | 'hardcore';
+    permadeathEnabled: boolean;
+    deathReason: string;
     character: Character;
     currentStoryNode: StoryNode;
     storyNodes: StoryNode[];

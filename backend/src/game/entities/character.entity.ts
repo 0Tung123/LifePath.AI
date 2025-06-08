@@ -144,6 +144,26 @@ export class Character {
   })
   updatedAt: Date;
 
+  @Column({ default: false })
+  isDead: boolean;
+
+  @Column({ nullable: true })
+  deathDate: Date;
+
+  @Column({ nullable: true })
+  epitaph: string;
+
+  @Column({ nullable: true })
+  legacyId: string;
+
+  @Column('simple-json', { nullable: true })
+  survivalStats: {
+    daysSurvived: number;
+    dangerousSituationsOvercome: number;
+    nearDeathExperiences: number;
+    majorDecisionsMade: number;
+  };
+
   @ManyToOne(() => User, (user) => user.characters)
   @JoinColumn()
   user: User;

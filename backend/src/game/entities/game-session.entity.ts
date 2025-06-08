@@ -5,6 +5,8 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Character } from './character.entity';
 import { StoryNode } from './story-node.entity';
@@ -17,8 +19,11 @@ export class GameSession {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   startedAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   lastSavedAt: Date;
@@ -45,7 +50,22 @@ export class GameSession {
       minute: number;
     };
     weather?: string;
+    // Permadeath related fields
+    dangerLevel: number; // Current danger level from 0-10
+    survivalChance: number; // Current chance of survival as a percentage
+    dangerWarnings: string[]; // Array of warning messages
+    nearDeathExperiences: number; // Counter of close calls
+    pendingConsequences: string[]; // IDs of consequences that will trigger
   };
+  
+  @Column({ default: 'normal' })
+  difficultyLevel: 'easy' | 'normal' | 'hard' | 'hardcore';
+  
+  @Column({ default: false })
+  permadeathEnabled: boolean;
+  
+  @Column({ nullable: true })
+  deathReason: string;
 
   @ManyToOne(() => Character, (character) => character.gameSessions)
   @JoinColumn()

@@ -107,6 +107,9 @@ let GameController = class GameController {
     async makeChoice(id, choiceId) {
         return this.gameService.makeChoice(id, choiceId);
     }
+    async processUserInput(id, inputData) {
+        return this.gameService.processUserInput(id, inputData.type, inputData.content, inputData.target);
+    }
 };
 exports.GameController = GameController;
 __decorate([
@@ -188,6 +191,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], GameController.prototype, "makeChoice", null);
+__decorate([
+    (0, common_1.Post)('sessions/:id/input'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GameController.prototype, "processUserInput", null);
 exports.GameController = GameController = __decorate([
     (0, common_1.Controller)('game'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

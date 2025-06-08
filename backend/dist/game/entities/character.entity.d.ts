@@ -80,6 +80,16 @@ export declare class Character {
     }[];
     createdAt: Date;
     updatedAt: Date;
+    isDead: boolean;
+    deathDate: Date;
+    epitaph: string;
+    legacyId: string;
+    survivalStats: {
+        daysSurvived: number;
+        dangerousSituationsOvercome: number;
+        nearDeathExperiences: number;
+        majorDecisionsMade: number;
+    };
     user: User;
     gameSessions: GameSession[];
 }

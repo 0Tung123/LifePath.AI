@@ -2,9 +2,22 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Thiết lập Gemini API key từ environment
+  const configService = app.get(ConfigService);
+  const geminiApiKey = configService.get<string>('GEMINI_API_KEY');
+
+  if (!geminiApiKey) {
+    console.warn(
+      'GEMINI_API_KEY không được thiết lập. Các tính năng AI có thể không hoạt động.',
+    );
+    // Tạo biến môi trường tạm thời nếu không có
+    process.env.GEMINI_API_KEY = 'AIzaSyAz2MkM7Osi-J0XnlsKAw9mA8b2MdP7HXg'; // API key tạm thời, thay thế bằng key thật
+  }
 
   // Enable CORS
   app.enableCors();
@@ -20,9 +33,9 @@ async function bootstrap() {
 
   // Configure Swagger
   const config = new DocumentBuilder()
-    .setTitle('Authentication API')
+    .setTitle('RPG Game AI API')
     .setDescription(
-      'API for authentication, email verification, and password reset',
+      'API for authentication, game management, dynamic quests, and AI-driven game world',
     )
     .setVersion('1.0')
     .addTag('auth', 'Authentication endpoints')

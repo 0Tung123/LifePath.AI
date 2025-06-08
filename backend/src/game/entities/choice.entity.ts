@@ -15,6 +15,9 @@ export class Choice {
   @Column('text')
   text: string;
 
+  @Column({ default: 0 })
+  order: number;
+
   @Column({ nullable: true })
   requiredAttribute: string;
 
@@ -26,6 +29,18 @@ export class Choice {
 
   @Column({ nullable: true })
   requiredItem: string;
+
+  @Column({ nullable: true })
+  storyNodeId: string;
+
+  @Column('simple-json', { nullable: true })
+  metadata: {
+    isCustomAction?: boolean;
+    customActionType?: string;
+    successProbability?: number;
+    dangerLevel?: number;
+    [key: string]: any;
+  };
 
   @Column('simple-json', { nullable: true })
   consequences: {

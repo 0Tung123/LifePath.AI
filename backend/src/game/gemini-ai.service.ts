@@ -720,4 +720,20 @@ export class GeminiAiService {
     // Capitalize first letter
     return attr.charAt(0).toUpperCase() + attr.slice(1);
   }
+
+  // General purpose method for generating content with Gemini
+  async generateContent(prompt: string, userApiKey?: string): Promise<string> {
+    try {
+      const model = this.getModel(userApiKey);
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      return response.text();
+    } catch (error) {
+      this.logger.error(
+        `Error generating content: ${error.message}`,
+        error.stack,
+      );
+      return 'Unable to generate content at this time.';
+    }
+  }
 }
