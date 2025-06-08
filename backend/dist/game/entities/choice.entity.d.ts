@@ -1,4 +1,5 @@
 import { StoryNode } from './story-node.entity';
+import { ChoiceMetadata } from '../interfaces/story-node-metadata.interface';
 export declare class Choice {
     id: string;
     text: string;
@@ -8,13 +9,7 @@ export declare class Choice {
     requiredSkill: string;
     requiredItem: string;
     storyNodeId: string;
-    metadata: {
-        isCustomAction?: boolean;
-        customActionType?: string;
-        successProbability?: number;
-        dangerLevel?: number;
-        [key: string]: any;
-    };
+    metadata: ChoiceMetadata;
     consequences: {
         attributeChanges: Record<string, number>;
         skillGains: string[];

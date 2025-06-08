@@ -6,6 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { StoryNode } from './story-node.entity';
+import { ChoiceMetadata } from '../interfaces/story-node-metadata.interface';
 
 @Entity()
 export class Choice {
@@ -34,13 +35,7 @@ export class Choice {
   storyNodeId: string;
 
   @Column('simple-json', { nullable: true })
-  metadata: {
-    isCustomAction?: boolean;
-    customActionType?: string;
-    successProbability?: number;
-    dangerLevel?: number;
-    [key: string]: any;
-  };
+  metadata: ChoiceMetadata;
 
   @Column('simple-json', { nullable: true })
   consequences: {

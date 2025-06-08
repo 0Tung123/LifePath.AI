@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { GameSession } from './game-session.entity';
 import { Choice } from './choice.entity';
+import { StoryNodeMetadata } from '../interfaces/story-node-metadata.interface';
 
 @Entity()
 export class StoryNode {
@@ -25,25 +26,18 @@ export class StoryNode {
 
   @Column({ default: false })
   isCombatScene: boolean;
-  
+
   @Column({ default: false })
   isRoot: boolean;
-  
+
   @Column({ nullable: true })
   parentNodeId: string;
-  
+
   @Column({ nullable: true })
   gameSessionId: string;
-  
+
   @Column('simple-json', { nullable: true })
-  metadata: {
-    inputType?: string;
-    userInput?: string;
-    dangerLevel?: number;
-    tags?: string[];
-    mood?: string;
-    [key: string]: any;
-  };
+  metadata: StoryNodeMetadata;
 
   @Column('simple-json', { nullable: true })
   combatData: {

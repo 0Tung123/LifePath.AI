@@ -153,8 +153,8 @@ let CustomInputService = class CustomInputService {
         const aiResponse = await this.geminiAiService.generateContent(contextPrompt);
         const narrativeMatch = aiResponse.match(/\[NARRATIVE\]([\s\S]*?)\[\/NARRATIVE\]/);
         const choicesMatch = aiResponse.match(/\[CHOICES\]([\s\S]*?)\[\/CHOICES\]/);
-        const narrative = narrativeMatch ? narrativeMatch[1].trim() : aiResponse;
-        let choicesText = choicesMatch ? choicesMatch[1].trim() : '';
+        const narrative = narrativeMatch && narrativeMatch[1] ? narrativeMatch[1].trim() : aiResponse;
+        let choicesText = choicesMatch && choicesMatch[1] ? choicesMatch[1].trim() : '';
         if (!choicesText) {
             choicesText =
                 '1. Continue\n2. Investigate further\n3. Talk to someone\n4. Custom action...';

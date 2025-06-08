@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { UsersModule } from './user/users.module';
 import { GameModule } from './game/game.module';
 import { MemoryModule } from './memory/memory.module';
+import { AIModule } from './ai/ai.module';
 import { User } from './user/entities/user.entity';
 import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
 import { Character } from './game/entities/character.entity';
@@ -17,6 +18,7 @@ import { StoryNode } from './game/entities/story-node.entity';
 import { Choice } from './game/entities/choice.entity';
 import { Quest } from './game/entities/quest.entity';
 import { MemoryRecord } from './memory/entities/memory-record.entity';
+import { Story } from './ai/entities/story.entity';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { MemoryRecord } from './memory/entities/memory-record.entity';
           Choice,
           Quest,
           MemoryRecord,
+          Story,
         ],
         synchronize: true,
         autoLoadEntities: true,
@@ -55,6 +58,8 @@ import { MemoryRecord } from './memory/entities/memory-record.entity';
     UsersModule,
     MemoryModule,
     GameModule,
+    AIModule,
+    AIModule,
   ],
   controllers: [AppController],
   providers: [AppService],

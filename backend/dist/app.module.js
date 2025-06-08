@@ -18,6 +18,7 @@ const mail_module_1 = require("./mail/mail.module");
 const users_module_1 = require("./user/users.module");
 const game_module_1 = require("./game/game.module");
 const memory_module_1 = require("./memory/memory.module");
+const ai_module_1 = require("./ai/ai.module");
 const user_entity_1 = require("./user/entities/user.entity");
 const password_reset_token_entity_1 = require("./auth/entities/password-reset-token.entity");
 const character_entity_1 = require("./game/entities/character.entity");
@@ -26,6 +27,7 @@ const story_node_entity_1 = require("./game/entities/story-node.entity");
 const choice_entity_1 = require("./game/entities/choice.entity");
 const quest_entity_1 = require("./game/entities/quest.entity");
 const memory_record_entity_1 = require("./memory/entities/memory-record.entity");
+const story_entity_1 = require("./ai/entities/story.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -53,6 +55,7 @@ exports.AppModule = AppModule = __decorate([
                         choice_entity_1.Choice,
                         quest_entity_1.Quest,
                         memory_record_entity_1.MemoryRecord,
+                        story_entity_1.Story,
                     ],
                     synchronize: true,
                     autoLoadEntities: true,
@@ -66,6 +69,8 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             memory_module_1.MemoryModule,
             game_module_1.GameModule,
+            ai_module_1.AIModule,
+            ai_module_1.AIModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

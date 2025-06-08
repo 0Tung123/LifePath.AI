@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Character } from './character.entity';
 import { StoryNode } from './story-node.entity';
+import { GameState } from '../interfaces/game-state.interface';
 
 @Entity()
 export class GameSession {
@@ -35,28 +36,7 @@ export class GameSession {
   currentStoryNodeId: string;
 
   @Column('simple-json', { nullable: true })
-  gameState: {
-    currentLocation: string;
-    visitedLocations: string[];
-    discoveredLocations: string[];
-    completedQuests: string[];
-    questLog: string[];
-    acquiredItems: string[];
-    npcRelations: Record<string, number>; // NPC ID to relation score
-    flags: Record<string, any>; // Game flags for story branching
-    time?: {
-      day: number;
-      hour: number;
-      minute: number;
-    };
-    weather?: string;
-    // Permadeath related fields
-    dangerLevel: number; // Current danger level from 0-10
-    survivalChance: number; // Current chance of survival as a percentage
-    dangerWarnings: string[]; // Array of warning messages
-    nearDeathExperiences: number; // Counter of close calls
-    pendingConsequences: string[]; // IDs of consequences that will trigger
-  };
+  gameState: GameState;
   
   @Column({ default: 'normal' })
   difficultyLevel: 'easy' | 'normal' | 'hard' | 'hardcore';

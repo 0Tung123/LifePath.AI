@@ -229,13 +229,13 @@ export class CustomInputService {
       await this.geminiAiService.generateContent(contextPrompt);
 
     // Extract narrative and choices
-    const narrativeMatch = aiResponse.match(
+    const narrativeMatch: RegExpMatchArray | null = aiResponse.match(
       /\[NARRATIVE\]([\s\S]*?)\[\/NARRATIVE\]/,
     );
-    const choicesMatch = aiResponse.match(/\[CHOICES\]([\s\S]*?)\[\/CHOICES\]/);
+    const choicesMatch: RegExpMatchArray | null = aiResponse.match(/\[CHOICES\]([\s\S]*?)\[\/CHOICES\]/);
 
-    const narrative = narrativeMatch ? narrativeMatch[1].trim() : aiResponse;
-    let choicesText = choicesMatch ? choicesMatch[1].trim() : '';
+    const narrative: string = narrativeMatch && narrativeMatch[1] ? narrativeMatch[1].trim() : aiResponse;
+    let choicesText: string = choicesMatch && choicesMatch[1] ? choicesMatch[1].trim() : '';
 
     // If no choices format found, generate default choices
     if (!choicesText) {

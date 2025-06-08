@@ -1,5 +1,6 @@
 import { GameSession } from './game-session.entity';
 import { Choice } from './choice.entity';
+import { StoryNodeMetadata } from '../interfaces/story-node-metadata.interface';
 export declare class StoryNode {
     id: string;
     content: string;
@@ -9,14 +10,7 @@ export declare class StoryNode {
     isRoot: boolean;
     parentNodeId: string;
     gameSessionId: string;
-    metadata: {
-        inputType?: string;
-        userInput?: string;
-        dangerLevel?: number;
-        tags?: string[];
-        mood?: string;
-        [key: string]: any;
-    };
+    metadata: StoryNodeMetadata;
     combatData: {
         enemies: {
             id: string;

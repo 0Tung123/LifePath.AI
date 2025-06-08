@@ -78,7 +78,16 @@ export class PermadeathService {
     `;
 
     const aiResult = await this.geminiAiService.generateContent(prompt);
-    let evaluation;
+    
+    interface DeathEvaluation {
+      shouldDie: boolean;
+      deathProbability: number;
+      reasoning: string;
+      deathDescription: string;
+      lastWords: string[];
+    }
+    
+    let evaluation: DeathEvaluation;
 
     try {
       // Extract JSON from AI response

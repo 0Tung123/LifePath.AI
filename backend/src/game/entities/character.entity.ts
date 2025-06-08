@@ -8,6 +8,12 @@ import {
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { GameSession } from './game-session.entity';
+import { 
+  SurvivalStats, 
+  CharacterRelationship, 
+  CharacterInventory,
+  SpecialAbility 
+} from '../interfaces/character-stats.interface';
 
 export enum GameGenre {
   FANTASY = 'fantasy',
@@ -86,36 +92,10 @@ export class Character {
   skills: string[];
 
   @Column('simple-json', { nullable: true })
-  specialAbilities: {
-    name: string;
-    description: string;
-    cooldown?: number;
-    cost?: {
-      type: string;
-      amount: number;
-    };
-  }[];
+  specialAbilities: SpecialAbility[];
 
   @Column('simple-json', { nullable: true })
-  inventory: {
-    items: {
-      id: string;
-      name: string;
-      description: string;
-      quantity: number;
-      type?: string;
-      effects?: Record<string, any>;
-      value?: number;
-      rarity?: string;
-    }[];
-    currency: {
-      gold?: number;
-      credits?: number;
-      yuan?: number;
-      spirit_stones?: number;
-      [key: string]: number | undefined;
-    };
-  };
+  inventory: CharacterInventory;
 
   @Column({ default: 1 })
   level: number;
@@ -127,12 +107,7 @@ export class Character {
   backstory: string;
 
   @Column('simple-json', { nullable: true })
-  relationships: {
-    npcId: string;
-    name: string;
-    relation: number; // -100 to 100
-    type: string; // friend, enemy, mentor, etc.
-  }[];
+  relationships: CharacterRelationship[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
@@ -157,12 +132,7 @@ export class Character {
   legacyId: string;
 
   @Column('simple-json', { nullable: true })
-  survivalStats: {
-    daysSurvived: number;
-    dangerousSituationsOvercome: number;
-    nearDeathExperiences: number;
-    majorDecisionsMade: number;
-  };
+  survivalStats: SurvivalStats;
 
   @ManyToOne(() => User, (user) => user.characters)
   @JoinColumn()
