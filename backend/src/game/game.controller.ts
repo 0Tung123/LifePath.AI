@@ -181,6 +181,22 @@ export class GameController {
     return this.gameService.endGameSession(id);
   }
 
+  @Delete('sessions/:id')
+  async deleteGameSession(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.gameService.deleteGameSession(id, req.user.id);
+  }
+
+  @Delete('characters/:id')
+  async deleteCharacter(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.gameService.deleteCharacter(id, req.user.id);
+  }
+
   // Game progression
   @Post('sessions/:id/choices/:choiceId')
   async makeChoice(

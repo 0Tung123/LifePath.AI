@@ -26,29 +26,84 @@ export default function GameHomePage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingCharacter, setDeletingCharacter] = useState<string | null>(
+    null
+  );
+  const [deletingSession, setDeletingSession] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteType, setDeleteType] = useState<"character" | "session" | null>(
+    null
+  );
+  const [deleteItemName, setDeleteItemName] = useState<string>("");
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch active game sessions
+      const sessionsResponse = await axios.get("/api/game/sessions");
+      setActiveSessions(sessionsResponse.data);
+
+      // Fetch characters
+      const charactersResponse = await axios.get("/api/game/characters");
+      setCharacters(charactersResponse.data);
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load game data. Please try again later.");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Fetch active game sessions
-        const sessionsResponse = await axios.get("/api/game/sessions");
-        setActiveSessions(sessionsResponse.data);
-
-        // Fetch characters
-        const charactersResponse = await axios.get("/api/game/characters");
-        setCharacters(charactersResponse.data);
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load game data. Please try again later.");
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  // Xử lý xóa character hoặc game session
+  const handleDelete = async () => {
+    try {
+      if (deleteType === "character" && deletingCharacter) {
+        await axios.delete(`/api/game/characters/${deletingCharacter}`);
+        setCharacters((prevCharacters) =>
+          prevCharacters.filter((char) => char.id !== deletingCharacter)
+        );
+      } else if (deleteType === "session" && deletingSession) {
+        await axios.delete(`/api/game/sessions/${deletingSession}`);
+        setActiveSessions((prevSessions) =>
+          prevSessions.filter((session) => session.id !== deletingSession)
+        );
+      }
+
+      // Đóng modal xác nhận và reset các state
+      setShowDeleteConfirm(false);
+      setDeleteType(null);
+      setDeletingCharacter(null);
+      setDeletingSession(null);
+      setDeleteItemName("");
+
+      // Refresh data
+      fetchData();
+    } catch (err) {
+      console.error("Error deleting item:", err);
+      setError("Không thể xóa. Vui lòng thử lại sau.");
+    }
+  };
+
+  // Hiển thị modal xác nhận xóa
+  const confirmDelete = (
+    type: "character" | "session",
+    id: string,
+    name: string
+  ) => {
+    if (type === "character") {
+      setDeletingCharacter(id);
+    } else {
+      setDeletingSession(id);
+    }
+    setDeleteType(type);
+    setDeleteItemName(name);
+    setShowDeleteConfirm(true);
+  };
 
   if (loading) {
     return (
@@ -82,6 +137,46 @@ export default function GameHomePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* Modal xác nhận xóa */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4 text-red-400">
+              Xác nhận xóa
+            </h3>
+            <p className="mb-6">
+              Bạn có chắc chắn muốn xóa{" "}
+              {deleteType === "character" ? "nhân vật" : "phiên game"}
+              <span className="font-bold"> {deleteItemName}</span>?
+              {deleteType === "character" && (
+                <span className="block mt-2 text-red-400">
+                  Tất cả phiên game liên quan đến nhân vật này cũng sẽ bị xóa!
+                </span>
+              )}
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteType(null);
+                  setDeletingCharacter(null);
+                  setDeletingSession(null);
+                }}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="relative h-[50vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-900 z-10"></div>
@@ -123,12 +218,27 @@ export default function GameHomePage() {
                           {new Date(session.startedAt).toLocaleString()}
                         </p>
                       </div>
-                      <Link
-                        href={`/game/play/${session.id}`}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-                      >
-                        Tiếp tục
-                      </Link>
+                      <div className="flex space-x-2">
+                        <Link
+                          href={`/game/play/${session.id}`}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                        >
+                          Tiếp tục
+                        </Link>
+                        <button
+                          onClick={() =>
+                            confirmDelete(
+                              "session",
+                              session.id,
+                              session.character?.name || "Phiên game"
+                            )
+                          }
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+                          title="Xóa phiên game"
+                        >
+                          Xóa
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -195,6 +305,19 @@ export default function GameHomePage() {
                           className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
                         >
                           Bắt đầu
+                        </button>
+                        <button
+                          onClick={() =>
+                            confirmDelete(
+                              "character",
+                              character.id,
+                              character.name
+                            )
+                          }
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+                          title="Xóa nhân vật"
+                        >
+                          Xóa
                         </button>
                       </div>
                     </div>

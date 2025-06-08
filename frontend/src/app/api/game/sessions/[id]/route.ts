@@ -36,3 +36,38 @@ export async function GET(
     );
   }
 }
+
+// Xóa phiên game
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const response = await axios.delete(
+      `http://localhost:3000/game/sessions/${id}`,
+      {
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+        },
+        withCredentials: true,
+      }
+    );
+
+    return NextResponse.json(response.data);
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
+    console.error(
+      "Error deleting game session:",
+      apiError.response?.data || apiError.message
+    );
+    return NextResponse.json(
+      {
+        message:
+          apiError.response?.data?.message || "Failed to delete game session",
+      },
+      { status: apiError.response?.status || 500 }
+    );
+  }
+}

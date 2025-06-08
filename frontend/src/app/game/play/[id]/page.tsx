@@ -131,6 +131,7 @@ export default function GamePlayPage({
   const [showChoices, setShowChoices] = useState<boolean>(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [timelineKey, setTimelineKey] = useState(0); // Force timeline reload
+  const [showFullStoryView, setShowFullStoryView] = useState<boolean>(true); // Hiển thị toàn bộ diễn biến câu chuyện
 
   const contentRef = useRef<HTMLDivElement>(null);
   const choicesRef = useRef<HTMLDivElement>(null);
@@ -647,7 +648,7 @@ export default function GamePlayPage({
             </div>
           )}
 
-          {/* Story Content - Hệ thống diễn biến với thanh trượt */}
+          {/* Story Content - Hiển thị diễn biến câu chuyện tuyến tính */}
           <div className="container mx-auto p-6">
             <div className="mb-8">
               {/* Header cho lịch sử câu chuyện */}
@@ -659,33 +660,6 @@ export default function GamePlayPage({
                   <div className="text-sm text-gray-400">
                     {storyHistory.length} đoạn truyện
                   </div>
-                  <button
-                    onClick={() => {
-                      const allNodeIds = storyHistory
-                        .slice(0, -1)
-                        .map((node, index) => node.id || `node-${index}`);
-                      const allExpanded = allNodeIds.every((id) =>
-                        expandedNodes.has(id)
-                      );
-
-                      if (allExpanded) {
-                        setExpandedNodes(new Set());
-                      } else {
-                        setExpandedNodes(new Set(allNodeIds));
-                      }
-                    }}
-                    className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded transition-colors"
-                    title="Mở rộng/Thu gọn tất cả"
-                  >
-                    {storyHistory
-                      .slice(0, -1)
-                      .every((node, index) =>
-                        expandedNodes.has(node.id || `node-${index}`)
-                      )
-                      ? "Thu gọn tất cả"
-                      : "Mở rộng tất cả"}
-                  </button>
-
                   <button
                     onClick={() => {
                       if (contentRef.current) {
@@ -704,10 +678,10 @@ export default function GamePlayPage({
                 </div>
               </div>
 
-              {/* Container có thanh trượt cho lịch sử câu chuyện */}
+              {/* Container có thanh trượt cho lịch sử câu chuyện - Hiển thị tuyến tính */}
               <div
                 ref={contentRef}
-                className="max-h-96 overflow-y-auto bg-gray-800/30 rounded-lg p-4 space-y-6 border border-gray-700 scrollbar-thin"
+                className="max-h-[60vh] overflow-y-auto bg-gray-800/30 rounded-lg p-4 space-y-6 border border-gray-700 scrollbar-thin"
                 style={{ scrollBehavior: "smooth" }}
               >
                 {storyHistory.length === 0 ? (
@@ -722,7 +696,6 @@ export default function GamePlayPage({
                     const isCurrentNode =
                       storyNode.id === gameSession.currentStoryNode?.id;
                     const nodeId = storyNode.id || `node-${index}`;
-                    const isExpanded = isLatest || expandedNodes.has(nodeId);
 
                     return (
                       <div
@@ -734,48 +707,20 @@ export default function GamePlayPage({
                         } ${
                           isCurrentNode
                             ? "border-l-4 border-blue-500 pl-4"
-                            : "pl-2"
+                            : "border-l-4 border-gray-600 pl-4"
                         } rounded-lg p-4 ${
                           isLatest ? "ring-2 ring-blue-500/30" : ""
                         }`}
                       >
-                        {/* Header với số thứ tự và nút thu gọn/mở rộng */}
+                        {/* Header với số thứ tự và nút quay lại */}
                         <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-                            #{index + 1}
-                          </div>
-                          {!isLatest && (
-                            <button
-                              onClick={() => toggleNodeExpansion(nodeId)}
-                              className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors"
-                              title={isExpanded ? "Thu gọn" : "Mở rộng"}
-                            >
-                              {isExpanded ? "−" : "+"}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Hiển thị preview khi thu gọn */}
-                        {!isExpanded && (
-                          <div className="text-sm text-gray-400 italic">
-                            {storyNode.content.substring(0, 100)}...
-                            {storyNode.selectedChoiceText && (
-                              <div className="mt-1 text-green-400">
-                                → {storyNode.selectedChoiceText}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Nội dung đầy đủ khi mở rộng */}
-                        {isExpanded && (
-                          <>
-                            {/* Hiển thị location nếu có */}
+                          <div className="text-xs text-gray-400 bg-gray-800/50 px-2 py-1 rounded flex items-center">
+                            <span className="mr-2">Diễn biến #{index + 1}</span>
                             {storyNode.location && (
-                              <div className="flex items-center text-sm text-gray-400 mb-2">
+                              <span className="flex items-center text-xs text-gray-500">
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 mr-1"
+                                  className="h-3 w-3 mr-1"
                                   viewBox="0 0 20 20"
                                   fill="currentColor"
                                 >
@@ -786,101 +731,107 @@ export default function GamePlayPage({
                                   />
                                 </svg>
                                 {storyNode.location}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Nút quay lại (hiển thị cho tất cả các node ngoại trừ node đầu tiên) */}
+                          {!isLatest && index > 0 && (
+                            <button
+                              onClick={() => goBackToNode(nodeId)}
+                              className="text-xs px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded transition-colors flex items-center"
+                              title="Quay lại điểm này và chọn lại"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-3 w-3 mr-1"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Quay lại chọn lại
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Nội dung câu chuyện */}
+                        <div className="prose prose-invert max-w-none text-white">
+                          {/* Hiển thị lựa chọn đã chọn từ node trước đó (nếu có) */}
+                          {index > 0 &&
+                            storyHistory[index - 1]?.selectedChoiceText && (
+                              <div className="mb-4 text-green-400 font-semibold border-l-4 border-green-500 pl-3 py-1">
+                                <span className="opacity-75">Bạn đã chọn:</span>{" "}
+                                {storyHistory[index - 1].selectedChoiceText}
                               </div>
                             )}
 
-                            {/* Nội dung câu chuyện */}
-                            <div
-                              className={`prose prose-invert max-w-none ${
-                                isLatest ? "text-white" : "text-gray-300"
-                              }`}
-                            >
-                              {isLatest && animateText && !textComplete ? (
-                                <div className="latest-story-content"></div>
-                              ) : (
-                                <div>{storyNode.content}</div>
-                              )}
-                            </div>
-                          </>
-                        )}
+                          {/* Nội dung chính của node */}
+                          {isLatest && animateText && !textComplete ? (
+                            <div className="latest-story-content"></div>
+                          ) : (
+                            <div>{storyNode.content}</div>
+                          )}
+                        </div>
 
                         {/* Combat scene cho story node này */}
-                        {isExpanded &&
-                          storyNode.isCombatScene &&
-                          storyNode.combatData && (
-                            <div className="mt-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
-                              <h4 className="text-lg font-bold mb-2 text-red-400">
-                                Trận chiến!
-                              </h4>
-                              <div className="space-y-2">
-                                {storyNode.combatData.enemies.map(
-                                  (enemy, enemyIndex) => (
-                                    <div
-                                      key={enemyIndex}
-                                      className="flex justify-between items-center bg-gray-800/30 p-2 rounded"
-                                    >
-                                      <div>
-                                        <div className="font-bold text-sm">
-                                          {enemy.name}
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                          Cấp {enemy.level}
-                                        </div>
+                        {storyNode.isCombatScene && storyNode.combatData && (
+                          <div className="mt-4 bg-red-900/20 border border-red-800/30 rounded-lg p-3">
+                            <h4 className="text-lg font-bold mb-2 text-red-400">
+                              Trận chiến!
+                            </h4>
+                            <div className="space-y-2">
+                              {storyNode.combatData.enemies.map(
+                                (enemy, enemyIndex) => (
+                                  <div
+                                    key={enemyIndex}
+                                    className="flex justify-between items-center bg-gray-800/30 p-2 rounded"
+                                  >
+                                    <div>
+                                      <div className="font-bold text-sm">
+                                        {enemy.name}
                                       </div>
-                                      <div className="text-sm font-bold">
-                                        {enemy.health}/100 HP
+                                      <div className="text-xs text-gray-400">
+                                        Cấp {enemy.level}
                                       </div>
                                     </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                        {/* Hiển thị lựa chọn đã được chọn */}
-                        {isExpanded &&
-                          !isLatest &&
-                          storyNode.selectedChoiceText && (
-                            <div className="mt-4">
-                              <h4 className="text-sm font-semibold text-green-400 mb-2">
-                                Lựa chọn đã chọn:
-                              </h4>
-                              <div className="text-sm p-3 bg-green-900/20 border border-green-800/30 rounded border-l-4 border-green-500 text-green-300">
-                                ✓ {storyNode.selectedChoiceText}
-                              </div>
-                            </div>
-                          )}
-
-                        {/* Hiển thị tất cả choices cho story node này (nếu không phải là node mới nhất) */}
-                        {isExpanded &&
-                          !isLatest &&
-                          storyNode.choices &&
-                          storyNode.choices.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                              <h4 className="text-sm font-semibold text-gray-400">
-                                Tất cả lựa chọn có sẵn:
-                              </h4>
-                              {storyNode.choices.map((choice) => {
-                                const wasSelected =
-                                  choice.id === storyNode.selectedChoiceId;
-                                return (
-                                  <div
-                                    key={choice.id}
-                                    className={`text-sm p-2 rounded border-l-2 ${
-                                      wasSelected
-                                        ? "bg-green-900/20 border-green-600 text-green-300"
-                                        : "bg-gray-700/30 border-gray-600 text-gray-400"
-                                    }`}
-                                  >
-                                    {wasSelected && (
-                                      <span className="mr-2">✓</span>
-                                    )}
-                                    {choice.text}
+                                    <div className="text-sm font-bold">
+                                      {enemy.health}/100 HP
+                                    </div>
                                   </div>
-                                );
-                              })}
+                                )
+                              )}
                             </div>
-                          )}
+                          </div>
+                        )}
+
+                        {/* Hiển thị lựa chọn đã được chọn nếu không phải là node cuối cùng */}
+                        {!isLatest && storyNode.selectedChoiceText && (
+                          <div className="mt-4 p-2 bg-green-900/20 border border-green-800/30 rounded-lg">
+                            <div className="text-sm text-green-400 flex items-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-1"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Lựa chọn đã chọn:{" "}
+                              <span className="font-semibold ml-1">
+                                {storyNode.selectedChoiceText}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })

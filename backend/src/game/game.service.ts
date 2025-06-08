@@ -503,11 +503,6 @@ export class GameService {
     return this.characterRepository.save(character);
   }
 
-  async deleteCharacter(id: string): Promise<void> {
-    const character = await this.getCharacterById(id);
-    await this.characterRepository.remove(character);
-  }
-
   async startGameSession(
     characterId: string,
     initialPrompt?: string,
@@ -806,7 +801,8 @@ export class GameService {
         order: { stepOrder: 'DESC' },
       });
 
-      const branchId = lastActivePath?.branchId || `main-branch-${gameSession.id}`;
+      const branchId =
+        lastActivePath?.branchId || `main-branch-${gameSession.id}`;
 
       const storyPath = this.storyPathRepository.create({
         nodeId: gameSession.currentStoryNode.id,
@@ -883,6 +879,11 @@ export class GameService {
         storyNode = savedStoryNode;
       }
 
+      // Cập nhật thông tin lựa chọn cho node hiện tại
+      gameSession.currentStoryNode.selectedChoiceId = choice.id;
+      gameSession.currentStoryNode.selectedChoiceText = choice.text;
+      await this.storyNodeRepository.save(gameSession.currentStoryNode);
+
       // Update the game session with the current story node
       gameSession.currentStoryNode = storyNode;
       await this.gameSessionRepository.save(gameSession);
@@ -923,22 +924,26 @@ export class GameService {
 
       // Mark story paths after this node as inactive instead of deleting
       const nodeStepOrder = await this.storyPathRepository.findOne({
-        where: { nodeId: nodeId, gameSession: { id: sessionId }, isActive: true },
+        where: {
+          nodeId: nodeId,
+          gameSession: { id: sessionId },
+          isActive: true,
+        },
       });
 
       if (nodeStepOrder) {
         // Mark paths after this node as inactive instead of deleting
         const pathsToDeactivate = await this.storyPathRepository.find({
-          where: { 
+          where: {
             gameSession: { id: sessionId },
             stepOrder: { $gt: nodeStepOrder.stepOrder } as any,
-            isActive: true
+            isActive: true,
           },
         });
 
         // Create new branch ID for the paths being deactivated
         const branchId = `branch-${Date.now()}`;
-        
+
         for (const path of pathsToDeactivate) {
           path.isActive = false;
           path.branchId = branchId;
@@ -968,8 +973,13 @@ export class GameService {
       }
 
       // Build tree structure
-      const nodeMap = new Map();
-      const rootNodes = [];
+      interface NodeData extends StoryNode {
+        children: NodeData[];
+        isOnCurrentPath: boolean;
+      }
+
+      const nodeMap = new Map<string, NodeData>();
+      const rootNodes: NodeData[] = [];
 
       // First pass: create all nodes
       for (const node of gameSession.storyNodes) {
@@ -977,7 +987,7 @@ export class GameService {
           ...node,
           children: [],
           isOnCurrentPath: false,
-        });
+        } as NodeData);
       }
 
       // Second pass: build parent-child relationships
@@ -985,10 +995,10 @@ export class GameService {
         const nodeData = nodeMap.get(node.id);
         if (node.parentNodeId) {
           const parent = nodeMap.get(node.parentNodeId);
-          if (parent) {
+          if (parent && nodeData) {
             parent.children.push(nodeData);
           }
-        } else {
+        } else if (nodeData) {
           rootNodes.push(nodeData);
         }
       }
@@ -1026,10 +1036,116 @@ export class GameService {
     return this.gameSessionRepository.save(gameSession);
   }
 
+  async deleteGameSession(
+    sessionId: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Xác minh rằng phiên game thuộc về người dùng hiện tại
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: sessionId, character: { user: { id: userId } } },
+        relations: ['character', 'character.user', 'storyNodes', 'storyPaths'],
+      });
+
+      if (!gameSession) {
+        throw new NotFoundException(
+          'Game session not found or you do not have permission to delete it',
+        );
+      }
+
+      // Xóa tất cả các story paths liên quan đến phiên game
+      if (gameSession.storyPaths && gameSession.storyPaths.length > 0) {
+        await this.storyPathRepository.remove(gameSession.storyPaths);
+      }
+
+      // Xóa tất cả các choices liên quan đến các story nodes
+      if (gameSession.storyNodes && gameSession.storyNodes.length > 0) {
+        for (const node of gameSession.storyNodes) {
+          // Lấy và xóa tất cả các lựa chọn của node
+          const choices = await this.choiceRepository.find({
+            where: { storyNode: { id: node.id } },
+          });
+
+          if (choices.length > 0) {
+            await this.choiceRepository.remove(choices);
+          }
+        }
+
+        // Xóa tất cả các story nodes
+        await this.storyNodeRepository.remove(gameSession.storyNodes);
+      }
+
+      // Cuối cùng xóa phiên game
+      await this.gameSessionRepository.remove(gameSession);
+
+      return {
+        success: true,
+        message:
+          'Game session and all related data have been deleted successfully',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error deleting game session: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to delete game session: ${error.message}`,
+      );
+    }
+  }
+
+  async deleteCharacter(
+    characterId: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Xác minh rằng nhân vật thuộc về người dùng hiện tại
+      const character = await this.characterRepository.findOne({
+        where: { id: characterId, user: { id: userId } },
+        relations: ['gameSessions'],
+      });
+
+      if (!character) {
+        throw new NotFoundException(
+          'Character not found or you do not have permission to delete it',
+        );
+      }
+
+      // Xóa tất cả các phiên game liên quan đến nhân vật
+      if (character.gameSessions && character.gameSessions.length > 0) {
+        for (const session of character.gameSessions) {
+          await this.deleteGameSession(session.id, userId);
+        }
+      }
+
+      // Cuối cùng xóa nhân vật
+      await this.characterRepository.remove(character);
+
+      return {
+        success: true,
+        message:
+          'Character and all related game sessions have been deleted successfully',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error deleting character: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to delete character: ${error.message}`,
+      );
+    }
+  }
+
   async getGameSessionHistory(sessionId: string): Promise<StoryNode[]> {
     const gameSession = await this.gameSessionRepository.findOne({
       where: { id: sessionId },
-      relations: ['storyNodes', 'storyNodes.choices'],
+      relations: [
+        'storyNodes',
+        'storyNodes.choices',
+        'storyNodes.parentNode',
+        'storyPaths',
+      ],
     });
 
     if (!gameSession) {
@@ -1038,11 +1154,94 @@ export class GameService {
       );
     }
 
-    // Sort story nodes by creation date
-    return gameSession.storyNodes.sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    // Lấy các đường dẫn hiện đang active trong phiên game
+    const activePaths = gameSession.storyPaths
+      .filter((path) => path.isActive)
+      .sort((a, b) => a.stepOrder - b.stepOrder);
+
+    // Lấy danh sách node IDs từ các path hiện active
+    const activeNodeIds = new Set(activePaths.map((path) => path.nodeId));
+
+    // Tạo map để lưu thông tin lựa chọn từ path
+    const choiceInfoMap = new Map();
+    activePaths.forEach((path) => {
+      choiceInfoMap.set(path.nodeId, {
+        choiceId: path.choiceId,
+        choiceText: path.choiceText,
+      });
+    });
+
+    // Tìm tất cả các node trong cây câu chuyện (bao gồm cả node cha và node con)
+    // và gắn thông tin lựa chọn vào
+    const nodes = gameSession.storyNodes;
+
+    // Xây dựng cây node để có thể truy tìm mối quan hệ cha-con
+    const nodeMap = new Map();
+    nodes.forEach((node) => {
+      nodeMap.set(node.id, node);
+    });
+
+    // Gắn thông tin lựa chọn vào các node
+    for (const node of nodes) {
+      if (node.parentNodeId) {
+        const parentNode = nodeMap.get(node.parentNodeId);
+        if (parentNode && node.choiceIdFromParent) {
+          const selectedChoice = parentNode.choices?.find(
+            (c) => c.id === node.choiceIdFromParent,
+          );
+          if (selectedChoice) {
+            parentNode.selectedChoiceId = node.choiceIdFromParent;
+            parentNode.selectedChoiceText = selectedChoice.text;
+          }
+        }
+      }
+
+      // Thêm thông tin lựa chọn từ path
+      const choiceInfo = choiceInfoMap.get(node.id);
+      if (choiceInfo) {
+        node.selectedChoiceId = choiceInfo.choiceId;
+        node.selectedChoiceText = choiceInfo.choiceText;
+      }
+    }
+
+    // Tìm node gốc (node không có cha)
+    const rootNodes = nodes.filter((node) => !node.parentNodeId);
+
+    // Xây dựng lại lịch sử câu chuyện theo thứ tự đúng
+    const orderedNodes: StoryNode[] = [];
+    if (rootNodes.length > 0) {
+      // Bắt đầu từ node gốc và theo dõi cây quyết định
+      const traverseTree = (node: StoryNode) => {
+        orderedNodes.push(node);
+        const childNodes = nodes.filter((n) => n.parentNodeId === node.id);
+
+        // Sắp xếp các node con theo thời gian tạo
+        childNodes.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+
+        for (const child of childNodes) {
+          if (
+            activeNodeIds.has(child.id) ||
+            child.id === gameSession.currentStoryNode?.id
+          ) {
+            traverseTree(child);
+          }
+        }
+      };
+
+      rootNodes.forEach((rootNode) => traverseTree(rootNode));
+    } else {
+      orderedNodes.push(
+        ...nodes.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        ),
+      );
+    }
+
+    return orderedNodes;
   }
 
   // Get actual path history based on story paths
@@ -1064,16 +1263,16 @@ export class GameService {
 
     // Get only active story paths in order
     const orderedPaths = gameSession.storyPaths
-      .filter(path => path.isActive)
+      .filter((path) => path.isActive)
       .sort((a, b) => a.stepOrder - b.stepOrder);
-    
+
     // Build current path from story paths
-    const currentPath = orderedPaths.map(path => path.nodeId);
-    
+    const currentPath = orderedPaths.map((path) => path.nodeId);
+
     // Get nodes for the current path
     const pathNodes: StoryNode[] = [];
     for (const path of orderedPaths) {
-      const node = gameSession.storyNodes.find(n => n.id === path.nodeId);
+      const node = gameSession.storyNodes.find((n) => n.id === path.nodeId);
       if (node) {
         // Add choice information to node
         node.selectedChoiceId = path.choiceId;
@@ -1083,8 +1282,10 @@ export class GameService {
     }
 
     // Add current node if not in path yet
-    if (gameSession.currentStoryNode && 
-        !pathNodes.find(n => n.id === gameSession.currentStoryNode.id)) {
+    if (
+      gameSession.currentStoryNode &&
+      !pathNodes.find((n) => n.id === gameSession.currentStoryNode.id)
+    ) {
       pathNodes.push(gameSession.currentStoryNode);
       currentPath.push(gameSession.currentStoryNode.id);
     }
@@ -1092,7 +1293,8 @@ export class GameService {
     return {
       pathNodes,
       allNodes: gameSession.storyNodes.sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       ),
       currentPath,
     };
@@ -1116,33 +1318,41 @@ export class GameService {
     }
 
     // Group paths by branch ID
-    const branchGroups = gameSession.storyPaths.reduce((groups, path) => {
-      const branchId = path.branchId || 'main';
-      if (!groups[branchId]) {
-        groups[branchId] = [];
-      }
-      groups[branchId].push(path);
-      return groups;
-    }, {} as Record<string, any[]>);
+    const branchGroups = gameSession.storyPaths.reduce(
+      (groups, path) => {
+        const branchId = path.branchId || 'main';
+        if (!groups[branchId]) {
+          groups[branchId] = [];
+        }
+        groups[branchId].push(path);
+        return groups;
+      },
+      {} as Record<string, any[]>,
+    );
 
     // Get active branch
     const activeBranch = gameSession.storyPaths
-      .filter(path => path.isActive)
+      .filter((path) => path.isActive)
       .sort((a, b) => a.stepOrder - b.stepOrder);
 
     // Get inactive branches
     const inactiveBranches = Object.entries(branchGroups)
-      .filter(([branchId]) => branchId !== 'main' && !branchId.includes('main-branch'))
+      .filter(
+        ([branchId]) =>
+          branchId !== 'main' && !branchId.includes('main-branch'),
+      )
       .map(([branchId, paths]) => ({
         branchId,
         paths: paths.sort((a, b) => a.stepOrder - b.stepOrder),
-        createdAt: Math.min(...paths.map(p => new Date(p.createdAt).getTime())),
+        createdAt: Math.min(
+          ...paths.map((p) => new Date(p.createdAt).getTime()),
+        ),
       }));
 
     // Find branch points (nodes where multiple choices were made)
-    const branchPoints = [];
-    const nodeChoiceCounts = {};
-    
+    const branchPoints: any[] = [];
+    const nodeChoiceCounts: Record<string, any[]> = {};
+
     for (const path of gameSession.storyPaths) {
       if (!nodeChoiceCounts[path.nodeId]) {
         nodeChoiceCounts[path.nodeId] = [];
@@ -1168,7 +1378,10 @@ export class GameService {
   }
 
   // Restore a specific branch
-  async restoreBranch(sessionId: string, branchId: string): Promise<GameSession> {
+  async restoreBranch(
+    sessionId: string,
+    branchId: string,
+  ): Promise<GameSession> {
     try {
       const gameSession = await this.gameSessionRepository.findOne({
         where: { id: sessionId },
@@ -1203,7 +1416,9 @@ export class GameService {
 
       // Update current story node to the last node of the restored branch
       if (branchPaths.length > 0) {
-        const lastPath = branchPaths.sort((a, b) => b.stepOrder - a.stepOrder)[0];
+        const lastPath = branchPaths.sort(
+          (a, b) => b.stepOrder - a.stepOrder,
+        )[0];
         const lastNode = await this.storyNodeRepository.findOne({
           where: { id: lastPath.nodeId },
           relations: ['choices'],

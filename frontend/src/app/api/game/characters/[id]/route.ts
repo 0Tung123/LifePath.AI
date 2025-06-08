@@ -36,3 +36,38 @@ export async function GET(
     );
   }
 }
+
+// Xóa nhân vật
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const response = await axios.delete(
+      `http://localhost:3000/game/characters/${id}`,
+      {
+        headers: {
+          Cookie: request.headers.get("cookie") || "",
+        },
+        withCredentials: true,
+      }
+    );
+
+    return NextResponse.json(response.data);
+  } catch (error: unknown) {
+    const apiError = error as ApiRouteError;
+    console.error(
+      "Error deleting character:",
+      apiError.response?.data || apiError.message
+    );
+    return NextResponse.json(
+      {
+        message:
+          apiError.response?.data?.message || "Failed to delete character",
+      },
+      { status: apiError.response?.status || 500 }
+    );
+  }
+}
