@@ -31,7 +31,28 @@ import { MailModule } from 'src/mail/mail.module';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    LocalStrategy,
+    {
+      provide: GoogleStrategy,
+      useFactory: (configService: ConfigService, authService: AuthService) => {
+        const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
+        const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
+
+        if (clientID && clientSecret) {
+          return new GoogleStrategy(configService, authService);
+        }
+
+        // Trả về mock object nếu không có thông tin xác thực Google
+        return {
+          validate: () => ({ sub: 'mock-user' }),
+        };
+      },
+      inject: [ConfigService, AuthService],
+    },
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

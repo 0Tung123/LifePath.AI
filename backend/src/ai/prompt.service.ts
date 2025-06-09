@@ -13,15 +13,18 @@ export class PromptService {
   private koreanPrompt: string;
 
   constructor() {
-    // Đọc nội dung prompt từ file
-    this.chinesePrompt = fs.readFileSync(
-      path.join(process.cwd(), '..', 'chinese_prompt.txt'),
-      'utf8',
-    );
-    this.koreanPrompt = fs.readFileSync(
-      path.join(process.cwd(), '..', 'korean_prompt.txt'),
-      'utf8',
-    );
+    try {
+      // Đọc nội dung prompt từ file
+      this.chinesePrompt = fs.readFileSync('/app/chinese_prompt.txt', 'utf8');
+      this.koreanPrompt = fs.readFileSync('/app/korean_prompt.txt', 'utf8');
+    } catch (error) {
+      console.error('Error loading prompt files:', error.message);
+      // Fallback to default prompts if files cannot be loaded
+      this.chinesePrompt =
+        'Default Chinese story prompt for generating xianxia/wuxia stories.';
+      this.koreanPrompt =
+        'Default Korean story prompt for generating Korean-style stories.';
+    }
   }
 
   /**

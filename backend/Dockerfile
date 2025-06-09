@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json .
 
 # Cài đặt phụ thuộc
-RUN npm install
+RUN npm install --legacy-peer-deps
+RUN npm install @nestjs/schedule@latest --legacy-peer-deps
 
 # Sao chép toàn bộ mã nguồn
 COPY . .
