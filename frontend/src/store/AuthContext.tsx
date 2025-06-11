@@ -1,6 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi, User, LoginCredentials, RegisterCredentials, ResetPasswordData } from '../api/apiClient';
-import { getErrorMessage } from '../utils/errorHandler';
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  authApi,
+  User,
+  LoginCredentials,
+  RegisterCredentials,
+  ResetPasswordData,
+} from "../api/apiClient";
+import { getErrorMessage } from "../utils/errorHandler";
 
 interface AuthContextType {
   user: User | null;
@@ -19,14 +33,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in (token exists in localStorage)
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       fetchCurrentUser();
     } else {
@@ -35,8 +51,8 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
     // Handle Google OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
-    const oauthToken = urlParams.get('token');
-    if (window.location.pathname === '/auth/google-callback' && oauthToken) {
+    const oauthToken = urlParams.get("token");
+    if (window.location.pathname === "/auth/google-callback" && oauthToken) {
       authApi.handleGoogleCallback(oauthToken);
     }
   }, []);
@@ -48,9 +64,9 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setUser(userData);
       setError(null);
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-      setError('Session expired. Please login again.');
-      localStorage.removeItem('token');
+      console.error("Failed to fetch user profile:", error);
+      setError("Session expired. Please login again.");
+      localStorage.removeItem("token");
     } finally {
       setIsLoading(false);
     }
@@ -60,11 +76,11 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authApi.login(credentials);
-      localStorage.setItem('token', response.access_token);
+      localStorage.setItem("token", response.access_token);
       await fetchCurrentUser(); // Fetch user data after login
       setError(null);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -80,7 +96,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setError(null);
       return response.message;
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error("Registration failed:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -96,7 +112,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setError(null);
       return response.message;
     } catch (error) {
-      console.error('Email verification failed:', error);
+      console.error("Email verification failed:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -112,7 +128,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setError(null);
       return response.message;
     } catch (error) {
-      console.error('Failed to resend verification email:', error);
+      console.error("Failed to resend verification email:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -128,7 +144,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setError(null);
       return response.message;
     } catch (error) {
-      console.error('Failed to process forgot password request:', error);
+      console.error("Failed to process forgot password request:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -144,7 +160,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setError(null);
       return response.message;
     } catch (error) {
-      console.error('Failed to reset password:', error);
+      console.error("Failed to reset password:", error);
       const errorMessage = getErrorMessage(error);
       setError(errorMessage);
       throw error;
@@ -157,7 +173,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     authApi.logout();
     setUser(null);
     setError(null);
-    window.location.href = '/auth/login';
+    window.location.href = "/auth/login";
   };
 
   const googleLogin = () => {
@@ -178,7 +194,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         resendVerification,
         forgotPassword,
         resetPassword,
-        googleLogin
+        googleLogin,
       }}
     >
       {children}
@@ -189,7 +205,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

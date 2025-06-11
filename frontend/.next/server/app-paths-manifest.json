@@ -1,7 +1,16 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/auth/check-email/page": "app/auth/check-email/page.js",
-  "/auth/register/page": "app/auth/register/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/auth/check-email/page": "app/auth/check-email/page.js",
+  "/auth/forgot-password/page": "app/auth/forgot-password/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/auth/register/page": "app/auth/register/page.js",
+  "/auth/reset-password/page": "app/auth/reset-password/page.js",
+  "/auth/verify-email/page": "app/auth/verify-email/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/game/[id]/page": "app/game/[id]/page.js",
+  "/game/characters/create/page": "app/game/characters/create/page.js",
+  "/game/characters/page": "app/game/characters/page.js",
+  "/game/page": "app/game/page.js",
   "/page": "app/page.js"
 }
