@@ -540,6 +540,59 @@ export class GameService {
 
     return character;
   }
+  
+  async updateCharacterMetadata(
+    id: string,
+    metadata: {
+      title?: string;
+      gender?: string;
+      background?: string;
+      introduction?: string;
+    },
+  ): Promise<Character> {
+    try {
+      const character = await this.characterRepository.findOne({
+        where: { id },
+      });
+
+      if (!character) {
+        throw new NotFoundException(`Character with ID ${id} not found`);
+      }
+
+      // Lưu metadata vào trường metadata của character
+      if (!character.metadata) {
+        character.metadata = {};
+      }
+      
+      // Cập nhật các trường metadata
+      if (metadata.title !== undefined) {
+        character.metadata.title = metadata.title;
+      }
+      
+      if (metadata.gender !== undefined) {
+        character.metadata.gender = metadata.gender;
+      }
+      
+      if (metadata.background !== undefined) {
+        character.metadata.background = metadata.background;
+      }
+      
+      if (metadata.introduction !== undefined) {
+        character.metadata.introduction = metadata.introduction;
+      }
+
+      // Lưu character đã cập nhật
+      return this.characterRepository.save(character);
+    } catch (error) {
+      this.logger.error(
+        `Error updating character metadata: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to update character metadata: ${error.message}`,
+      );
+    }
+  }
 
   async updateCharacter(
     id: string,

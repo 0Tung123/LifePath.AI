@@ -205,6 +205,15 @@ export class Character {
 
   @Column({ nullable: true })
   legacyId: string;
+  
+  @Column('simple-json', { nullable: true })
+  metadata: {
+    title?: string;
+    gender?: string;
+    background?: string;
+    introduction?: string;
+    [key: string]: any;
+  };
 
   @Column('simple-json', { nullable: true })
   survivalStats: {

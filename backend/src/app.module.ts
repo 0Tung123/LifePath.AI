@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { UsersModule } from './user/users.module';
 import { GameModule } from './game/game.module';
 import { MemoryModule } from './memory/memory.module';
+import { AiModule } from './ai/ai.module';
 import { User } from './user/entities/user.entity';
 import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
 import { Character } from './game/entities/character.entity';
@@ -55,6 +56,7 @@ import { MemoryRecord } from './memory/entities/memory-record.entity';
     UsersModule,
     MemoryModule,
     GameModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

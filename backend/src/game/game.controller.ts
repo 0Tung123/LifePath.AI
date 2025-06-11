@@ -61,6 +61,20 @@ export class GameController {
     return this.gameService.getCharacterById(id);
   }
 
+  @Post('characters/:id/metadata')
+  async addCharacterMetadata(
+    @Param('id') id: string,
+    @Body()
+    metadata: {
+      title?: string;
+      gender?: string;
+      background?: string;
+      introduction?: string;
+    },
+  ): Promise<Character> {
+    return this.gameService.updateCharacterMetadata(id, metadata);
+  }
+
   @Get('genres')
   async getAvailableGenres(): Promise<
     { id: string; name: string; description: string }[]
@@ -168,18 +182,18 @@ export class GameController {
   ): Promise<GameSession> {
     return this.gameService.makeChoice(id, choiceId);
   }
-  
+
   @Post('sessions/:id/input')
   @HttpCode(HttpStatus.OK)
   async processUserInput(
     @Param('id') id: string,
-    @Body() inputData: { type: string; content: string; target?: string }
+    @Body() inputData: { type: string; content: string; target?: string },
   ): Promise<GameSession> {
     return this.gameService.processUserInput(
       id,
       inputData.type,
       inputData.content,
-      inputData.target
+      inputData.target,
     );
   }
 }
