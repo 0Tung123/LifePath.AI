@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import api from "@/utils/api";
+import { useAuth } from "@/store/AuthContext";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -21,26 +21,17 @@ function VerifyEmailContent() {
     }
   }, [searchParams]);
 
+  const { verifyEmail: verifyEmailApi } = useAuth();
+
   const verifyEmail = async (verificationToken: string) => {
     try {
-      await api.get(`/auth/verify-email?token=${verificationToken}`);
+      await verifyEmailApi(verificationToken);
       setVerificationStatus("success");
     } catch (err: unknown) {
       console.error("Email verification error:", err);
       setVerificationStatus("error");
-      if (typeof err === "object" && err !== null && "response" in err) {
-        const apiError = err as {
-          response?: {
-            data?: {
-              message?: string;
-            };
-          };
-        };
-        if (apiError.response?.data?.message) {
-          setError(apiError.response.data.message);
-        } else {
-          setError("Failed to verify your email. The link may have expired.");
-        }
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
         setError("Failed to verify your email. The link may have expired.");
       }
@@ -49,9 +40,8 @@ function VerifyEmailContent() {
 
   const handleResendVerification = async () => {
     try {
-      // You would need to have the email stored somewhere to resend
-      // For now, let's redirect to the resend verification page
-      window.location.href = "/auth/resend-verification";
+      // Redirect to the check-email page where users can request a new verification email
+      window.location.href = "/auth/check-email";
     } catch (err: unknown) {
       console.error("Resend verification error:", err);
     }

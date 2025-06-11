@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import api from "@/utils/api";
+import { useAuth } from "@/store/AuthContext";
 
 export default function Login() {
   const router = useRouter();
@@ -10,8 +10,8 @@ export default function Login() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, googleLogin, error: authError, isLoading } = useAuth();
+  const [localError, setLocalError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -23,42 +23,22 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setLocalError("");
 
     try {
-      const response = await api.post("/auth/login", formData);
-      localStorage.setItem("token", response.data.access_token);
+      await login({
+        email: formData.email,
+        password: formData.password,
+      });
       router.push("/dashboard");
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("Login error:", err);
-      if (typeof err === "object" && err !== null && "response" in err) {
-        const apiError = err as {
-          response?: {
-            data?: {
-              message?: string;
-            };
-          };
-        };
-        if (apiError.response?.data?.message) {
-          setError(apiError.response.data.message);
-        } else {
-          setError(
-            "Failed to login. Please check your credentials and try again."
-          );
-        }
-      } else {
-        setError(
-          "Failed to login. Please check your credentials and try again."
-        );
-      }
-    } finally {
-      setIsLoading(false);
+      // Auth context will handle the error display
     }
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    googleLogin();
   };
 
   return (
@@ -69,9 +49,9 @@ export default function Login() {
           <p className="mt-2 text-gray-400">Sign in to your AI companion</p>
         </div>
 
-        {error && (
+        {(authError || localError) && (
           <div className="mb-6 p-3 bg-red-900/50 border border-red-500 rounded-md text-red-200 text-sm">
-            {error}
+            {authError || localError}
           </div>
         )}
 
