@@ -55,6 +55,37 @@ export interface CharacterAttributes {
   [key: string]: number | undefined;
 }
 
+// Định nghĩa các đặc điểm tính cách (thang điểm 0-100)
+export interface CharacterTraits {
+  bravery: number;     // Dũng cảm (0-100)
+  caution: number;     // Thận trọng (0-100)
+  kindness: number;    // Nhân từ (0-100)
+  ambition: number;    // Tham vọng (0-100)
+  loyalty: number;     // Trung thành (0-100)
+  [key: string]: number | undefined;
+}
+
+// Định nghĩa cấu trúc kỹ năng
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  level: number;           // Cấp độ kỹ năng (1-10)
+  maxLevel: number;
+  experience: number;      // Kinh nghiệm kỹ năng hiện tại
+  experienceToNextLevel: number;
+  type: 'active' | 'passive';
+  category: string;        // combat, magic, social, etc.
+  effects: {
+    statName: string;
+    value: number;
+    isPercentage: boolean;
+  }[];
+  requiredLevel?: number;  // Yêu cầu level nhân vật
+  parentSkillId?: string;  // ID kỹ năng cha (nếu có)
+  childSkillIds?: string[];  // ID các kỹ năng con
+}
+
 @Entity()
 export class Character {
   @PrimaryGeneratedColumn('uuid')
@@ -82,8 +113,14 @@ export class Character {
   @Column('simple-json')
   attributes: CharacterAttributes;
 
+  @Column('simple-json', { default: { bravery: 50, caution: 50, kindness: 50, ambition: 50, loyalty: 50 } })
+  traits: CharacterTraits;
+
   @Column('simple-array')
-  skills: string[];
+  skillIds: string[];
+
+  @Column('simple-json', { nullable: true })
+  skills: Skill[];
 
   @Column('simple-json', { nullable: true })
   specialAbilities: {
@@ -123,6 +160,12 @@ export class Character {
   @Column({ default: 0 })
   experience: number;
 
+  @Column({ default: 100 })
+  experienceToNextLevel: number;
+
+  @Column({ default: 0 })
+  skillPoints: number;
+
   @Column({ nullable: true })
   backstory: string;
 
@@ -132,6 +175,13 @@ export class Character {
     name: string;
     relation: number; // -100 to 100
     type: string; // friend, enemy, mentor, etc.
+  }[];
+
+  @Column('simple-json', { nullable: true })
+  factionReputations: {
+    factionId: string;
+    factionName: string;
+    reputation: number; // -100 to 100
   }[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

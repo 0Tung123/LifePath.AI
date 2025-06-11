@@ -9,6 +9,29 @@ import {
 import { GameSession } from './game-session.entity';
 import { Choice } from './choice.entity';
 
+export enum TimeOfDay {
+  DAWN = 'dawn',
+  MORNING = 'morning',
+  NOON = 'noon',
+  AFTERNOON = 'afternoon',
+  EVENING = 'evening',
+  NIGHT = 'night',
+  MIDNIGHT = 'midnight',
+}
+
+export enum Season {
+  SPRING = 'spring',
+  SUMMER = 'summer',
+  AUTUMN = 'autumn',
+  WINTER = 'winter',
+}
+
+export enum BranchType {
+  MAIN = 'main',
+  VARIANT = 'variant',
+  SIDE = 'side',
+}
+
 @Entity()
 export class StoryNode {
   @PrimaryGeneratedColumn('uuid')
@@ -35,6 +58,36 @@ export class StoryNode {
   @Column({ nullable: true })
   gameSessionId: string;
   
+  @Column({
+    type: 'enum',
+    enum: TimeOfDay,
+    nullable: true,
+  })
+  timeOfDay: TimeOfDay;
+
+  @Column({
+    type: 'enum',
+    enum: Season,
+    nullable: true,
+  })
+  season: Season;
+
+  @Column({
+    type: 'enum',
+    enum: BranchType,
+    default: BranchType.MAIN,
+  })
+  branchType: BranchType;
+
+  @Column('simple-array', { nullable: true })
+  requiredFlags: string[];
+  
+  @Column('simple-json', { nullable: true })
+  requiredStats: Record<string, number>;
+  
+  @Column('simple-json', { nullable: true })
+  statsEffects: Record<string, number>;
+  
   @Column('simple-json', { nullable: true })
   metadata: {
     inputType?: string;
@@ -42,6 +95,8 @@ export class StoryNode {
     dangerLevel?: number;
     tags?: string[];
     mood?: string;
+    weight?: number; // Trọng số quyết định (2-10)
+    bookmarkable?: boolean; // Có thể đặt bookmark tại node này
     [key: string]: any;
   };
 
@@ -76,6 +131,9 @@ export class StoryNode {
 
   @Column({ default: false })
   isEnding: boolean;
+  
+  @Column({ nullable: true })
+  endingType: string; // Loại kết thúc nếu là node kết thúc
 
   @ManyToOne(() => GameSession, (gameSession) => gameSession.storyNodes)
   @JoinColumn()

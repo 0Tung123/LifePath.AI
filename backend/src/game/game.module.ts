@@ -11,6 +11,8 @@ import { Quest } from './entities/quest.entity';
 import { CharacterDeath } from './entities/character-death.entity';
 import { Legacy } from './entities/legacy.entity';
 import { Consequence } from './entities/consequence.entity';
+import { Bookmark } from './entities/bookmark.entity';
+import { MiniGame } from './entities/mini-game.entity';
 import { GeminiAiService } from './gemini-ai.service';
 import { CharacterGeneratorService } from './character-generator.service';
 import { WorldStateService } from './world-state.service';
@@ -21,6 +23,11 @@ import { LegacyService } from './legacy.service';
 import { ConsequenceService } from './consequence.service';
 import { CustomInputService } from './custom-input.service';
 import { CustomInputController } from './custom-input.controller';
+import { BookmarkService } from './bookmark.service';
+import { BookmarkController } from './bookmark.controller';
+import { MiniGameService } from './mini-game.service';
+import { MiniGameController } from './mini-game.controller';
+import { ProfileLearningService } from './profile-learning.service';
 import { User } from '../user/entities/user.entity';
 import { MemoryModule } from '../memory/memory.module';
 
@@ -35,12 +42,20 @@ import { MemoryModule } from '../memory/memory.module';
       User,
       CharacterDeath,
       Legacy,
-      Consequence
+      Consequence,
+      Bookmark,
+      MiniGame
     ]),
     ConfigModule,
     MemoryModule,
   ],
-  controllers: [GameController, QuestController, CustomInputController],
+  controllers: [
+    GameController, 
+    QuestController, 
+    CustomInputController,
+    BookmarkController,
+    MiniGameController
+  ],
   providers: [
     GameService, 
     GeminiAiService, 
@@ -50,7 +65,10 @@ import { MemoryModule } from '../memory/memory.module';
     PermadeathService,
     LegacyService,
     ConsequenceService,
-    CustomInputService
+    CustomInputService,
+    BookmarkService,
+    MiniGameService,
+    ProfileLearningService
   ],
   exports: [
     GameService, 
@@ -60,7 +78,10 @@ import { MemoryModule } from '../memory/memory.module';
     PermadeathService,
     LegacyService,
     ConsequenceService,
-    CustomInputService
+    CustomInputService,
+    BookmarkService,
+    MiniGameService,
+    ProfileLearningService
   ],
 })
 export class GameModule {}

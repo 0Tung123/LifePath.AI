@@ -1,0 +1,270 @@
+:root {
+  /* Biến màu cơ bản */
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --primary: #3366cc;
+  --primary-hover: #2755b3;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #333333;
+  --accent: #1a8754;
+  --accent-hover: #157347;
+  --accent-foreground: #ffffff;
+  --destructive: #dc3545;
+  --destructive-hover: #bb2d3b;
+  --destructive-foreground: #ffffff;
+  --border: #e0e0e0;
+  --input: #f0f0f0;
+  --ring: rgba(51, 102, 204, 0.3);
+  --shadow: rgba(0, 0, 0, 0.1);
+
+  /* Biến văn bản */
+  --font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-size-base: 16px;
+  --line-height-base: 1.5;
+
+  /* Biến của font size */
+  --font-size-small: 14px;
+  --font-size-medium: 16px;
+  --font-size-large: 18px;
+
+  /* Biến khoảng cách */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Biến khung viền */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 1rem;
+  --border-width: 1px;
+
+  /* Biến độ mờ */
+  --opacity-hover: 0.8;
+  --opacity-disabled: 0.5;
+
+  /* Thêm biến màu cho các loại hội thoại và sự kiện */
+  --dialog-background: #f8f9fa;
+  --player-input-background: #e6f7ff;
+  --system-message-background: #f0f4f8;
+  --combat-background: #fff0f0;
+  --event-background: #fff8e6;
+  --choice-background: #f0f4f8;
+  --bookmark-background: #e6fff2;
+}
+
+/* Theme tối */
+[data-theme="dark"] {
+  --background: #1a1a1a;
+  --foreground: #f0f0f0;
+  --primary: #4d7fcc;
+  --primary-hover: #5a8ad6;
+  --primary-foreground: #ffffff;
+  --secondary: #333333;
+  --secondary-foreground: #f0f0f0;
+  --accent: #1e9b63;
+  --accent-hover: #25b877;
+  --accent-foreground: #ffffff;
+  --destructive: #e05260;
+  --destructive-hover: #e66b77;
+  --destructive-foreground: #ffffff;
+  --border: #444444;
+  --input: #333333;
+  --ring: rgba(77, 127, 204, 0.3);
+  --shadow: rgba(0, 0, 0, 0.3);
+
+  --dialog-background: #2a2a2a;
+  --player-input-background: #113349;
+  --system-message-background: #252e38;
+  --combat-background: #3d2929;
+  --event-background: #3d3524;
+  --choice-background: #252e38;
+  --bookmark-background: #183324;
+}
+
+/* Theme tương phản cao */
+[data-theme="high-contrast"] {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #ffff00;
+  --primary-hover: #e6e600;
+  --primary-foreground: #000000;
+  --secondary: #222222;
+  --secondary-foreground: #ffffff;
+  --accent: #00ff00;
+  --accent-hover: #00e600;
+  --accent-foreground: #000000;
+  --destructive: #ff0000;
+  --destructive-hover: #e60000;
+  --destructive-foreground: #ffffff;
+  --border: #ffffff;
+  --input: #222222;
+  --ring: rgba(255, 255, 0, 0.5);
+  --shadow: rgba(255, 255, 255, 0.2);
+
+  --dialog-background: #222222;
+  --player-input-background: #001f33;
+  --system-message-background: #1a1a1a;
+  --combat-background: #330000;
+  --event-background: #332b00;
+  --choice-background: #003300;
+  --bookmark-background: #003322;
+}
+
+/* Cỡ chữ nhỏ */
+[data-font-size="small"] {
+  --font-size-base: 14px;
+  --font-size-small: 12px;
+  --font-size-medium: 14px;
+  --font-size-large: 16px;
+}
+
+/* Cỡ chữ trung bình (mặc định) */
+[data-font-size="medium"] {
+  --font-size-base: 16px;
+  --font-size-small: 14px;
+  --font-size-medium: 16px;
+  --font-size-large: 18px;
+}
+
+/* Cỡ chữ lớn */
+[data-font-size="large"] {
+  --font-size-base: 18px;
+  --font-size-small: 16px;
+  --font-size-medium: 18px;
+  --font-size-large: 20px;
+}
+
+/* Các styles cơ bản */
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Các kiểu dáng cho phần tử trò chơi */
+.story-node {
+  background-color: var(--dialog-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border: var(--border-width) solid var(--border);
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.player-input {
+  background-color: var(--player-input-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-left: 4px solid var(--primary);
+}
+
+.system-message {
+  background-color: var(--system-message-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-style: italic;
+  border-left: 4px solid var(--secondary-foreground);
+}
+
+.combat-scene {
+  background-color: var(--combat-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-left: 4px solid var(--destructive);
+}
+
+.event-scene {
+  background-color: var(--event-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-left: 4px solid var(--accent);
+}
+
+.choices-container {
+  background-color: var(--choice-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.choice-button {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: var(--border-width) solid var(--border);
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.choice-button:hover {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.bookmark-item {
+  background-color: var(--bookmark-background);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border-left: 4px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Theme toggler */
+.theme-toggle {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.theme-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: var(--border-width) solid var(--border);
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  cursor: pointer;
+}
+
+.theme-button.active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Font size toggler */
+.font-size-toggle {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.font-size-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: var(--border-width) solid var(--border);
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  cursor: pointer;
+}
+
+.font-size-button.active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
