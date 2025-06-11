@@ -66,7 +66,7 @@ export class AuthService {
     const user = await this.usersService.create(newUser);
 
     // Create verification link
-    const verificationLink = `${this.configService.get<string>('FRONTEND_URL')}/verify-email?token=${emailVerificationToken}`;
+    const verificationLink = `${this.configService.get<string>('FRONTEND_URL')}/auth/verify-email?token=${emailVerificationToken}`;
 
     // Send verification email
     await this.mailService.sendVerificationEmail(
@@ -213,7 +213,7 @@ export class AuthService {
     await this.usersService.update(user.id, user);
 
     // Create verification link
-    const verificationLink = `${this.configService.get<string>('FRONTEND_URL')}/verify-email?token=${emailVerificationToken}`;
+    const verificationLink = `${this.configService.get<string>('FRONTEND_URL')}/auth/verify-email?token=${emailVerificationToken}`;
 
     // Send verification email
     await this.mailService.sendVerificationEmail(

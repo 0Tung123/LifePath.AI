@@ -29,36 +29,38 @@ import { MiniGameService } from './mini-game.service';
 import { MiniGameController } from './mini-game.controller';
 import { ProfileLearningService } from './profile-learning.service';
 import { User } from '../user/entities/user.entity';
+import { GenresController } from './genres.controller';
 import { MemoryModule } from '../memory/memory.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Character, 
-      GameSession, 
-      StoryNode, 
-      Choice, 
+      Character,
+      GameSession,
+      StoryNode,
+      Choice,
       Quest,
       User,
       CharacterDeath,
       Legacy,
       Consequence,
       Bookmark,
-      MiniGame
+      MiniGame,
     ]),
     ConfigModule,
     MemoryModule,
   ],
   controllers: [
-    GameController, 
-    QuestController, 
+    GameController,
+    QuestController,
     CustomInputController,
     BookmarkController,
-    MiniGameController
+    MiniGameController,
+    GenresController,
   ],
   providers: [
-    GameService, 
-    GeminiAiService, 
+    GameService,
+    GeminiAiService,
     CharacterGeneratorService,
     WorldStateService,
     QuestService,
@@ -68,12 +70,12 @@ import { MemoryModule } from '../memory/memory.module';
     CustomInputService,
     BookmarkService,
     MiniGameService,
-    ProfileLearningService
+    ProfileLearningService,
   ],
   exports: [
-    GameService, 
-    CharacterGeneratorService, 
-    WorldStateService, 
+    GameService,
+    CharacterGeneratorService,
+    WorldStateService,
     QuestService,
     PermadeathService,
     LegacyService,
@@ -81,7 +83,7 @@ import { MemoryModule } from '../memory/memory.module';
     CustomInputService,
     BookmarkService,
     MiniGameService,
-    ProfileLearningService
+    ProfileLearningService,
   ],
 })
 export class GameModule {}
