@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { AuthProvider } from '../store/AuthContext';
+import { GameProvider } from '../store/GameContext';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -8,8 +9,9 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <AuthProvider>
-      {/* Add other providers here as needed */}
-      {children}
+      <GameProvider>
+        {children}
+      </GameProvider>
     </AuthProvider>
   );
 };

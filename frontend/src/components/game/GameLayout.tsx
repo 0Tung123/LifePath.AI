@@ -1,121 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/utils/api';
-import CharacterInfo from './CharacterInfo';
-import StoryNode from './StoryNode';
-import ChoicesList from './ChoicesList';
-import CustomInputs from './CustomInputs';
+import { useGame } from '@/store/GameContext';
+import LoadingSpinner from './LoadingSpinner';
+import GameHeader from './GameHeader';
+import StoryNodeComponent from './StoryNodeComponent';
+import UserInputForm from './UserInputForm';
+import QuestList from './QuestList';
+import { UserInputData } from '@/api/apiClient';
 
 interface GameLayoutProps {
   gameSessionId: string;
 }
 
-interface Character {
-  id: string;
-  name: string;
-  characterClass: string;
-  level: number;
-  experience: number;
-  attributes: Record<string, number>;
-  skills: string[];
-  inventory: {
-    items: {
-      id: string;
-      name: string;
-      description: string;
-      quantity: number;
-      type?: string;
-      effects?: Record<string, any>;
-      value?: number;
-      rarity?: string;
-    }[];
-    currency: Record<string, number>;
-  };
-  backstory?: string;
-  primaryGenre: string;
-  // Custom fields từ metadata
-  title?: string;
-  gender?: 'male' | 'female';
-  background?: string;
-  introduction?: string;
-}
-
-interface StoryNodeType {
-  id: string;
-  content: string;
-  location?: string;
-  choices: {
-    id: string;
-    text: string;
-    order: number;
-    metadata?: {
-      isCustomAction?: boolean;
-    };
-  }[];
-  metadata?: {
-    inputType?: string;
-    userInput?: string;
-  };
-}
-
-interface GameSession {
-  id: string;
-  character: Character;
-  currentStoryNode: StoryNodeType;
-  isActive: boolean;
-}
-
 const GameLayout: React.FC<GameLayoutProps> = ({ gameSessionId }) => {
   const router = useRouter();
-  const [gameSession, setGameSession] = useState<GameSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { 
+    currentSession,
+    currentNode,
+    loadingSession,
+    error,
+    fetchGameSession,
+    makeChoice,
+    processUserInput,
+    saveGame,
+    endGame
+  } = useGame();
+  
+  const [isSaving, setIsSaving] = useState(false);
   const [npcPopup, setNpcPopup] = useState<{ name: string; info: any } | null>(null);
 
   useEffect(() => {
-    fetchGameSession();
-  }, [gameSessionId]);
-
-  const fetchGameSession = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/game/sessions/${gameSessionId}`);
-      setGameSession(response.data);
-    } catch (err) {
-      console.error('Error fetching game session:', err);
-      setError('Không thể tải phiên chơi game. Vui lòng thử lại sau.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Load game session data
+    fetchGameSession(gameSessionId);
+  }, [gameSessionId, fetchGameSession]);
 
   const handleMakeChoice = async (choiceId: string) => {
-    try {
-      setLoading(true);
-      const response = await api.post(`/game/sessions/${gameSessionId}/choices/${choiceId}`);
-      setGameSession(response.data);
-    } catch (err) {
-      console.error('Error making choice:', err);
-      setError('Không thể thực hiện lựa chọn. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
+    await makeChoice(choiceId);
   };
 
   const handleCustomInput = async (type: string, content: string, target?: string) => {
+    const inputData: UserInputData = {
+      type,
+      content,
+      target
+    };
+    
+    await processUserInput(inputData);
+  };
+
+  const handleSaveGame = async () => {
     try {
-      setLoading(true);
-      const response = await api.post(`/game/sessions/${gameSessionId}/input`, {
-        type,
-        content,
-        target
-      });
-      setGameSession(response.data);
-    } catch (err) {
-      console.error('Error submitting custom input:', err);
-      setError('Không thể gửi hành động. Vui lòng thử lại.');
+      setIsSaving(true);
+      await saveGame(gameSessionId);
+      alert('Game đã được lưu thành công!');
+    } catch (error) {
+      console.error('Failed to save game:', error);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
+    }
+  };
+
+  const handleEndGame = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn kết thúc phiên chơi này? Bạn sẽ không thể tiếp tục phiên này nữa.')) {
+      try {
+        await endGame(gameSessionId);
+        router.push('/game');
+      } catch (error) {
+        console.error('Failed to end game:', error);
+      }
     }
   };
 
@@ -135,26 +87,31 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameSessionId }) => {
     });
   };
 
-  if (loading && !gameSession) {
+  if (loadingSession && !currentSession) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
-        <div className="text-2xl">Đang tải...</div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+        <LoadingSpinner size="large" message="Đang tải phiên game..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
-        <div className="text-xl text-red-500">{error}</div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+        <div className="text-xl text-red-500 max-w-md text-center p-6">
+          <div className="mb-4">Đã xảy ra lỗi:</div>
+          <div>{error}</div>
+        </div>
       </div>
     );
   }
 
-  if (!gameSession) {
+  if (!currentSession || !currentNode) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
-        <div className="text-xl">Phiên chơi game không tồn tại hoặc đã kết thúc</div>
+      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+        <div className="text-xl max-w-md text-center p-6">
+          Phiên chơi game không tồn tại hoặc đã kết thúc
+        </div>
       </div>
     );
   }
@@ -162,35 +119,66 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameSessionId }) => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header với tiêu đề */}
-        <header className="bg-gray-800 p-4 rounded-t-lg text-center">
-          <h1 className="text-2xl font-bold">
-            {gameSession.character.title || 'Cuộc phiêu lưu mới'}
-          </h1>
-        </header>
+        {/* Game Header with Controls */}
+        <GameHeader 
+          character={currentSession.character}
+          session={currentSession}
+          onSaveGame={handleSaveGame}
+          onEndGame={handleEndGame}
+          isSaving={isSaving}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          {/* Thông tin nhân vật - 1/3 chiều rộng trên màn hình lớn */}
-          <div className="md:col-span-1">
-            <CharacterInfo character={gameSession.character} />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-4">
+          {/* Main game content - 3/4 width on large screens */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Story Node with choices */}
+            <StoryNodeComponent 
+              node={currentNode} 
+              onMakeChoice={handleMakeChoice}
+              isLoading={loadingSession}
+            />
+
+            {/* Custom input form */}
+            <UserInputForm 
+              onSubmit={handleCustomInput}
+              isLoading={loadingSession}
+            />
           </div>
 
-          {/* Nội dung story node và tương tác - 2/3 chiều rộng trên màn hình lớn */}
-          <div className="md:col-span-2 space-y-4">
-            {/* Nội dung story node */}
-            <StoryNode 
-              content={gameSession.currentStoryNode.content} 
-              onNpcClick={handleNpcClick}
-            />
-
-            {/* Danh sách lựa chọn */}
-            <ChoicesList 
-              choices={gameSession.currentStoryNode.choices} 
-              onChoiceSelected={handleMakeChoice}
-            />
-
-            {/* Các hành động tùy chỉnh */}
-            <CustomInputs onSubmit={handleCustomInput} />
+          {/* Side panel - 1/4 width on large screens */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Character info panel */}
+            <div className="bg-gray-800 rounded-lg shadow-md p-4">
+              <h3 className="text-lg font-medium mb-3">Nhân vật</h3>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="text-gray-400">Tên:</span> {currentSession.character?.name}
+                </p>
+                <p>
+                  <span className="text-gray-400">Cấp độ:</span> {currentSession.character?.level}
+                </p>
+                <p>
+                  <span className="text-gray-400">Kinh nghiệm:</span> {currentSession.character?.experience} XP
+                </p>
+                {currentSession.character?.traits && (
+                  <div>
+                    <span className="text-gray-400">Đặc điểm:</span>
+                    <div className="flex flex-wrap mt-1">
+                      {currentSession.character.traits.map((trait, index) => (
+                        <span key={index} className="bg-gray-700 text-xs px-2 py-1 rounded mr-2 mb-1">
+                          {trait}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Quests list */}
+            {currentSession.quests && (
+              <QuestList quests={currentSession.quests} />
+            )}
           </div>
         </div>
       </div>

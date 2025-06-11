@@ -1,72 +1,51 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import api from "@/utils/api";
-import Link from "next/link";
-
-interface Character {
-  id: string;
-  name: string;
-  characterClass: string;
-  level: number;
-  createdAt: string;
-  primaryGenre: string;
-  title?: string;
-  isDead: boolean;
-}
-
-interface GameSession {
-  id: string;
-  characterId: string;
-  isActive: boolean;
-  createdAt: string;
-  lastSavedAt: string;
-}
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useGame } from '@/store/GameContext';
+import { useAuth } from '@/store/AuthContext';
+import CharacterCard from '@/components/game/CharacterCard';
+import Button from '@/components/game/Button';
+import Card from '@/components/game/Card';
+import LoadingSpinner from '@/components/game/LoadingSpinner';
 
 const GameHomePage = () => {
   const router = useRouter();
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [sessions, setSessions] = useState<GameSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { 
+    characters, 
+    gameSessions, 
+    loadingCharacters, 
+    loadingSession,
+    error,
+    fetchCharacters, 
+    fetchGameSessions,
+    startNewGame,
+  } = useGame();
+  
+  const [isStartingGame, setIsStartingGame] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch characters
-        const charactersResponse = await api.get("/game/characters");
-        setCharacters(charactersResponse.data);
-        
-        // Fetch active game sessions
-        const sessionsResponse = await api.get("/game/sessions");
-        setSessions(sessionsResponse.data);
-      } catch (err) {
-        console.error("Error fetching game data:", err);
-        setError("Không thể tải dữ liệu game. Vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
 
-    fetchData();
-  }, []);
+    // Fetch game data
+    fetchCharacters();
+    fetchGameSessions();
+  }, [authLoading, isAuthenticated, fetchCharacters, fetchGameSessions, router]);
 
-  const startNewGame = async (characterId: string) => {
+  const handleStartNewGame = async (characterId: string) => {
     try {
-      setLoading(true);
-      const response = await api.post("/game/sessions", { characterId });
-      
-      if (response.data && response.data.id) {
-        // Redirect to the game page
-        router.push(`/game/${response.data.id}`);
-      }
-    } catch (err) {
-      console.error("Error starting new game:", err);
-      setError("Không thể bắt đầu trò chơi mới. Vui lòng thử lại sau.");
-      setLoading(false);
+      setIsStartingGame(true);
+      const session = await startNewGame(characterId);
+      router.push(`/game/${session.id}`);
+    } catch (error) {
+      console.error('Failed to start game:', error);
+    } finally {
+      setIsStartingGame(false);
     }
   };
 
@@ -74,10 +53,31 @@ const GameHomePage = () => {
     router.push(`/game/${sessionId}`);
   };
 
-  if (loading) {
+  if (authLoading || loadingCharacters && characters.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
-        <div className="text-2xl">Đang tải...</div>
+        <LoadingSpinner size="large" message="Đang tải..." />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-6">
+        <div className="max-w-2xl mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold mb-4">Đăng nhập để tiếp tục</h1>
+          <p className="mb-6">
+            Bạn cần đăng nhập để truy cập game.
+          </p>
+          <div className="flex justify-center">
+            <Link
+              href="/auth/login"
+              className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-md transition duration-300"
+            >
+              Đăng nhập
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -94,34 +94,45 @@ const GameHomePage = () => {
         )}
 
         {/* Active Game Sessions */}
-        {sessions.length > 0 && (
+        {gameSessions.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-semibold mb-4">Phiên chơi đang hoạt động</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sessions.map((session) => {
+              {gameSessions.map((session) => {
                 const character = characters.find(c => c.id === session.characterId);
+                if (!character) return null;
+                
                 return (
-                  <div 
-                    key={session.id} 
-                    className="bg-gray-800 rounded-lg p-6 shadow-lg hover:bg-gray-750 transition duration-300 cursor-pointer"
+                  <Card 
+                    key={session.id}
+                    className="hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => continueGame(session.id)}
+                    footer={
+                      <Button 
+                        variant="primary" 
+                        isFullWidth
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          continueGame(session.id);
+                        }}
+                      >
+                        Tiếp tục chơi
+                      </Button>
+                    }
                   >
-                    <h3 className="text-xl font-bold mb-2">
-                      {character?.title || "Cuộc phiêu lưu mới"}
+                    <h3 className="text-xl font-bold mb-3">
+                      {character.name}
                     </h3>
-                    <p className="text-gray-300 mb-4">
-                      {character?.name} - {character?.characterClass} Cấp {character?.level}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Phiên chơi được tạo: {new Date(session.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Lưu lần cuối: {new Date(session.lastSavedAt).toLocaleString()}
-                    </p>
-                    <button className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md transition duration-300">
-                      Tiếp tục chơi
-                    </button>
-                  </div>
+                    <div className="mb-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        Cấp độ {character.level} • {character.primaryGenre}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                      <p>Bắt đầu: {new Date(session.startedAt).toLocaleDateString()}</p>
+                      <p>Lần chơi gần nhất: {new Date(session.updatedAt).toLocaleString()}</p>
+                    </div>
+                  </Card>
                 );
               })}
             </div>
@@ -132,92 +143,81 @@ const GameHomePage = () => {
         <div className="mb-12">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">Nhân vật của bạn</h2>
-            <Link 
-              href="/game/characters/create"
-              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md transition duration-300"
-            >
-              Tạo nhân vật mới
+            <Link href="/game/characters/create">
+              <Button
+                variant="success"
+                leftIcon={
+                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                }
+              >
+                Tạo nhân vật mới
+              </Button>
             </Link>
           </div>
 
-          {characters.length === 0 ? (
+          {loadingCharacters ? (
+            <div className="flex justify-center items-center py-20">
+              <LoadingSpinner message="Đang tải danh sách nhân vật..." />
+            </div>
+          ) : characters.length === 0 ? (
             <div className="bg-gray-800 rounded-lg p-8 text-center">
               <p className="text-xl mb-4">Bạn chưa có nhân vật nào</p>
               <p className="text-gray-400 mb-6">
                 Hãy tạo nhân vật đầu tiên của bạn để bắt đầu cuộc phiêu lưu!
               </p>
-              <Link 
-                href="/game/characters/create"
-                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-md transition duration-300 font-bold"
-              >
-                Tạo nhân vật
+              <Link href="/game/characters/create">
+                <Button variant="success">
+                  Tạo nhân vật
+                </Button>
               </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {characters.map((character) => (
-                <div 
-                  key={character.id} 
-                  className={`bg-gray-800 rounded-lg p-6 shadow-lg ${
-                    character.isDead 
-                      ? "opacity-75 border border-red-800" 
-                      : "hover:bg-gray-750 cursor-pointer"
-                  }`}
-                  onClick={() => !character.isDead && startNewGame(character.id)}
-                >
-                  {character.isDead && (
-                    <div className="absolute top-2 right-2 bg-red-800 text-white text-xs px-2 py-1 rounded">
-                      Đã hy sinh
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold mb-2">
-                    {character.title || character.name}
-                  </h3>
-                  <p className="text-gray-300 mb-4">
-                    {character.name} - {character.characterClass} Cấp {character.level}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Thể loại: {character.primaryGenre}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Ngày tạo: {new Date(character.createdAt).toLocaleDateString()}
-                  </p>
-                  
-                  {!character.isDead && (
-                    <button className="mt-4 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-md transition duration-300">
-                      Bắt đầu phiêu lưu mới
-                    </button>
-                  )}
+              {characters.slice(0, 3).map((character) => (
+                <div key={character.id} className="flex flex-col h-full">
+                  <CharacterCard
+                    character={character}
+                    onStartGame={() => handleStartNewGame(character.id)}
+                  />
                 </div>
               ))}
+              {characters.length > 3 && (
+                <Link href="/game/characters" className="col-span-full text-center mt-4">
+                  <Button variant="secondary">
+                    Xem tất cả nhân vật ({characters.length})
+                  </Button>
+                </Link>
+              )}
             </div>
           )}
         </div>
 
         {/* Quick Links */}
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Links nhanh</h2>
+        <Card className="mb-6">
+          <h2 className="text-xl font-medium mb-4">Links nhanh</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link 
               href="/game/characters"
-              className="bg-gray-700 hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
+              className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >
               Quản lý nhân vật
             </Link>
             <Link 
               href="/dashboard"
-              className="bg-gray-700 hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
+              className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >
               Bảng điều khiển
             </Link>
             <Link 
               href="/"
-              className="bg-gray-700 hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
+              className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >
               Trang chủ
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
