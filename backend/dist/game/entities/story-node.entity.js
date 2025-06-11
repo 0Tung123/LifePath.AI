@@ -9,10 +9,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StoryNode = void 0;
+exports.StoryNode = exports.BranchType = exports.Season = exports.TimeOfDay = void 0;
 const typeorm_1 = require("typeorm");
 const game_session_entity_1 = require("./game-session.entity");
 const choice_entity_1 = require("./choice.entity");
+var TimeOfDay;
+(function (TimeOfDay) {
+    TimeOfDay["DAWN"] = "dawn";
+    TimeOfDay["MORNING"] = "morning";
+    TimeOfDay["NOON"] = "noon";
+    TimeOfDay["AFTERNOON"] = "afternoon";
+    TimeOfDay["EVENING"] = "evening";
+    TimeOfDay["NIGHT"] = "night";
+    TimeOfDay["MIDNIGHT"] = "midnight";
+})(TimeOfDay || (exports.TimeOfDay = TimeOfDay = {}));
+var Season;
+(function (Season) {
+    Season["SPRING"] = "spring";
+    Season["SUMMER"] = "summer";
+    Season["AUTUMN"] = "autumn";
+    Season["WINTER"] = "winter";
+})(Season || (exports.Season = Season = {}));
+var BranchType;
+(function (BranchType) {
+    BranchType["MAIN"] = "main";
+    BranchType["VARIANT"] = "variant";
+    BranchType["SIDE"] = "side";
+})(BranchType || (exports.BranchType = BranchType = {}));
 let StoryNode = class StoryNode {
 };
 exports.StoryNode = StoryNode;
@@ -49,6 +72,42 @@ __decorate([
     __metadata("design:type", String)
 ], StoryNode.prototype, "gameSessionId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: TimeOfDay,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "timeOfDay", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: Season,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "season", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: BranchType,
+        default: BranchType.MAIN,
+    }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "branchType", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-array', { nullable: true }),
+    __metadata("design:type", Array)
+], StoryNode.prototype, "requiredFlags", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], StoryNode.prototype, "requiredStats", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], StoryNode.prototype, "statsEffects", void 0);
+__decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Object)
 ], StoryNode.prototype, "metadata", void 0);
@@ -64,6 +123,10 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], StoryNode.prototype, "isEnding", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], StoryNode.prototype, "endingType", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => game_session_entity_1.GameSession, (gameSession) => gameSession.storyNodes),
     (0, typeorm_1.JoinColumn)(),

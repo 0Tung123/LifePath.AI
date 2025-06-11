@@ -20,6 +20,8 @@ const quest_entity_1 = require("./entities/quest.entity");
 const character_death_entity_1 = require("./entities/character-death.entity");
 const legacy_entity_1 = require("./entities/legacy.entity");
 const consequence_entity_1 = require("./entities/consequence.entity");
+const bookmark_entity_1 = require("./entities/bookmark.entity");
+const mini_game_entity_1 = require("./entities/mini-game.entity");
 const gemini_ai_service_1 = require("./gemini-ai.service");
 const character_generator_service_1 = require("./character-generator.service");
 const world_state_service_1 = require("./world-state.service");
@@ -30,6 +32,11 @@ const legacy_service_1 = require("./legacy.service");
 const consequence_service_1 = require("./consequence.service");
 const custom_input_service_1 = require("./custom-input.service");
 const custom_input_controller_1 = require("./custom-input.controller");
+const bookmark_service_1 = require("./bookmark.service");
+const bookmark_controller_1 = require("./bookmark.controller");
+const mini_game_service_1 = require("./mini-game.service");
+const mini_game_controller_1 = require("./mini-game.controller");
+const profile_learning_service_1 = require("./profile-learning.service");
 const user_entity_1 = require("../user/entities/user.entity");
 const memory_module_1 = require("../memory/memory.module");
 let GameModule = class GameModule {
@@ -47,12 +54,20 @@ exports.GameModule = GameModule = __decorate([
                 user_entity_1.User,
                 character_death_entity_1.CharacterDeath,
                 legacy_entity_1.Legacy,
-                consequence_entity_1.Consequence
+                consequence_entity_1.Consequence,
+                bookmark_entity_1.Bookmark,
+                mini_game_entity_1.MiniGame
             ]),
             config_1.ConfigModule,
             memory_module_1.MemoryModule,
         ],
-        controllers: [game_controller_1.GameController, quest_controller_1.QuestController, custom_input_controller_1.CustomInputController],
+        controllers: [
+            game_controller_1.GameController,
+            quest_controller_1.QuestController,
+            custom_input_controller_1.CustomInputController,
+            bookmark_controller_1.BookmarkController,
+            mini_game_controller_1.MiniGameController
+        ],
         providers: [
             game_service_1.GameService,
             gemini_ai_service_1.GeminiAiService,
@@ -62,7 +77,10 @@ exports.GameModule = GameModule = __decorate([
             permadeath_service_1.PermadeathService,
             legacy_service_1.LegacyService,
             consequence_service_1.ConsequenceService,
-            custom_input_service_1.CustomInputService
+            custom_input_service_1.CustomInputService,
+            bookmark_service_1.BookmarkService,
+            mini_game_service_1.MiniGameService,
+            profile_learning_service_1.ProfileLearningService
         ],
         exports: [
             game_service_1.GameService,
@@ -72,7 +90,10 @@ exports.GameModule = GameModule = __decorate([
             permadeath_service_1.PermadeathService,
             legacy_service_1.LegacyService,
             consequence_service_1.ConsequenceService,
-            custom_input_service_1.CustomInputService
+            custom_input_service_1.CustomInputService,
+            bookmark_service_1.BookmarkService,
+            mini_game_service_1.MiniGameService,
+            profile_learning_service_1.ProfileLearningService
         ],
     })
 ], GameModule);

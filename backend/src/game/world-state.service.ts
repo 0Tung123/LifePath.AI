@@ -4,7 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GameSession, WorldLocation, WorldNPC, WorldFaction } from './entities/game-session.entity';
+import {
+  GameSession,
+  WorldLocation,
+  WorldNPC,
+  WorldFaction,
+} from './entities/game-session.entity';
 import { Character } from './entities/character.entity';
 import { MemoryService } from '../memory/memory.service';
 import { MemoryType } from '../memory/entities/memory-record.entity';
@@ -32,7 +37,7 @@ export class WorldStateService {
 
     this.geminiAi = new GoogleGenerativeAI(apiKey);
     this.generationModel = this.geminiAi.getGenerativeModel({
-      model: 'gemini-1.5-pro-latest',
+      model: 'gemini-2.0-flash',
     });
   }
 
@@ -153,14 +158,14 @@ ${worldContext}
         // Cập nhật địa điểm bị ảnh hưởng nếu có
         if (event.affectedLocationId && session.worldState?.locations) {
           const location = session.worldState.locations.find(
-            l => l.id === event.affectedLocationId
+            (l) => l.id === event.affectedLocationId,
           );
           if (location) {
             await this.updateLocationState(
               session.id,
               event.affectedLocationId,
               'affected_by_event',
-              event.title
+              event.title,
             );
           }
         }
@@ -168,11 +173,11 @@ ${worldContext}
         // Cập nhật danh tiếng phe phái nếu có
         if (event.affectedFactionId && session.worldState?.factions) {
           // Tính toán mức thay đổi danh tiếng dựa trên tầm quan trọng của sự kiện
-          const reputationChange = Math.floor((Math.random() * 20) - 10); // -10 đến +10
+          const reputationChange = Math.floor(Math.random() * 20 - 10); // -10 đến +10
           await this.updateFactionReputation(
             session.id,
             event.affectedFactionId,
-            reputationChange
+            reputationChange,
           );
         }
       }
@@ -201,20 +206,21 @@ ${worldContext}
         const currentIndex = timeOfDayValues.indexOf(session.timeOfDay);
         const nextIndex = (currentIndex + 1) % timeOfDayValues.length;
         const newTimeOfDay = timeOfDayValues[nextIndex];
-        
+
         await this.changeTimeOfDay(session.id, newTimeOfDay as TimeOfDay);
-        
+
         // Nếu đã qua một ngày hoàn chỉnh, tăng ngày trong mùa
         if (newTimeOfDay === TimeOfDay.DAWN) {
           session.seasonDay += 1;
-          
+
           // Kiểm tra chuyển mùa (giả sử mỗi mùa 30 ngày)
           if (session.seasonDay > 30) {
             const seasonValues = Object.values(Season);
             const currentSeasonIndex = seasonValues.indexOf(session.season);
-            const nextSeasonIndex = (currentSeasonIndex + 1) % seasonValues.length;
+            const nextSeasonIndex =
+              (currentSeasonIndex + 1) % seasonValues.length;
             const newSeason = seasonValues[nextSeasonIndex];
-            
+
             await this.changeSeason(session.id, newSeason as Season);
           } else {
             await this.gameSessionRepository.save(session);
@@ -236,7 +242,9 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     const oldTimeOfDay = gameSession.timeOfDay;
@@ -275,7 +283,9 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     const oldSeason = gameSession.season;
@@ -307,28 +317,38 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     if (!gameSession.worldState || !gameSession.worldState.factions) {
       throw new NotFoundException('World state or factions not initialized');
     }
 
-    const faction = gameSession.worldState.factions.find(f => f.id === factionId);
+    const faction = gameSession.worldState.factions.find(
+      (f) => f.id === factionId,
+    );
     if (!faction) {
       throw new NotFoundException(`Faction with ID ${factionId} not found`);
     }
 
     // Cập nhật danh tiếng (giới hạn trong khoảng -100 đến 100)
-    faction.reputation = Math.max(-100, Math.min(100, faction.reputation + amount));
+    faction.reputation = Math.max(
+      -100,
+      Math.min(100, faction.reputation + amount),
+    );
 
     // Cập nhật quan hệ của NPC thuộc phe phái này
     if (gameSession.worldState.npcs) {
       for (const npc of gameSession.worldState.npcs) {
         if (npc.factionIds && npc.factionIds.includes(factionId)) {
           // Cập nhật danh tiếng NPC (chỉ thay đổi một phần so với phe phái)
-          npc.reputation = Math.max(-100, Math.min(100, npc.reputation + amount / 2));
-          
+          npc.reputation = Math.max(
+            -100,
+            Math.min(100, npc.reputation + amount / 2),
+          );
+
           // Cập nhật mối quan hệ dựa trên danh tiếng
           if (npc.reputation >= 75) {
             npc.relationship = 'allied';
@@ -346,11 +366,14 @@ ${worldContext}
     // Cập nhật danh tiếng phe phái trong hồ sơ nhân vật
     if (gameSession.character.factionReputations) {
       const charFactionRep = gameSession.character.factionReputations.find(
-        fr => fr.factionId === factionId
+        (fr) => fr.factionId === factionId,
       );
-      
+
       if (charFactionRep) {
-        charFactionRep.reputation = Math.max(-100, Math.min(100, charFactionRep.reputation + amount));
+        charFactionRep.reputation = Math.max(
+          -100,
+          Math.min(100, charFactionRep.reputation + amount),
+        );
       } else {
         gameSession.character.factionReputations.push({
           factionId: factionId,
@@ -358,7 +381,7 @@ ${worldContext}
           reputation: amount,
         });
       }
-      
+
       await this.characterRepository.save(gameSession.character);
     }
 
@@ -390,14 +413,18 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     if (!gameSession.worldState || !gameSession.worldState.locations) {
       throw new NotFoundException('World state or locations not initialized');
     }
 
-    const location = gameSession.worldState.locations.find(l => l.id === locationId);
+    const location = gameSession.worldState.locations.find(
+      (l) => l.id === locationId,
+    );
     if (!location) {
       throw new NotFoundException(`Location with ID ${locationId} not found`);
     }
@@ -406,7 +433,7 @@ ${worldContext}
     if (!gameSession.worldState.changedLocations) {
       gameSession.worldState.changedLocations = {};
     }
-    
+
     gameSession.worldState.changedLocations[locationId] = {
       previousState: location.currentState,
       newState: newState,
@@ -446,7 +473,9 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     gameSession.worldState = {
@@ -466,7 +495,9 @@ ${worldContext}
     });
 
     if (!gameSession) {
-      throw new NotFoundException(`Game session with ID ${gameSessionId} not found`);
+      throw new NotFoundException(
+        `Game session with ID ${gameSessionId} not found`,
+      );
     }
 
     return {

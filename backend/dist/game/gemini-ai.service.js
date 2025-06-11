@@ -24,14 +24,16 @@ let GeminiAiService = GeminiAiService_1 = class GeminiAiService {
             this.configService.get('ALLOW_USER_API_KEYS') === 'true';
         this.defaultGenerativeAI = new generative_ai_1.GoogleGenerativeAI(this.defaultApiKey);
         this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
-            model: 'gemini-pro',
+            model: 'gemini-2.0-flash',
         });
     }
     getModel(userApiKey) {
         if (this.allowUserApiKeys && userApiKey) {
             try {
                 const userGenerativeAI = new generative_ai_1.GoogleGenerativeAI(userApiKey);
-                return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+                return userGenerativeAI.getGenerativeModel({
+                    model: 'gemini-2.0-flash',
+                });
             }
             catch (error) {
                 this.logger.warn(`Failed to initialize with user API key: ${error.message}`);

@@ -13,6 +13,7 @@ exports.GameSession = void 0;
 const typeorm_1 = require("typeorm");
 const character_entity_1 = require("./character.entity");
 const story_node_entity_1 = require("./story-node.entity");
+const bookmark_entity_1 = require("./bookmark.entity");
 let GameSession = class GameSession {
 };
 exports.GameSession = GameSession;
@@ -45,9 +46,33 @@ __decorate([
     __metadata("design:type", String)
 ], GameSession.prototype, "currentStoryNodeId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: story_node_entity_1.TimeOfDay,
+        default: story_node_entity_1.TimeOfDay.MORNING,
+    }),
+    __metadata("design:type", String)
+], GameSession.prototype, "timeOfDay", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: story_node_entity_1.Season,
+        default: story_node_entity_1.Season.SPRING,
+    }),
+    __metadata("design:type", String)
+], GameSession.prototype, "season", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 1 }),
+    __metadata("design:type", Number)
+], GameSession.prototype, "seasonDay", void 0);
+__decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Object)
 ], GameSession.prototype, "gameState", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Object)
+], GameSession.prototype, "worldState", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 'normal' }),
     __metadata("design:type", String)
@@ -60,6 +85,21 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], GameSession.prototype, "deathReason", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { default: [] }),
+    __metadata("design:type", Array)
+], GameSession.prototype, "decisionHistory", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { default: {
+            combatPreference: 50,
+            dialogueLength: 50,
+            explorationTendency: 50,
+            moralAlignment: 0,
+            riskTolerance: 50,
+            difficultyLevel: 3
+        } }),
+    __metadata("design:type", Object)
+], GameSession.prototype, "gameplayProfile", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => character_entity_1.Character, (character) => character.gameSessions),
     (0, typeorm_1.JoinColumn)(),
@@ -74,6 +114,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => story_node_entity_1.StoryNode, (storyNode) => storyNode.gameSession),
     __metadata("design:type", Array)
 ], GameSession.prototype, "storyNodes", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => bookmark_entity_1.Bookmark, (bookmark) => bookmark.gameSession),
+    __metadata("design:type", Array)
+], GameSession.prototype, "bookmarks", void 0);
 exports.GameSession = GameSession = __decorate([
     (0, typeorm_1.Entity)()
 ], GameSession);

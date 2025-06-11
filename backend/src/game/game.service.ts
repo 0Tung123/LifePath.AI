@@ -93,9 +93,51 @@ export class GameService {
         );
       }
 
-      // Set default skills if not provided
-      if (!characterData.skills || characterData.skills.length === 0) {
-        characterData.skills = ['Basic Attack', 'Defend'];
+      // Set default skillIds if not provided
+      if (!characterData.skillIds || characterData.skillIds.length === 0) {
+        characterData.skillIds = ['basic_attack', 'defend'];
+      }
+
+      // Set default skills array if not provided
+      if (!characterData.skills) {
+        characterData.skills = [
+          {
+            id: 'basic_attack',
+            name: 'Basic Attack',
+            description: 'A simple attack against an opponent',
+            level: 1,
+            maxLevel: 5,
+            experience: 0,
+            experienceToNextLevel: 100,
+            type: 'active',
+            category: 'combat',
+            effects: [
+              {
+                statName: 'damage',
+                value: 5,
+                isPercentage: false,
+              },
+            ],
+          },
+          {
+            id: 'defend',
+            name: 'Defend',
+            description: 'Take a defensive stance to reduce incoming damage',
+            level: 1,
+            maxLevel: 5,
+            experience: 0,
+            experienceToNextLevel: 100,
+            type: 'active',
+            category: 'combat',
+            effects: [
+              {
+                statName: 'defense',
+                value: 10,
+                isPercentage: true,
+              },
+            ],
+          },
+        ];
       }
 
       const character = this.characterRepository.create({

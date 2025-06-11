@@ -32,6 +32,33 @@ export interface CharacterAttributes {
     influence?: number;
     [key: string]: number | undefined;
 }
+export interface CharacterTraits {
+    bravery: number;
+    caution: number;
+    kindness: number;
+    ambition: number;
+    loyalty: number;
+    [key: string]: number | undefined;
+}
+export interface Skill {
+    id: string;
+    name: string;
+    description: string;
+    level: number;
+    maxLevel: number;
+    experience: number;
+    experienceToNextLevel: number;
+    type: 'active' | 'passive';
+    category: string;
+    effects: {
+        statName: string;
+        value: number;
+        isPercentage: boolean;
+    }[];
+    requiredLevel?: number;
+    parentSkillId?: string;
+    childSkillIds?: string[];
+}
 export declare class Character {
     id: string;
     name: string;
@@ -40,7 +67,9 @@ export declare class Character {
     secondaryGenres: GameGenre[];
     customGenreDescription: string;
     attributes: CharacterAttributes;
-    skills: string[];
+    traits: CharacterTraits;
+    skillIds: string[];
+    skills: Skill[];
     specialAbilities: {
         name: string;
         description: string;
@@ -71,12 +100,19 @@ export declare class Character {
     };
     level: number;
     experience: number;
+    experienceToNextLevel: number;
+    skillPoints: number;
     backstory: string;
     relationships: {
         npcId: string;
         name: string;
         relation: number;
         type: string;
+    }[];
+    factionReputations: {
+        factionId: string;
+        factionName: string;
+        reputation: number;
     }[];
     createdAt: Date;
     updatedAt: Date;

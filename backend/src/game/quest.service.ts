@@ -30,7 +30,7 @@ export class QuestService {
 
     this.geminiAi = new GoogleGenerativeAI(apiKey);
     this.generationModel = this.geminiAi.getGenerativeModel({
-      model: 'gemini-1.5-pro-latest',
+      model: 'gemini-2.0-flash',
     });
   }
 

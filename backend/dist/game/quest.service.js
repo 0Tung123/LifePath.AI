@@ -37,7 +37,7 @@ let QuestService = QuestService_1 = class QuestService {
         }
         this.geminiAi = new generative_ai_1.GoogleGenerativeAI(apiKey);
         this.generationModel = this.geminiAi.getGenerativeModel({
-            model: 'gemini-1.5-pro-latest',
+            model: 'gemini-2.0-flash',
         });
     }
     async generateQuest(gameSessionId, trigger, triggerType = 'event') {

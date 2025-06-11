@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Character } from '../../game/entities/character.entity';
 import { GameSession } from '../../game/entities/game-session.entity';
 
@@ -14,7 +22,10 @@ export enum MemoryType {
   ACTION = 'action',
   CONVERSATION = 'conversation',
   EXPERIENCE = 'experience',
-  DEATH = 'death'
+  DEATH = 'death',
+  WORLD_CHANGE = 'world_change',
+  REPUTATION = 'reputation',
+  LOCATION_CHANGE = 'location_change',
 }
 
 @Entity()

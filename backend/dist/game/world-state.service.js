@@ -24,6 +24,7 @@ const game_session_entity_1 = require("./entities/game-session.entity");
 const character_entity_1 = require("./entities/character.entity");
 const memory_service_1 = require("../memory/memory.service");
 const memory_record_entity_1 = require("../memory/entities/memory-record.entity");
+const story_node_entity_1 = require("./entities/story-node.entity");
 let WorldStateService = WorldStateService_1 = class WorldStateService {
     constructor(gameSessionRepository, characterRepository, memoryService, configService) {
         this.gameSessionRepository = gameSessionRepository;
@@ -38,7 +39,7 @@ let WorldStateService = WorldStateService_1 = class WorldStateService {
         }
         this.geminiAi = new generative_ai_1.GoogleGenerativeAI(apiKey);
         this.generationModel = this.geminiAi.getGenerativeModel({
-            model: 'gemini-1.5-pro-latest',
+            model: 'gemini-2.0-flash',
         });
     }
     async updateWorldState() {
@@ -75,6 +76,9 @@ let WorldStateService = WorldStateService_1 = class WorldStateService {
             const worldContext = `
 Nhân vật: ${character.name}, ${character.characterClass}
 Thế giới: ${character.primaryGenre}
+Thời gian trong ngày: ${session.timeOfDay || 'MORNING'}
+Mùa: ${session.season || 'SPRING'}
+Ngày trong mùa: ${session.seasonDay || 1}
 Thời gian kể từ hoạt động cuối: ${Math.floor((new Date().getTime() - session.updatedAt.getTime()) / (1000 * 60 * 60))} giờ
 ${memoriesContext}
       `;
@@ -86,7 +90,9 @@ Hãy trả về kết quả theo format JSON:
   {
     "title": "Tên sự kiện ngắn gọn",
     "content": "Mô tả chi tiết về sự kiện",
-    "importance": số từ 0.1 đến 1.0 thể hiện mức độ quan trọng
+    "importance": số từ 0.1 đến 1.0 thể hiện mức độ quan trọng,
+    "affectedLocationId": "ID của địa điểm bị ảnh hưởng (nếu có)",
+    "affectedFactionId": "ID của phe phái bị ảnh hưởng (nếu có)"
   }
 ]
 
@@ -115,12 +121,225 @@ ${worldContext}
                     gameSessionId: session.id,
                     importance: event.importance || 0.5,
                 });
+                if (event.affectedLocationId && session.worldState?.locations) {
+                    const location = session.worldState.locations.find((l) => l.id === event.affectedLocationId);
+                    if (location) {
+                        await this.updateLocationState(session.id, event.affectedLocationId, 'affected_by_event', event.title);
+                    }
+                }
+                if (event.affectedFactionId && session.worldState?.factions) {
+                    const reputationChange = Math.floor(Math.random() * 20 - 10);
+                    await this.updateFactionReputation(session.id, event.affectedFactionId, reputationChange);
+                }
             }
+            await this.advanceTime(session);
             this.logger.log(`Generated ${events.length} events for session ${session.id}`);
         }
         catch (error) {
             this.logger.error(`Error generating world events: ${error.message}`);
         }
+    }
+    async advanceTime(session) {
+        try {
+            const hoursSinceLastActivity = Math.floor((new Date().getTime() - session.updatedAt.getTime()) / (1000 * 60 * 60));
+            if (hoursSinceLastActivity >= 6) {
+                const timeOfDayValues = Object.values(story_node_entity_1.TimeOfDay);
+                const currentIndex = timeOfDayValues.indexOf(session.timeOfDay);
+                const nextIndex = (currentIndex + 1) % timeOfDayValues.length;
+                const newTimeOfDay = timeOfDayValues[nextIndex];
+                await this.changeTimeOfDay(session.id, newTimeOfDay);
+                if (newTimeOfDay === story_node_entity_1.TimeOfDay.DAWN) {
+                    session.seasonDay += 1;
+                    if (session.seasonDay > 30) {
+                        const seasonValues = Object.values(story_node_entity_1.Season);
+                        const currentSeasonIndex = seasonValues.indexOf(session.season);
+                        const nextSeasonIndex = (currentSeasonIndex + 1) % seasonValues.length;
+                        const newSeason = seasonValues[nextSeasonIndex];
+                        await this.changeSeason(session.id, newSeason);
+                    }
+                    else {
+                        await this.gameSessionRepository.save(session);
+                    }
+                }
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error advancing time: ${error.message}`);
+        }
+    }
+    async changeTimeOfDay(gameSessionId, newTimeOfDay) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        const oldTimeOfDay = gameSession.timeOfDay;
+        gameSession.timeOfDay = newTimeOfDay;
+        if (gameSession.worldState && gameSession.worldState.npcs) {
+            for (const npc of gameSession.worldState.npcs) {
+                if (npc.schedule && npc.schedule[newTimeOfDay]) {
+                    npc.currentLocationId = npc.schedule[newTimeOfDay].locationId;
+                }
+            }
+        }
+        await this.memoryService.createMemory({
+            title: `Thời gian chuyển sang ${newTimeOfDay}`,
+            content: `Thời gian trong ngày đã chuyển từ ${oldTimeOfDay} sang ${newTimeOfDay}.`,
+            type: memory_record_entity_1.MemoryType.WORLD_CHANGE,
+            gameSessionId: gameSessionId,
+            characterId: gameSession.character.id,
+            importance: 0.3,
+        });
+        return this.gameSessionRepository.save(gameSession);
+    }
+    async changeSeason(gameSessionId, newSeason) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+            relations: ['character'],
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        const oldSeason = gameSession.season;
+        gameSession.season = newSeason;
+        gameSession.seasonDay = 1;
+        await this.memoryService.createMemory({
+            title: `Mùa chuyển sang ${newSeason}`,
+            content: `Mùa đã chuyển từ ${oldSeason} sang ${newSeason}. Cây cối và thời tiết đã thay đổi để phản ánh mùa mới.`,
+            type: memory_record_entity_1.MemoryType.WORLD_CHANGE,
+            gameSessionId: gameSessionId,
+            characterId: gameSession.character.id,
+            importance: 0.7,
+        });
+        return this.gameSessionRepository.save(gameSession);
+    }
+    async updateFactionReputation(gameSessionId, factionId, amount) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+            relations: ['character'],
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        if (!gameSession.worldState || !gameSession.worldState.factions) {
+            throw new common_1.NotFoundException('World state or factions not initialized');
+        }
+        const faction = gameSession.worldState.factions.find((f) => f.id === factionId);
+        if (!faction) {
+            throw new common_1.NotFoundException(`Faction with ID ${factionId} not found`);
+        }
+        faction.reputation = Math.max(-100, Math.min(100, faction.reputation + amount));
+        if (gameSession.worldState.npcs) {
+            for (const npc of gameSession.worldState.npcs) {
+                if (npc.factionIds && npc.factionIds.includes(factionId)) {
+                    npc.reputation = Math.max(-100, Math.min(100, npc.reputation + amount / 2));
+                    if (npc.reputation >= 75) {
+                        npc.relationship = 'allied';
+                    }
+                    else if (npc.reputation >= 25) {
+                        npc.relationship = 'friendly';
+                    }
+                    else if (npc.reputation >= -25) {
+                        npc.relationship = 'neutral';
+                    }
+                    else {
+                        npc.relationship = 'hostile';
+                    }
+                }
+            }
+        }
+        if (gameSession.character.factionReputations) {
+            const charFactionRep = gameSession.character.factionReputations.find((fr) => fr.factionId === factionId);
+            if (charFactionRep) {
+                charFactionRep.reputation = Math.max(-100, Math.min(100, charFactionRep.reputation + amount));
+            }
+            else {
+                gameSession.character.factionReputations.push({
+                    factionId: factionId,
+                    factionName: faction.name,
+                    reputation: amount,
+                });
+            }
+            await this.characterRepository.save(gameSession.character);
+        }
+        const reputationChangeText = amount >= 0 ? 'tăng' : 'giảm';
+        await this.memoryService.createMemory({
+            title: `Danh tiếng với ${faction.name} ${reputationChangeText}`,
+            content: `Danh tiếng của bạn với ${faction.name} đã ${reputationChangeText} ${Math.abs(amount)} điểm, hiện tại là ${faction.reputation}.`,
+            type: memory_record_entity_1.MemoryType.REPUTATION,
+            gameSessionId: gameSessionId,
+            characterId: gameSession.character.id,
+            importance: Math.abs(amount) / 20,
+        });
+        await this.gameSessionRepository.save(gameSession);
+        return { faction, newReputation: faction.reputation };
+    }
+    async updateLocationState(gameSessionId, locationId, newState, reason) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+            relations: ['character'],
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        if (!gameSession.worldState || !gameSession.worldState.locations) {
+            throw new common_1.NotFoundException('World state or locations not initialized');
+        }
+        const location = gameSession.worldState.locations.find((l) => l.id === locationId);
+        if (!location) {
+            throw new common_1.NotFoundException(`Location with ID ${locationId} not found`);
+        }
+        if (!gameSession.worldState.changedLocations) {
+            gameSession.worldState.changedLocations = {};
+        }
+        gameSession.worldState.changedLocations[locationId] = {
+            previousState: location.currentState,
+            newState: newState,
+            reason: reason,
+            timestamp: new Date(),
+        };
+        const oldState = location.currentState;
+        location.currentState = newState;
+        await this.memoryService.createMemory({
+            title: `${location.name} đã thay đổi`,
+            content: `${location.name} đã thay đổi từ ${oldState} sang ${newState} vì: ${reason}`,
+            type: memory_record_entity_1.MemoryType.LOCATION_CHANGE,
+            gameSessionId: gameSessionId,
+            characterId: gameSession.character.id,
+            importance: 0.6,
+        });
+        await this.gameSessionRepository.save(gameSession);
+        return location;
+    }
+    async initializeWorldState(gameSessionId, worldData) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        gameSession.worldState = {
+            locations: worldData.locations,
+            npcs: worldData.npcs,
+            factions: worldData.factions,
+            changedLocations: {},
+        };
+        return this.gameSessionRepository.save(gameSession);
+    }
+    async getWorldState(gameSessionId) {
+        const gameSession = await this.gameSessionRepository.findOne({
+            where: { id: gameSessionId },
+        });
+        if (!gameSession) {
+            throw new common_1.NotFoundException(`Game session with ID ${gameSessionId} not found`);
+        }
+        return {
+            timeOfDay: gameSession.timeOfDay,
+            season: gameSession.season,
+            seasonDay: gameSession.seasonDay,
+            worldState: gameSession.worldState,
+        };
     }
 };
 exports.WorldStateService = WorldStateService;

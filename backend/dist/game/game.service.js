@@ -56,8 +56,48 @@ let GameService = GameService_1 = class GameService {
             if (!characterData.inventory) {
                 characterData.inventory = this.getDefaultInventory(characterData.primaryGenre || character_entity_1.GameGenre.FANTASY, characterData.secondaryGenres);
             }
-            if (!characterData.skills || characterData.skills.length === 0) {
-                characterData.skills = ['Basic Attack', 'Defend'];
+            if (!characterData.skillIds || characterData.skillIds.length === 0) {
+                characterData.skillIds = ['basic_attack', 'defend'];
+            }
+            if (!characterData.skills) {
+                characterData.skills = [
+                    {
+                        id: 'basic_attack',
+                        name: 'Basic Attack',
+                        description: 'A simple attack against an opponent',
+                        level: 1,
+                        maxLevel: 5,
+                        experience: 0,
+                        experienceToNextLevel: 100,
+                        type: 'active',
+                        category: 'combat',
+                        effects: [
+                            {
+                                statName: 'damage',
+                                value: 5,
+                                isPercentage: false,
+                            },
+                        ],
+                    },
+                    {
+                        id: 'defend',
+                        name: 'Defend',
+                        description: 'Take a defensive stance to reduce incoming damage',
+                        level: 1,
+                        maxLevel: 5,
+                        experience: 0,
+                        experienceToNextLevel: 100,
+                        type: 'active',
+                        category: 'combat',
+                        effects: [
+                            {
+                                statName: 'defense',
+                                value: 10,
+                                isPercentage: true,
+                            },
+                        ],
+                    },
+                ];
             }
             const character = this.characterRepository.create({
                 ...characterData,

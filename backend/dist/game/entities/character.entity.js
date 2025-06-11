@@ -62,7 +62,15 @@ __decorate([
     __metadata("design:type", Object)
 ], Character.prototype, "attributes", void 0);
 __decorate([
+    (0, typeorm_1.Column)('simple-json', { default: { bravery: 50, caution: 50, kindness: 50, ambition: 50, loyalty: 50 } }),
+    __metadata("design:type", Object)
+], Character.prototype, "traits", void 0);
+__decorate([
     (0, typeorm_1.Column)('simple-array'),
+    __metadata("design:type", Array)
+], Character.prototype, "skillIds", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Array)
 ], Character.prototype, "skills", void 0);
 __decorate([
@@ -82,6 +90,14 @@ __decorate([
     __metadata("design:type", Number)
 ], Character.prototype, "experience", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 100 }),
+    __metadata("design:type", Number)
+], Character.prototype, "experienceToNextLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Character.prototype, "skillPoints", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Character.prototype, "backstory", void 0);
@@ -89,6 +105,10 @@ __decorate([
     (0, typeorm_1.Column)('simple-json', { nullable: true }),
     __metadata("design:type", Array)
 ], Character.prototype, "relationships", void 0);
+__decorate([
+    (0, typeorm_1.Column)('simple-json', { nullable: true }),
+    __metadata("design:type", Array)
+], Character.prototype, "factionReputations", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)

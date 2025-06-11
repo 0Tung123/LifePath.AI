@@ -27,6 +27,9 @@ var MemoryType;
     MemoryType["CONVERSATION"] = "conversation";
     MemoryType["EXPERIENCE"] = "experience";
     MemoryType["DEATH"] = "death";
+    MemoryType["WORLD_CHANGE"] = "world_change";
+    MemoryType["REPUTATION"] = "reputation";
+    MemoryType["LOCATION_CHANGE"] = "location_change";
 })(MemoryType || (exports.MemoryType = MemoryType = {}));
 let MemoryRecord = class MemoryRecord {
 };

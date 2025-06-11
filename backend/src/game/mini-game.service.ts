@@ -177,7 +177,7 @@ export class MiniGameService {
     }
 
     // Nếu thành công, áp dụng phần thưởng
-    let rewards = null;
+    let rewards: any = null;
     if (success && miniGame.rewards) {
       rewards = miniGame.rewards;
       const character = gameSession.character;
@@ -252,10 +252,11 @@ export class MiniGameService {
       if (miniGame.rewards.traits) {
         for (const [traitName, value] of Object.entries(miniGame.rewards.traits)) {
           if (character.traits && traitName in character.traits) {
-            character.traits[traitName] += value;
+            const currentValue = character.traits[traitName] || 0;
+            character.traits[traitName] = currentValue + value;
             
             // Đảm bảo giá trị nằm trong khoảng 0-100
-            character.traits[traitName] = Math.max(0, Math.min(100, character.traits[traitName]));
+            character.traits[traitName] = Math.max(0, Math.min(100, character.traits[traitName] || 0));
           }
         }
       }
