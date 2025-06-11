@@ -1,41 +1,47 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useGame } from '@/store/GameContext';
-import { useAuth } from '@/store/AuthContext';
-import CharacterCard from '@/components/game/CharacterCard';
-import Button from '@/components/game/Button';
-import Card from '@/components/game/Card';
-import LoadingSpinner from '@/components/game/LoadingSpinner';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useGame } from "@/store/GameContext";
+import { useAuth } from "@/store/AuthContext";
+import CharacterCard from "@/components/game/CharacterCard";
+import Button from "@/components/game/Button";
+import Card from "@/components/game/Card";
+import LoadingSpinner from "@/components/game/LoadingSpinner";
 
 const GameHomePage = () => {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { 
-    characters, 
-    gameSessions, 
-    loadingCharacters, 
+  const {
+    characters,
+    gameSessions,
+    loadingCharacters,
     loadingSession,
     error,
-    fetchCharacters, 
+    fetchCharacters,
     fetchGameSessions,
     startNewGame,
   } = useGame();
-  
+
   const [isStartingGame, setIsStartingGame] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
     // Fetch game data
     fetchCharacters();
     fetchGameSessions();
-  }, [authLoading, isAuthenticated, fetchCharacters, fetchGameSessions, router]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    fetchCharacters,
+    fetchGameSessions,
+    router,
+  ]);
 
   const handleStartNewGame = async (characterId: string) => {
     try {
@@ -43,7 +49,7 @@ const GameHomePage = () => {
       const session = await startNewGame(characterId);
       router.push(`/game/${session.id}`);
     } catch (error) {
-      console.error('Failed to start game:', error);
+      console.error("Failed to start game:", error);
     } finally {
       setIsStartingGame(false);
     }
@@ -53,7 +59,7 @@ const GameHomePage = () => {
     router.push(`/game/${sessionId}`);
   };
 
-  if (authLoading || loadingCharacters && characters.length === 0) {
+  if (authLoading || (loadingCharacters && characters.length === 0)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
         <LoadingSpinner size="large" message="Đang tải..." />
@@ -66,9 +72,7 @@ const GameHomePage = () => {
       <div className="min-h-screen bg-gray-900 text-white p-6">
         <div className="max-w-2xl mx-auto bg-gray-800 p-8 rounded-lg shadow-lg">
           <h1 className="text-2xl font-bold mb-4">Đăng nhập để tiếp tục</h1>
-          <p className="mb-6">
-            Bạn cần đăng nhập để truy cập game.
-          </p>
+          <p className="mb-6">Bạn cần đăng nhập để truy cập game.</p>
           <div className="flex justify-center">
             <Link
               href="/auth/login"
@@ -85,8 +89,10 @@ const GameHomePage = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">Nhập Vai A.I Simulator</h1>
-        
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          Nhập Vai A.I Simulator
+        </h1>
+
         {error && (
           <div className="bg-red-500 text-white p-4 rounded-md mb-6">
             {error}
@@ -96,20 +102,24 @@ const GameHomePage = () => {
         {/* Active Game Sessions */}
         {gameSessions.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4">Phiên chơi đang hoạt động</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              Phiên chơi đang hoạt động
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {gameSessions.map((session) => {
-                const character = characters.find(c => c.id === session.characterId);
+                const character = characters.find(
+                  (c) => c.id === session.characterId
+                );
                 if (!character) return null;
-                
+
                 return (
-                  <Card 
+                  <Card
                     key={session.id}
                     className="hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => continueGame(session.id)}
                     footer={
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         isFullWidth
                         onClick={(e) => {
                           e.stopPropagation();
@@ -120,17 +130,28 @@ const GameHomePage = () => {
                       </Button>
                     }
                   >
-                    <h3 className="text-xl font-bold mb-3">
-                      {character.name}
-                    </h3>
+                    <h3 className="text-xl font-bold mb-3">{character.name}</h3>
                     <div className="mb-3">
                       <div className="text-sm text-gray-600 dark:text-gray-300">
                         Cấp độ {character.level} • {character.primaryGenre}
                       </div>
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                      <p>Bắt đầu: {new Date(session.startedAt).toLocaleDateString()}</p>
-                      <p>Lần chơi gần nhất: {new Date(session.updatedAt).toLocaleString()}</p>
+                      <p>
+                        Bắt đầu:{" "}
+                        {
+                          new Date(session.startedAt)
+                            .toISOString()
+                            .split("T")[0]
+                        }
+                      </p>
+                      <p>
+                        Lần chơi gần nhất:{" "}
+                        {new Date(session.updatedAt)
+                          .toISOString()
+                          .replace("T", " ")
+                          .substring(0, 19)}
+                      </p>
                     </div>
                   </Card>
                 );
@@ -147,8 +168,19 @@ const GameHomePage = () => {
               <Button
                 variant="success"
                 leftIcon={
-                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <svg
+                    className="w-5 h-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                 }
               >
@@ -168,9 +200,7 @@ const GameHomePage = () => {
                 Hãy tạo nhân vật đầu tiên của bạn để bắt đầu cuộc phiêu lưu!
               </p>
               <Link href="/game/characters/create">
-                <Button variant="success">
-                  Tạo nhân vật
-                </Button>
+                <Button variant="success">Tạo nhân vật</Button>
               </Link>
             </div>
           ) : (
@@ -184,7 +214,10 @@ const GameHomePage = () => {
                 </div>
               ))}
               {characters.length > 3 && (
-                <Link href="/game/characters" className="col-span-full text-center mt-4">
+                <Link
+                  href="/game/characters"
+                  className="col-span-full text-center mt-4"
+                >
                   <Button variant="secondary">
                     Xem tất cả nhân vật ({characters.length})
                   </Button>
@@ -198,19 +231,19 @@ const GameHomePage = () => {
         <Card className="mb-6">
           <h2 className="text-xl font-medium mb-4">Links nhanh</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
+            <Link
               href="/game/characters"
               className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >
               Quản lý nhân vật
             </Link>
-            <Link 
+            <Link
               href="/dashboard"
               className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >
               Bảng điều khiển
             </Link>
-            <Link 
+            <Link
               href="/"
               className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 p-4 rounded-md transition duration-300 text-center"
             >

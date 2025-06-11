@@ -1,4 +1,32 @@
-import api from '../utils/api';
+import api, { createApiInstance } from "../utils/api";
+
+// Create a function to get token safely (only in browser)
+const getToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("token");
+  }
+  return null;
+};
+
+// Create a function to safely handle localStorage operations
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, value);
+    }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(key);
+    }
+  },
+};
 
 // Define interfaces for your API responses
 export interface ApiResponse<T> {
@@ -35,56 +63,66 @@ export interface ResetPasswordData {
 }
 
 export const authApi = {
-  login: async (credentials: LoginCredentials): Promise<{ access_token: string }> => {
-    const response = await api.post('/auth/login', credentials);
+  login: async (
+    credentials: LoginCredentials
+  ): Promise<{ access_token: string }> => {
+    const response = await api.post("/auth/login", credentials);
     return response.data;
   },
-  
-  register: async (credentials: RegisterCredentials): Promise<{ message: string; user: User }> => {
-    const response = await api.post('/auth/register', credentials);
+
+  register: async (
+    credentials: RegisterCredentials
+  ): Promise<{ message: string; user: User }> => {
+    const response = await api.post("/auth/register", credentials);
     return response.data;
   },
-  
+
   verifyEmail: async (token: string): Promise<{ message: string }> => {
     const response = await api.get(`/auth/verify-email?token=${token}`);
     return response.data;
   },
-  
+
   resendVerification: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post('/auth/resend-verification', { email });
+    const response = await api.post("/auth/resend-verification", { email });
     return response.data;
   },
-  
+
   forgotPassword: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post('/auth/forgot-password', { email });
+    const response = await api.post("/auth/forgot-password", { email });
     return response.data;
   },
-  
-  resetPassword: async (data: ResetPasswordData): Promise<{ message: string }> => {
-    const response = await api.post('/auth/reset-password', data);
+
+  resetPassword: async (
+    data: ResetPasswordData
+  ): Promise<{ message: string }> => {
+    const response = await api.post("/auth/reset-password", data);
     return response.data;
   },
-  
+
   getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/user/profile');
+    const response = await api.get("/user/profile");
     return response.data;
   },
-  
+
   logout: async (): Promise<void> => {
-    localStorage.removeItem('token');
+    safeLocalStorage.removeItem("token");
     // Tokens are handled client-side, so no backend call needed
   },
-  
+
   googleLogin: (): void => {
-    // Redirect to Google login endpoint
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    // Only redirect in browser environment
+    if (typeof window !== "undefined") {
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    }
   },
-  
+
   handleGoogleCallback: (token: string): void => {
-    localStorage.setItem('token', token);
-    // Redirect to home page or dashboard
-    window.location.href = '/dashboard';
-  }
+    safeLocalStorage.setItem("token", token);
+    // Only redirect in browser environment
+    if (typeof window !== "undefined") {
+      window.location.href = "/dashboard";
+    }
+  },
 };
 
 // Add other API modules (game, user, etc.) as needed
@@ -92,16 +130,16 @@ export const authApi = {
 
 // Game interfaces
 export enum GameGenre {
-  FANTASY = 'fantasy',
-  MODERN = 'modern',
-  SCIFI = 'scifi',
-  XIANXIA = 'xianxia',
-  WUXIA = 'wuxia',
-  HORROR = 'horror',
-  CYBERPUNK = 'cyberpunk',
-  STEAMPUNK = 'steampunk',
-  POSTAPOCALYPTIC = 'postapocalyptic',
-  HISTORICAL = 'historical',
+  FANTASY = "fantasy",
+  MODERN = "modern",
+  SCIFI = "scifi",
+  XIANXIA = "xianxia",
+  WUXIA = "wuxia",
+  HORROR = "horror",
+  CYBERPUNK = "cyberpunk",
+  STEAMPUNK = "steampunk",
+  POSTAPOCALYPTIC = "postapocalyptic",
+  HISTORICAL = "historical",
 }
 
 export interface GenreInfo {
@@ -191,74 +229,89 @@ export interface CharacterGenerateInput {
 }
 
 export interface UserInputData {
-  type: string;  // 'choice', 'command', 'dialog', etc.
+  type: string; // 'choice', 'command', 'dialog', etc.
   content: string;
   target?: string;
 }
 
 export const gameApi = {
   // Character endpoints
-  createCharacter: async (characterData: CharacterCreateInput): Promise<Character> => {
-    const response = await api.post('/game/characters', characterData);
+  createCharacter: async (
+    characterData: CharacterCreateInput
+  ): Promise<Character> => {
+    const response = await api.post("/game/characters", characterData);
     return response.data;
   },
-  
-  generateCharacter: async (data: CharacterGenerateInput): Promise<Character> => {
-    const response = await api.post('/game/characters/generate', data);
+
+  generateCharacter: async (
+    data: CharacterGenerateInput
+  ): Promise<Character> => {
+    const response = await api.post("/game/characters/generate", data);
     return response.data;
   },
-  
+
   getCharacters: async (): Promise<Character[]> => {
-    const response = await api.get('/game/characters');
+    const response = await api.get("/game/characters");
     return response.data;
   },
-  
+
   getCharacterById: async (characterId: string): Promise<Character> => {
     const response = await api.get(`/game/characters/${characterId}`);
     return response.data;
   },
-  
+
   getAvailableGenres: async (): Promise<GenreInfo[]> => {
-    const response = await api.get('/game/genres');
+    const response = await api.get("/game/genres");
     return response.data;
   },
-  
+
   // Game session endpoints
   startNewGame: async (characterId: string): Promise<GameSession> => {
-    const response = await api.post('/game/sessions', { characterId });
+    const response = await api.post("/game/sessions", { characterId });
     return response.data;
   },
-  
+
   getGameSessions: async (): Promise<GameSession[]> => {
-    const response = await api.get('/game/sessions');
+    const response = await api.get("/game/sessions");
     return response.data;
   },
-  
+
   getGameSession: async (sessionId: string): Promise<GameSession> => {
     const response = await api.get(`/game/sessions/${sessionId}`);
     return response.data;
   },
-  
+
   saveGame: async (sessionId: string): Promise<GameSession> => {
     const response = await api.put(`/game/sessions/${sessionId}/save`);
     return response.data;
   },
-  
+
   endGame: async (sessionId: string): Promise<GameSession> => {
     const response = await api.put(`/game/sessions/${sessionId}/end`);
     return response.data;
   },
-  
+
   // Game progression
-  makeChoice: async (sessionId: string, choiceId: string): Promise<GameSession> => {
-    const response = await api.post(`/game/sessions/${sessionId}/choices/${choiceId}`);
+  makeChoice: async (
+    sessionId: string,
+    choiceId: string
+  ): Promise<GameSession> => {
+    const response = await api.post(
+      `/game/sessions/${sessionId}/choices/${choiceId}`
+    );
     return response.data;
   },
-  
-  processUserInput: async (sessionId: string, inputData: UserInputData): Promise<GameSession> => {
-    const response = await api.post(`/game/sessions/${sessionId}/input`, inputData);
+
+  processUserInput: async (
+    sessionId: string,
+    inputData: UserInputData
+  ): Promise<GameSession> => {
+    const response = await api.post(
+      `/game/sessions/${sessionId}/input`,
+      inputData
+    );
     return response.data;
-  }
+  },
 };
 
 // Export all API modules

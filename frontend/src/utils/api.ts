@@ -7,33 +7,40 @@ const api = axios.create({
   },
 });
 
-// Add a request interceptor to add the auth token to every request
-api.interceptors.request.use(
-  (config) => {
-    // Check if we're in a browser environment
-    if (typeof window !== 'undefined') {
+// Create API instance without interceptors for server-side
+export const createApiInstance = () => {
+  return axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+
+// Only add interceptors when in browser environment
+if (typeof window !== 'undefined') {
+  // Add a request interceptor to add the auth token to every request
+  api.interceptors.request.use(
+    (config) => {
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  );
 
-// Add a response interceptor to handle token expiration
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Handle 401 responses (unauthorized)
-    if (error.response && error.response.status === 401) {
-      // Check if we're in a browser environment
-      if (typeof window !== 'undefined') {
+  // Add a response interceptor to handle token expiration
+  api.interceptors.response.use(
+    (response) => {
+      return response;
+    },
+    (error) => {
+      // Handle 401 responses (unauthorized)
+      if (error.response && error.response.status === 401) {
         // Clear the token
         localStorage.removeItem('token');
         
@@ -42,9 +49,9 @@ api.interceptors.response.use(
           window.location.href = '/auth/login';
         }
       }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-);
+  );
+}
 
 export default api;
