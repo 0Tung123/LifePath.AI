@@ -41,10 +41,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only run authentication check in browser
+    if (typeof window === "undefined") {
+      setIsLoading(false);
+      return;
+    }
+
+    // Keep track of auth state to avoid memory leaks
+    let isMounted = true;
+
     // Check if user is already logged in (token exists in localStorage)
     const token = localStorage.getItem("token");
     if (token) {
-      fetchCurrentUser();
+      fetchCurrentUser().catch((error) => {
+        console.error("Auth initialization error:", error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
     } else {
       setIsLoading(false);
     }
@@ -55,19 +69,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     if (window.location.pathname === "/auth/google-callback" && oauthToken) {
       authApi.handleGoogleCallback(oauthToken);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fetchCurrentUser = async () => {
+    // Create a controller to abort the request if needed
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     try {
       setIsLoading(true);
-      const userData = await authApi.getCurrentUser();
+
+      // Create a fresh API instance for this critical request
+      const axios = require("axios");
+      const instance = axios.create({
+        baseURL: process.env.NEXT_PUBLIC_API_URL,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        signal: controller.signal,
+      });
+
+      const response = await instance.get("/user/profile");
+      const userData = response.data;
+
       setUser(userData);
       setError(null);
-    } catch (error) {
+      return userData;
+    } catch (error: any) {
       console.error("Failed to fetch user profile:", error);
-      setError("Session expired. Please login again.");
-      localStorage.removeItem("token");
+
+      // Specific error message based on error type
+      if (error.name === "AbortError") {
+        setError("Request timeout. Network may be unstable.");
+      } else if (error.response && error.response.status === 401) {
+        setError("Session expired. Please login again.");
+        localStorage.removeItem("token");
+      } else {
+        setError("Error connecting to server. Please try again.");
+      }
+
+      setUser(null);
+      throw error;
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };

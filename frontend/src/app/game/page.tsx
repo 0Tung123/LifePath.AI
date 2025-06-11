@@ -26,16 +26,38 @@ const GameHomePage = () => {
 
   const [isStartingGame, setIsStartingGame] = useState(false);
 
+  // Track if the page has been mounted
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Initialize once on mount
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+  
+  // Handle authentication and data loading
+  useEffect(() => {
+    // Skip effect if the component isn't mounted yet
+    if (!isMounted) return;
+    
+    // Skip redirects during initial loading
+    if (authLoading) return;
+    
+    // Handle unauthenticated state once loading is complete
+    if (!isAuthenticated) {
+      console.log("User not authenticated, redirecting to login");
       router.push("/auth/login");
       return;
     }
 
-    // Fetch game data
-    fetchCharacters();
-    fetchGameSessions();
+    // Only fetch data when authenticated and component is mounted
+    if (isAuthenticated) {
+      console.log("User authenticated, fetching game data");
+      fetchCharacters();
+      fetchGameSessions();
+    }
   }, [
+    isMounted,
     authLoading,
     isAuthenticated,
     fetchCharacters,
@@ -45,11 +67,31 @@ const GameHomePage = () => {
 
   const handleStartNewGame = async (characterId: string) => {
     try {
+      // Prevent multiple clicks
+      if (isStartingGame) return;
+      
       setIsStartingGame(true);
+      
+      // Validate that we have a valid character ID
+      if (!characterId) {
+        console.error("Invalid character ID");
+        return;
+      }
+      
+      console.log(`Starting new game with character ID: ${characterId}`);
       const session = await startNewGame(characterId);
-      router.push(`/game/${session.id}`);
+      
+      // Verify that we got a valid session before navigation
+      if (session && session.id) {
+        console.log(`Game session created: ${session.id}`);
+        router.push(`/game/${session.id}`);
+      } else {
+        console.error("Failed to create game session: Invalid response");
+      }
     } catch (error) {
       console.error("Failed to start game:", error);
+      // Show the error to the user via the GameContext error state
+      // The error will be displayed in the UI automatically
     } finally {
       setIsStartingGame(false);
     }

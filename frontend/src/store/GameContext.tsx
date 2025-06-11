@@ -229,9 +229,42 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const startNewGame = async (characterId: string): Promise<GameSession> => {
+    // Create an abort controller for the request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     try {
       setLoadingSession(true);
-      const session = await gameApi.startNewGame(characterId);
+
+      // Validate input
+      if (!characterId) {
+        throw new Error("Character ID is required");
+      }
+
+      // Get a fresh instance to avoid interceptor issues
+      const axios = require("axios");
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+      const instance = axios.create({
+        baseURL: process.env.NEXT_PUBLIC_API_URL,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: controller.signal,
+      });
+
+      // Make the API call
+      const response = await instance.post("/game/sessions", { characterId });
+      const session = response.data;
+
+      // Validate response
+      if (!session || !session.id) {
+        throw new Error("Invalid session data received from server");
+      }
+
+      // Update state with new session
       setCurrentSession(session);
 
       // Update current node from session
@@ -242,14 +275,45 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({
       // Reset previous nodes
       setPreviousNodes([]);
 
+      // Update sessions list with the new session
+      setGameSessions((prev) => {
+        const exists = prev.some((s) => s.id === session.id);
+        if (exists) {
+          return prev.map((s) => (s.id === session.id ? session : s));
+        } else {
+          return [...prev, session];
+        }
+      });
+
       setError(null);
       return session;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to start new game:", error);
-      const errorMessage = getErrorMessage(error);
+
+      // More detailed error handling
+      let errorMessage = "Failed to start new game";
+
+      if (error.name === "AbortError") {
+        errorMessage = "Request timed out. Please try again.";
+      } else if (error.response) {
+        // Handle different error status codes
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage = "Authentication error. Please log in again.";
+        } else if (status === 404) {
+          errorMessage =
+            "Character not found. Please select another character.";
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       setError(errorMessage);
       throw error;
     } finally {
+      clearTimeout(timeoutId);
       setLoadingSession(false);
     }
   };
