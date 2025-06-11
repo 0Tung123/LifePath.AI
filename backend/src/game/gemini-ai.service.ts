@@ -20,7 +20,7 @@ export class GeminiAiService {
     // Initialize default AI model
     this.defaultGenerativeAI = new GoogleGenerativeAI(this.defaultApiKey);
     this.defaultModel = this.defaultGenerativeAI.getGenerativeModel({
-      model: 'gemini-pro',
+      model: 'gemini-2.0-flash',
     });
   }
 
@@ -30,7 +30,9 @@ export class GeminiAiService {
     if (this.allowUserApiKeys && userApiKey) {
       try {
         const userGenerativeAI = new GoogleGenerativeAI(userApiKey);
-        return userGenerativeAI.getGenerativeModel({ model: 'gemini-pro' });
+        return userGenerativeAI.getGenerativeModel({
+          model: 'gemini-2.0-flash',
+        });
       } catch (error) {
         this.logger.warn(
           `Failed to initialize with user API key: ${error.message}`,
@@ -166,7 +168,7 @@ export class GeminiAiService {
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
         secondaryGenreInfluences =
-          'This story also incorporates elements from: ';
+          'Câu chuyện này cũng kết hợp các yếu tố từ: ';
         secondaryGenres.forEach((genre, index) => {
           secondaryGenreInfluences += this.getGenreName(genre);
           if (index < secondaryGenres.length - 1) {
@@ -179,12 +181,12 @@ export class GeminiAiService {
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
-        customGenreInfo = `This story has the following custom elements: ${customGenreDescription}. `;
+        customGenreInfo = `Câu chuyện này có các yếu tố tùy chỉnh sau: ${customGenreDescription}. `;
       }
 
       // Construct the full prompt
       const fullPrompt = `
-      You are a creative storyteller for an interactive text adventure game.
+      Bạn là một người kể chuyện sáng tạo cho một trò chơi phiêu lưu tương tác bằng văn bản.
       
       ${characterInfo}
       
@@ -192,19 +194,19 @@ export class GeminiAiService {
       
       ${previousChoiceInfo}
       
-      Primary Genre: ${this.getGenreName(primaryGenre)}
+      Thể loại chính: ${this.getGenreName(primaryGenre)}
       ${secondaryGenreInfluences}
       ${customGenreInfo}
       ${genreInstructions}
       
-      Based on the above context and the following prompt, generate the next part of the story:
+      Dựa trên bối cảnh trên và gợi ý sau đây, hãy tạo phần tiếp theo của câu chuyện:
       
       "${prompt}"
       
-      Provide a rich, detailed description of the scene, including sensory details, character emotions, and environmental elements.
-      Write in second person perspective (e.g., "You see a towering castle in the distance").
-      Keep your response focused on storytelling, without meta-commentary.
-      Response length: 150-250 words.
+      Cung cấp mô tả chi tiết, phong phú về khung cảnh, bao gồm chi tiết cảm giác, cảm xúc nhân vật và các yếu tố môi trường.
+      Viết ở ngôi thứ hai (ví dụ: "Bạn nhìn thấy một lâu đài cao vút ở đằng xa").
+      Giữ câu trả lời tập trung vào kể chuyện, không có bình luận về cách viết.
+      Độ dài câu trả lời: 150-250 từ.
       `;
 
       const result = await model.generateContent(fullPrompt);
@@ -284,7 +286,7 @@ export class GeminiAiService {
       // Get secondary genre influences
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
-        secondaryGenreInfluences = 'Also incorporate elements from: ';
+        secondaryGenreInfluences = 'Kết hợp thêm các yếu tố từ: ';
         secondaryGenres.forEach((genre, index) => {
           secondaryGenreInfluences += this.getGenreName(genre);
           if (index < secondaryGenres.length - 1) {
@@ -297,7 +299,7 @@ export class GeminiAiService {
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
-        customGenreInfo = `Consider these custom elements: ${customGenreDescription}. `;
+        customGenreInfo = `Cân nhắc các yếu tố tùy chỉnh này: ${customGenreDescription}. `;
       }
 
       // Determine if this is a combat scene
@@ -305,46 +307,46 @@ export class GeminiAiService {
       let combatInfo = '';
       if (isCombatScene) {
         combatInfo = `
-        This is a COMBAT SCENE. Generate choices that include:
-        - At least one offensive action
-        - At least one defensive or evasive action
-        - At least one creative or environmental action
+        Đây là CẢNH CHIẾN ĐẤU. Tạo ra các lựa chọn bao gồm:
+        - Ít nhất một hành động tấn công
+        - Ít nhất một hành động phòng thủ hoặc né tránh
+        - Ít nhất một hành động sáng tạo hoặc liên quan đến môi trường
         `;
       }
 
       // Construct the full prompt
       const fullPrompt = `
-      You are generating meaningful choices for an interactive text adventure game.
+      Bạn đang tạo ra các lựa chọn có ý nghĩa cho một trò chơi phiêu lưu tương tác bằng văn bản.
       
       ${characterInfo}
       
-      Based on the following story segment, generate 3-4 distinct choices for the player:
+      Dựa trên đoạn câu chuyện sau đây, hãy tạo ra 3-4 lựa chọn khác nhau cho người chơi:
       
       "${storyContent}"
       
-      Primary Genre: ${this.getGenreName(primaryGenre)}
+      Thể loại chính: ${this.getGenreName(primaryGenre)}
       ${secondaryGenreInfluences}
       ${customGenreInfo}
       ${combatInfo}
       
-      The choices should be appropriate for the primary genre and reflect its themes and tropes.
-      Each choice should be a clear action the character can take.
+      Các lựa chọn phải phù hợp với thể loại chính và phản ánh chủ đề và đặc trưng của thể loại đó.
+      Mỗi lựa chọn phải là một hành động rõ ràng mà nhân vật có thể thực hiện.
       
-      Relevant attributes for this genre include: ${genreAttributes.join(', ')}
-      Relevant item types for this genre include: ${genreItems.join(', ')}
+      Các thuộc tính liên quan đến thể loại này bao gồm: ${genreAttributes.join(', ')}
+      Các loại vật phẩm liên quan đến thể loại này bao gồm: ${genreItems.join(', ')}
       
-      Format each choice as a JSON object with these properties:
-      1. text: The choice text shown to the player (1-15 words)
-      2. consequences: Potential outcomes (not shown to player)
-        - attributeChanges: {attribute: numericValue, ...}
-        - itemGains: [{id: string, name: string, quantity: number}, ...]
-        - itemLosses: [{id: string, name: string, quantity: number}, ...]
-        - currencyChanges: {currencyType: numericValue, ...}
-        - flags: {flagName: value, ...}
-        - locationChange: string (if applicable)
-      3. nextPrompt: Brief description of what happens next if this choice is selected
+      Định dạng mỗi lựa chọn dưới dạng đối tượng JSON với các thuộc tính sau:
+      1. text: Văn bản lựa chọn hiển thị cho người chơi (1-15 từ)
+      2. consequences: Hậu quả tiềm tàng (không hiển thị cho người chơi)
+        - attributeChanges: {thuộc_tính: giá_trị_số, ...}
+        - itemGains: [{id: chuỗi, name: tên_vật_phẩm, quantity: số_lượng}, ...]
+        - itemLosses: [{id: chuỗi, name: tên_vật_phẩm, quantity: số_lượng}, ...]
+        - currencyChanges: {loại_tiền_tệ: giá_trị_số, ...}
+        - flags: {tên_cờ: giá_trị, ...}
+        - locationChange: chuỗi (nếu có)
+      3. nextPrompt: Mô tả ngắn gọn về những gì xảy ra tiếp theo nếu lựa chọn này được chọn
       
-      Return ONLY a valid JSON array of choice objects, with no additional text.
+      Chỉ trả về một mảng JSON hợp lệ chứa các đối tượng lựa chọn, không có văn bản bổ sung.
       `;
 
       const result = await model.generateContent(fullPrompt);
@@ -421,7 +423,7 @@ export class GeminiAiService {
       // Get secondary genre influences
       let secondaryGenreInfluences = '';
       if (secondaryGenres && secondaryGenres.length > 0) {
-        secondaryGenreInfluences = 'Also incorporate elements from: ';
+        secondaryGenreInfluences = 'Kết hợp thêm các yếu tố từ: ';
         secondaryGenres.forEach((genre, index) => {
           secondaryGenreInfluences += this.getGenreName(genre);
           if (index < secondaryGenres.length - 1) {
@@ -434,54 +436,54 @@ export class GeminiAiService {
       // Add custom genre description if available
       let customGenreInfo = '';
       if (customGenreDescription) {
-        customGenreInfo = `Consider these custom elements: ${customGenreDescription}. `;
+        customGenreInfo = `Cân nhắc các yếu tố tùy chỉnh này: ${customGenreDescription}. `;
       }
 
       const prompt = `
-      Generate a combat encounter for an interactive text adventure game.
+      Tạo ra một cuộc gặp gỡ chiến đấu cho trò chơi phiêu lưu tương tác bằng văn bản.
       
-      Character: ${character.name}, a level ${character.level} ${
+      Nhân vật: ${character.name}, cấp độ ${character.level} ${
         character.characterClass
       }
-      Attributes: ${attributesInfo}
-      Location: ${location}
+      Thuộc tính: ${attributesInfo}
+      Địa điểm: ${location}
       
-      Primary Genre: ${this.getGenreName(primaryGenre)}
+      Thể loại chính: ${this.getGenreName(primaryGenre)}
       ${secondaryGenreInfluences}
       ${customGenreInfo}
       
-      Create a JSON object with the following:
-      1. A description of the enemies and the combat situation
-      2. Enemy data appropriate for the character's level and the genre
+      Tạo một đối tượng JSON với các nội dung sau:
+      1. Mô tả về kẻ thù và tình huống chiến đấu
+      2. Dữ liệu kẻ thù phù hợp với cấp độ của nhân vật và thể loại
       
-      The JSON should have this structure:
+      JSON nên có cấu trúc như sau:
       {
         "enemies": [
           {
-            "id": string,
-            "name": string,
-            "level": number,
-            "health": number,
-            "attributes": {key-value pairs of relevant attributes},
-            "abilities": [string array of special abilities]
+            "id": chuỗi,
+            "name": tên kẻ thù,
+            "level": số cấp độ,
+            "health": điểm máu,
+            "attributes": {cặp khóa-giá trị của các thuộc tính liên quan},
+            "abilities": [mảng chuỗi các khả năng đặc biệt]
           }
         ],
         "rewards": {
-          "experience": number,
-          "gold": number (or appropriate currency for the genre),
+          "experience": số kinh nghiệm,
+          "gold": số vàng (hoặc tiền tệ phù hợp với thể loại),
           "items": [
             {
-              "id": string,
-              "name": string,
-              "quantity": number,
-              "dropChance": number (0-1)
+              "id": chuỗi,
+              "name": tên vật phẩm,
+              "quantity": số lượng,
+              "dropChance": tỷ lệ rơi (0-1)
             }
           ]
         },
-        "description": Narrative description of the combat scene
+        "description": Mô tả tường thuật của cảnh chiến đấu
       }
       
-      Return ONLY a valid JSON object, with no additional text.
+      Chỉ trả về một đối tượng JSON hợp lệ, không có văn bản bổ sung.
       `;
 
       const result = await model.generateContent(prompt);
@@ -538,27 +540,27 @@ export class GeminiAiService {
   private getGenreName(genre: GameGenre): string {
     switch (genre) {
       case GameGenre.FANTASY:
-        return 'Fantasy';
+        return 'Giả tưởng (Fantasy)';
       case GameGenre.SCIFI:
-        return 'Science Fiction';
+        return 'Khoa học viễn tưởng (Science Fiction)';
       case GameGenre.CYBERPUNK:
         return 'Cyberpunk';
       case GameGenre.XIANXIA:
-        return 'Xianxia (Cultivation)';
+        return 'Tiên Hiệp (Xianxia)';
       case GameGenre.WUXIA:
-        return 'Wuxia (Martial Arts)';
+        return 'Võ Hiệp (Wuxia)';
       case GameGenre.HORROR:
-        return 'Horror';
+        return 'Kinh dị (Horror)';
       case GameGenre.MODERN:
-        return 'Modern';
+        return 'Hiện đại (Modern)';
       case GameGenre.POSTAPOCALYPTIC:
-        return 'Post-Apocalyptic';
+        return 'Hậu tận thế (Post-Apocalyptic)';
       case GameGenre.STEAMPUNK:
         return 'Steampunk';
       case GameGenre.HISTORICAL:
-        return 'Historical';
+        return 'Lịch sử (Historical)';
       default:
-        return 'Fantasy';
+        return 'Giả tưởng (Fantasy)';
     }
   }
 
@@ -566,63 +568,63 @@ export class GeminiAiService {
     switch (genre) {
       case GameGenre.FANTASY:
         return `
-        Create a high fantasy narrative with elements of magic, mythical creatures, and epic quests.
-        Use rich descriptions of magical elements, ancient ruins, mystical forests, and fantastical creatures.
-        Incorporate themes of heroism, destiny, and the struggle between good and evil.
+        Tạo một câu chuyện giả tưởng cao với các yếu tố phép thuật, sinh vật thần thoại và nhiệm vụ sử thi.
+        Sử dụng mô tả phong phú về các yếu tố ma thuật, di tích cổ đại, rừng thần bí và sinh vật kỳ ảo.
+        Kết hợp các chủ đề về anh hùng, số phận và cuộc đấu tranh giữa thiện và ác.
         `;
       case GameGenre.SCIFI:
         return `
-        Create a science fiction narrative with advanced technology, space exploration, and futuristic societies.
-        Use descriptions that emphasize technology, alien worlds, spacecraft, and scientific concepts.
-        Incorporate themes of discovery, the impact of technology on society, and humanity's place in the universe.
+        Tạo một câu chuyện khoa học viễn tưởng với công nghệ tiên tiến, khám phá vũ trụ và xã hội tương lai.
+        Sử dụng mô tả nhấn mạnh công nghệ, thế giới ngoài hành tinh, tàu vũ trụ và các khái niệm khoa học.
+        Kết hợp các chủ đề về khám phá, tác động của công nghệ đối với xã hội và vị trí của con người trong vũ trụ.
         `;
       case GameGenre.CYBERPUNK:
         return `
-        Create a cyberpunk narrative with high tech and low life, corporate dominance, and digital realms.
-        Use descriptions that contrast advanced technology with urban decay, neon-lit streets, and digital interfaces.
-        Incorporate themes of rebellion against corporate control, transhumanism, and the blurring line between human and machine.
+        Tạo một câu chuyện cyberpunk với công nghệ cao và cuộc sống thấp kém, sự thống trị của tập đoàn và thế giới số.
+        Sử dụng mô tả tương phản giữa công nghệ tiên tiến với sự suy tàn đô thị, đường phố đầy đèn neon và giao diện kỹ thuật số.
+        Kết hợp các chủ đề về nổi loạn chống lại sự kiểm soát của tập đoàn, chủ nghĩa chuyển đổi con người và ranh giới mờ nhạt giữa con người và máy móc.
         `;
       case GameGenre.XIANXIA:
       case GameGenre.WUXIA:
         return `
-        Create a narrative of martial arts, cultivation, and Eastern mysticism.
-        Use descriptions that emphasize qi manipulation, martial techniques, ancient sects, and spiritual growth.
-        Incorporate themes of personal cultivation, honor, martial hierarchies, and the pursuit of immortality.
+        Tạo một câu chuyện võ thuật, tu luyện và huyền bí phương Đông.
+        Sử dụng mô tả nhấn mạnh vào việc vận dụng khí, kỹ thuật võ thuật, môn phái cổ đại và sự phát triển tâm linh.
+        Kết hợp các chủ đề về tu luyện cá nhân, danh dự, hệ thống phân cấp võ học và việc theo đuổi trường sinh bất tử.
         `;
       case GameGenre.HORROR:
         return `
-        Create a horror narrative with elements of fear, the unknown, and psychological tension.
-        Use descriptions that evoke fear, dread, and unease, with attention to atmosphere and tension.
-        Incorporate themes of survival, sanity, and confronting the unknown or supernatural.
+        Tạo một câu chuyện kinh dị với các yếu tố sợ hãi, điều chưa biết và căng thẳng tâm lý.
+        Sử dụng mô tả gợi lên sự sợ hãi, kinh hoàng và lo lắng, chú ý đến bầu không khí và sự căng thẳng.
+        Kết hợp các chủ đề về sự sống sót, sự tỉnh táo và đối mặt với điều chưa biết hoặc siêu nhiên.
         `;
       case GameGenre.MODERN:
         return `
-        Create a contemporary narrative set in the present day with realistic elements.
-        Use realistic descriptions of modern settings, technology, and social dynamics.
-        Incorporate themes relevant to contemporary life, relationships, and societal challenges.
+        Tạo một câu chuyện đương đại đặt trong thời hiện đại với các yếu tố thực tế.
+        Sử dụng mô tả thực tế về bối cảnh hiện đại, công nghệ và động lực xã hội.
+        Kết hợp các chủ đề liên quan đến cuộc sống đương đại, mối quan hệ và các thách thức xã hội.
         `;
       case GameGenre.POSTAPOCALYPTIC:
         return `
-        Create a narrative set after a global catastrophe, focusing on survival and rebuilding.
-        Use descriptions of ruined landscapes, scarcity, makeshift communities, and environmental hazards.
-        Incorporate themes of survival, adaptation, hope in adversity, and the rebuilding of society.
+        Tạo một câu chuyện đặt sau thảm họa toàn cầu, tập trung vào sự sống sót và tái thiết.
+        Sử dụng mô tả về cảnh quan đổ nát, khan hiếm, cộng đồng tạm bợ và các mối nguy hiểm môi trường.
+        Kết hợp các chủ đề về sự sống sót, thích nghi, hy vọng trong nghịch cảnh và việc tái thiết xã hội.
         `;
       case GameGenre.STEAMPUNK:
         return `
-        Create a narrative with Victorian aesthetics, steam-powered technology, and retrofuturistic elements.
-        Use descriptions of brass machinery, steam engines, airships, and alternative history technologies.
-        Incorporate themes of invention, exploration, class dynamics, and the impact of technology.
+        Tạo một câu chuyện với thẩm mỹ thời Victoria, công nghệ chạy bằng hơi nước và các yếu tố tương lai cổ điển.
+        Sử dụng mô tả về máy móc bằng đồng thau, động cơ hơi nước, phi thuyền và công nghệ lịch sử thay thế.
+        Kết hợp các chủ đề về phát minh, khám phá, động lực giai cấp và tác động của công nghệ.
         `;
       case GameGenre.HISTORICAL:
         return `
-        Create a narrative set in a specific historical period with attention to historical accuracy.
-        Use descriptions that capture the setting, customs, technology, and social dynamics of the era.
-        Incorporate themes relevant to the historical period while maintaining an engaging narrative.
+        Tạo một câu chuyện đặt trong một thời kỳ lịch sử cụ thể với sự chú ý đến tính chính xác lịch sử.
+        Sử dụng mô tả nắm bắt bối cảnh, phong tục, công nghệ và động lực xã hội của thời đại.
+        Kết hợp các chủ đề liên quan đến thời kỳ lịch sử trong khi duy trì một câu chuyện hấp dẫn.
         `;
       default:
         return `
-        Create an engaging narrative with vivid descriptions and meaningful choices.
-        Focus on character development, world-building, and an immersive story experience.
+        Tạo một câu chuyện hấp dẫn với mô tả sống động và những lựa chọn có ý nghĩa.
+        Tập trung vào sự phát triển của nhân vật, xây dựng thế giới và trải nghiệm câu chuyện nhập vai.
         `;
     }
   }
