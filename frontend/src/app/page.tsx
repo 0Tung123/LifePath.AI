@@ -1,21 +1,26 @@
 'use client';
-import { useEffect, useState } from 'react';
-import api from '@/utils/api';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [message, setMessage] = useState<string>('');
+  const router = useRouter();
 
   useEffect(() => {
-    api
-      .get('/')
-      .then((res) => setMessage(res.data.message))
-      .catch((err) => console.error('API Error:', err));
-  }, []);
+    // Check if user is already logged in
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
+    }
+  }, [router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">Welcome to My App</h1>
-      <p className="mt-4">Backend says: {message || 'Loading...'}</p>
+      <h1 className="text-2xl font-bold">Text-Based RPG Adventure</h1>
+      <p className="mt-4">Redirecting to login...</p>
     </main>
   );
 }

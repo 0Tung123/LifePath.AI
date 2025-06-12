@@ -6,8 +6,11 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS with specific origin for frontend on port 3002
+  app.enableCors({
+    origin: 'http://localhost:3002',
+    credentials: true,
+  });
 
   // Enable validation
   app.useGlobalPipes(
@@ -42,7 +45,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(process.env.PORT || 3000);
+  // Fixed port to 3000
+  await app.listen(3000);
 
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(
