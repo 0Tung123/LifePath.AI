@@ -135,7 +135,7 @@ export class GameController {
   @Get('sessions')
   async getMyActiveSessions(@Request() req): Promise<GameSession[]> {
     // Lấy tất cả các phiên game của người dùng
-    const allSessions = await this.gameService.getGameSessionsByCharacterId(
+    const allSessions = await this.gameService.getGameSessionsByUserId(
       req.user.id,
     );
     // Lọc ra các phiên đang hoạt động
@@ -151,6 +151,13 @@ export class GameController {
   async saveGame(@Param('id') id: string): Promise<GameSession> {
     // Lấy phiên game hiện tại
     const session = await this.gameService.getGameSessionWithDetails(id);
+
+    // Cập nhật thời gian lưu
+    session.lastSavedAt = new Date();
+
+    // Lưu phiên game vào cơ sở dữ liệu
+    await this.gameService.saveGameSession(session);
+
     // Trả về phiên game đã lưu
     return session;
   }
@@ -168,18 +175,34 @@ export class GameController {
   ): Promise<GameSession> {
     return this.gameService.makeChoice(id, choiceId);
   }
-  
+
   @Post('sessions/:id/input')
   @HttpCode(HttpStatus.OK)
   async processUserInput(
     @Param('id') id: string,
-    @Body() inputData: { type: string; content: string; target?: string }
+    @Body() inputData: { type: string; content: string; target?: string },
   ): Promise<GameSession> {
     return this.gameService.processUserInput(
       id,
       inputData.type,
       inputData.content,
-      inputData.target
+      inputData.target,
     );
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteGameSession(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.gameService.deleteGameSession(id);
+  }
+
+  @Delete('characters/:id')
+  @HttpCode(HttpStatus.OK)
+  async deleteCharacter(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.gameService.deleteCharacter(id);
   }
 }

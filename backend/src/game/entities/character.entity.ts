@@ -164,6 +164,20 @@ export class Character {
     majorDecisionsMade: number;
   };
 
+  @Column('simple-json', { nullable: true })
+  settings: {
+    permadeathEnabled: boolean;
+    difficultyLevel: 'easy' | 'normal' | 'hard' | 'hardcore';
+    [key: string]: any;
+  };
+
+  @Column('simple-json', { nullable: true })
+  history: {
+    event: string;
+    timestamp: Date;
+    details?: Record<string, any>;
+  }[];
+
   @ManyToOne(() => User, (user) => user.characters)
   @JoinColumn()
   user: User;

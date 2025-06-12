@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { LessThan, Repository, In } from 'typeorm';
+import { isUUID } from 'class-validator';
 import {
   Consequence,
   ConsequenceSeverity,
@@ -25,6 +26,15 @@ export interface ActionConsequence {
   severity: ConsequenceSeverity;
   isPermanent: boolean;
   affectedEntities: string[];
+  id?: string; // Optional ID property for database references
+}
+
+export interface PendingConsequence {
+  id: string;
+  title: string;
+  triggerTime: string;
+  severity: ConsequenceSeverity;
+  description: string;
 }
 
 @Injectable()
@@ -40,19 +50,47 @@ export class ConsequenceService {
     private memoryService: MemoryService,
   ) {}
 
+  /**
+   * Đánh giá và tạo các hậu quả từ hành động của người chơi
+   *
+   * Phương thức này sử dụng AI để phân tích hành động của người chơi và tạo ra các hậu quả
+   * phù hợp với ngữ cảnh game. Các hậu quả được lưu trữ trong cơ sở dữ liệu và được theo dõi
+   * trong trạng thái game.
+   *
+   * @param action Hành động của người chơi
+   * @param gameContext Ngữ cảnh game hiện tại
+   * @returns Danh sách các hậu quả được tạo ra
+   */
   async evaluateActionConsequences(
     action: string,
     gameContext: GameContext,
   ): Promise<ActionConsequence[]> {
+    // Xác thực dữ liệu đầu vào
+    if (!action || !action.trim()) {
+      throw new Error('Action cannot be empty');
+    }
+
+    if (!gameContext || !gameContext.gameSessionId) {
+      throw new Error('Invalid game context');
+    }
+
+    // Lấy phiên game với đầy đủ quan hệ
     const gameSession = await this.gameSessionRepository.findOne({
       where: { id: gameContext.gameSessionId },
       relations: ['character', 'currentStoryNode'],
     });
 
     if (!gameSession) {
-      throw new Error('Game session not found');
+      throw new Error(
+        `Game session with ID ${gameContext.gameSessionId} not found`,
+      );
     }
 
+    if (!gameSession.isActive) {
+      throw new Error('Cannot evaluate consequences for inactive game session');
+    }
+
+    // Tạo prompt cho AI
     const prompt = `
       Based on the player's action, generate 1-3 realistic consequences that might occur
       in the game world. These should follow naturally from the action and the current
@@ -75,128 +113,299 @@ export class ConsequenceService {
       ]
     `;
 
-    const aiResponse = await this.geminiAiService.generateContent(prompt);
-    let consequences: ActionConsequence[];
-
+    // Gọi AI để tạo hậu quả
+    let consequences: ActionConsequence[] = [];
     try {
-      // Extract JSON from AI response
+      const aiResponse = await this.geminiAiService.generateContent(prompt);
+
+      // Trích xuất JSON từ phản hồi AI
       const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         consequences = JSON.parse(jsonMatch[0]);
+
+        // Xác thực dữ liệu từ AI
+        consequences = consequences.filter((consequence) => {
+          return (
+            consequence.description &&
+            ['immediate', 'short', 'medium', 'long'].includes(
+              consequence.timeToTrigger,
+            ) &&
+            ['minor', 'moderate', 'major', 'critical'].includes(
+              consequence.severity,
+            ) &&
+            typeof consequence.isPermanent === 'boolean'
+          );
+        });
       } else {
         throw new Error('Could not parse JSON from AI response');
       }
     } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return [];
-    }
-
-    // Save consequences to database
-    for (const consequence of consequences) {
-      // Calculate trigger time
-      const triggerTime = this.calculateTriggerTime(consequence.timeToTrigger);
-
-      // Create and save consequence
-      await this.consequenceRepository.save({
-        gameSessionId: gameContext.gameSessionId,
-        characterId: gameContext.characterId,
-        description: consequence.description,
-        triggerTime,
-        severity: consequence.severity,
-        isPermanent: consequence.isPermanent,
-        affectedEntities: consequence.affectedEntities,
-        isTriggered: consequence.timeToTrigger === 'immediate',
-        sourceActionId: 'manual-action', // Use a default value instead of null
-        metadata: {
-          originalAction: action,
-          originalSituation: gameContext.currentSituation,
+      console.error('Error generating or parsing consequences:', error);
+      // Fallback: tạo một hậu quả mặc định nếu AI thất bại
+      consequences = [
+        {
+          description: `The action "${action.substring(0, 30)}..." has some unforeseen consequences.`,
+          timeToTrigger: 'medium',
+          severity: ConsequenceSeverity.MINOR,
+          isPermanent: false,
+          affectedEntities: ['character'],
         },
-        createdAt: new Date(),
-      });
-
-      // If immediate consequence, create a memory of it
-      if (consequence.timeToTrigger === 'immediate') {
-        await this.memoryService.createMemory({
-          characterId: gameContext.characterId,
-          title: `Consequence: ${this.generateConsequenceTitle(consequence)}`,
-          content: consequence.description,
-          type: MemoryType.CONSEQUENCE,
-          importance: this.calculateMemoryImportance(consequence.severity),
-        });
-      }
-
-      // If immediate consequence, add to game state pending consequences
-      if (consequence.timeToTrigger !== 'immediate') {
-        if (!gameSession.gameState) {
-          gameSession.gameState = {} as any;
-        }
-
-        if (!gameSession.gameState.pendingConsequences) {
-          gameSession.gameState.pendingConsequences = [];
-        }
-
-        gameSession.gameState.pendingConsequences.push(
-          this.generateConsequenceTitle(consequence),
-        );
-
-        await this.gameSessionRepository.save(gameSession);
-      }
+      ];
     }
 
-    return consequences;
-  }
+    // Giới hạn số lượng hậu quả để tránh quá tải
+    const MAX_CONSEQUENCES = 3;
+    if (consequences.length > MAX_CONSEQUENCES) {
+      consequences = consequences.slice(0, MAX_CONSEQUENCES);
+    }
 
-  @Cron(CronExpression.EVERY_HOUR)
-  async triggerPendingConsequences() {
-    // Find consequences that are due to trigger
-    const pendingConsequences = await this.consequenceRepository.find({
-      where: {
-        isTriggered: false,
-        triggerTime: LessThan(new Date()),
-      },
-      relations: ['gameSession', 'character'],
-    });
+    // Sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
+    return await this.consequenceRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const savedConsequences: ActionConsequence[] = [];
+        const pendingConsequencesToAdd: PendingConsequence[] = [];
 
-    for (const consequence of pendingConsequences) {
-      // Skip if game session is not active
-      if (!consequence.gameSession?.isActive) {
-        continue;
-      }
-
-      // Mark as triggered
-      consequence.isTriggered = true;
-      await this.consequenceRepository.save(consequence);
-
-      // Add to character memory
-      await this.memoryService.createMemory({
-        characterId: consequence.characterId,
-        title: `Delayed Consequence: ${this.generateConsequenceTitle(consequence)}`,
-        content: consequence.description,
-        type: MemoryType.CONSEQUENCE,
-        importance: this.calculateMemoryImportance(consequence.severity),
-      });
-
-      // Update game state
-      const gameSession = consequence.gameSession;
-      if (
-        gameSession &&
-        gameSession.gameState &&
-        gameSession.gameState.pendingConsequences
-      ) {
-        // Remove from pending consequences
-        const title = this.generateConsequenceTitle(consequence);
-        gameSession.gameState.pendingConsequences =
-          gameSession.gameState.pendingConsequences.filter(
-            (c) => !c.includes(title),
+        // Xử lý từng hậu quả
+        for (const consequence of consequences) {
+          // Tính toán thời gian kích hoạt
+          const triggerTime = this.calculateTriggerTime(
+            consequence.timeToTrigger,
           );
 
-        await this.gameSessionRepository.save(gameSession);
+          // Tạo và lưu hậu quả
+          const consequenceEntity = transactionalEntityManager.create(
+            Consequence,
+            {
+              gameSessionId: gameContext.gameSessionId,
+              characterId: gameContext.characterId,
+              description: consequence.description,
+              triggerTime,
+              severity: consequence.severity as ConsequenceSeverity,
+              isPermanent: consequence.isPermanent,
+              affectedEntities: consequence.affectedEntities || [],
+              isTriggered: consequence.timeToTrigger === 'immediate',
+              sourceActionId: 'manual-action', // Sử dụng giá trị mặc định thay vì null
+              metadata: {
+                originalAction: action,
+                originalSituation: gameContext.currentSituation,
+                createdAt: new Date().toISOString(),
+              },
+              createdAt: new Date(),
+            },
+          );
+
+          const savedConsequence = await transactionalEntityManager.save(
+            Consequence,
+            consequenceEntity,
+          );
+          savedConsequences.push({ ...consequence, id: savedConsequence.id });
+
+          // Nếu là hậu quả tức thời, tạo bản ghi trong bộ nhớ
+          if (consequence.timeToTrigger === 'immediate') {
+            await this.memoryService.createMemory({
+              characterId: gameContext.characterId,
+              title: `Immediate Consequence: ${this.generateConsequenceTitle(consequence)}`,
+              content: consequence.description,
+              type: MemoryType.CONSEQUENCE,
+              importance: this.calculateMemoryImportance(
+                consequence.severity as ConsequenceSeverity,
+              ),
+            });
+          }
+          // Nếu KHÔNG phải hậu quả tức thời, thêm vào danh sách chờ xử lý
+          else {
+            pendingConsequencesToAdd.push({
+              id: savedConsequence.id,
+              title: this.generateConsequenceTitle(consequence),
+              triggerTime: triggerTime.toISOString(),
+              severity: consequence.severity,
+              description:
+                consequence.description.substring(0, 100) +
+                (consequence.description.length > 100 ? '...' : ''),
+            });
+          }
+        }
+
+        // Cập nhật gameState với các hậu quả đang chờ xử lý
+        if (pendingConsequencesToAdd.length > 0) {
+          // Khởi tạo gameState nếu cần
+          if (!gameSession.gameState) {
+            gameSession.gameState = {} as any;
+          }
+
+          // Khởi tạo mảng pendingConsequences nếu cần
+          if (!gameSession.gameState.pendingConsequences) {
+            gameSession.gameState.pendingConsequences = [];
+          }
+
+          // Thêm các hậu quả mới vào danh sách
+          gameSession.gameState.pendingConsequences = [
+            ...gameSession.gameState.pendingConsequences,
+            ...pendingConsequencesToAdd,
+          ];
+
+          // Giới hạn số lượng hậu quả đang chờ xử lý để tránh memory leak
+          const MAX_PENDING_CONSEQUENCES = 50;
+          if (
+            gameSession.gameState.pendingConsequences.length >
+            MAX_PENDING_CONSEQUENCES
+          ) {
+            // Sắp xếp theo mức độ nghiêm trọng và thời gian kích hoạt
+            gameSession.gameState.pendingConsequences.sort(
+              (a: PendingConsequence, b: PendingConsequence) => {
+                // Ưu tiên giữ lại các hậu quả nghiêm trọng
+                const severityComparison =
+                  this.getSeverityWeight(b.severity) -
+                  this.getSeverityWeight(a.severity);
+                if (severityComparison !== 0) return severityComparison;
+
+                // Nếu cùng mức độ nghiêm trọng, ưu tiên các hậu quả sắp kích hoạt
+                return (
+                  new Date(a.triggerTime).getTime() -
+                  new Date(b.triggerTime).getTime()
+                );
+              },
+            );
+
+            // Giữ lại MAX_PENDING_CONSEQUENCES hậu quả quan trọng nhất
+            gameSession.gameState.pendingConsequences =
+              gameSession.gameState.pendingConsequences.slice(
+                0,
+                MAX_PENDING_CONSEQUENCES,
+              );
+          }
+
+          // Lưu gameSession với danh sách hậu quả đã cập nhật
+          await transactionalEntityManager.save(GameSession, gameSession);
+        }
+
+        return savedConsequences;
+      },
+    );
+  }
+
+  /**
+   * Tính toán trọng số của mức độ nghiêm trọng để sắp xếp
+   * @param severity Mức độ nghiêm trọng
+   * @returns Trọng số số học
+   */
+  private getSeverityWeight(severity: string): number {
+    switch (severity) {
+      case ConsequenceSeverity.CRITICAL:
+        return 4;
+      case ConsequenceSeverity.MAJOR:
+        return 3;
+      case ConsequenceSeverity.MODERATE:
+        return 2;
+      case ConsequenceSeverity.MINOR:
+      default:
+        return 1;
+    }
+  }
+
+  /**
+   * Kích hoạt các hậu quả đang chờ xử lý đã đến thời gian
+   *
+   * Phương thức này được chạy định kỳ để kiểm tra và kích hoạt các hậu quả
+   * đã đến thời gian. Nó cập nhật trạng thái game, tạo bản ghi trong bộ nhớ
+   * và áp dụng các hiệu ứng vĩnh viễn nếu có.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async triggerPendingConsequences() {
+    try {
+      // Tìm các hậu quả đến thời gian kích hoạt
+      const pendingConsequences = await this.consequenceRepository.find({
+        where: {
+          isTriggered: false,
+          triggerTime: LessThan(new Date()),
+        },
+        relations: ['gameSession', 'character'],
+      });
+
+      if (pendingConsequences.length === 0) {
+        return; // Không có hậu quả nào cần kích hoạt
       }
 
-      // Apply permanent effects if any
-      if (consequence.isPermanent) {
-        await this.applyPermanentConsequence(consequence);
+      // Nhóm các hậu quả theo gameSessionId để tối ưu hóa cập nhật
+      const consequencesByGameSession = pendingConsequences.reduce(
+        (acc, consequence) => {
+          const gameSessionId = consequence.gameSessionId;
+          if (!acc[gameSessionId]) {
+            acc[gameSessionId] = [];
+          }
+          acc[gameSessionId].push(consequence);
+          return acc;
+        },
+        {} as Record<string, Consequence[]>,
+      );
+
+      // Xử lý từng nhóm hậu quả theo phiên game
+      for (const [gameSessionId, consequences] of Object.entries(
+        consequencesByGameSession,
+      )) {
+        // Lấy phiên game một lần duy nhất cho mỗi nhóm
+        const gameSession = consequences[0].gameSession;
+
+        // Bỏ qua nếu phiên game không còn hoạt động
+        if (!gameSession?.isActive) {
+          // Đánh dấu các hậu quả đã được xử lý để tránh kiểm tra lại
+          await this.consequenceRepository.update(
+            { id: In(consequences.map((c) => c.id)) },
+            { isTriggered: true },
+          );
+          continue;
+        }
+
+        // Sử dụng transaction để đảm bảo tính nhất quán
+        await this.consequenceRepository.manager.transaction(
+          async (transactionalEntityManager) => {
+            // Danh sách ID hậu quả cần xóa khỏi gameState.pendingConsequences
+            const consequenceIdsToRemove: string[] = [];
+
+            // Xử lý từng hậu quả
+            for (const consequence of consequences) {
+              // Đánh dấu là đã kích hoạt
+              consequence.isTriggered = true;
+              await transactionalEntityManager.save(Consequence, consequence);
+
+              // Thêm vào bộ nhớ nhân vật
+              await this.memoryService.createMemory({
+                characterId: consequence.characterId,
+                title: `Delayed Consequence: ${this.generateConsequenceTitle(consequence)}`,
+                content: consequence.description,
+                type: MemoryType.CONSEQUENCE,
+                importance: this.calculateMemoryImportance(
+                  consequence.severity,
+                ),
+              });
+
+              // Thêm ID vào danh sách cần xóa
+              consequenceIdsToRemove.push(consequence.id);
+
+              // Áp dụng hiệu ứng vĩnh viễn nếu có
+              if (consequence.isPermanent) {
+                await this.applyPermanentConsequence(consequence);
+              }
+            }
+
+            // Cập nhật gameState.pendingConsequences
+            if (gameSession.gameState?.pendingConsequences?.length > 0) {
+              // Lọc ra các hậu quả không nằm trong danh sách cần xóa
+              gameSession.gameState.pendingConsequences =
+                gameSession.gameState.pendingConsequences.filter(
+                  (pendingConsequence: PendingConsequence) =>
+                    !consequenceIdsToRemove.includes(pendingConsequence.id),
+                );
+
+              // Lưu gameSession với danh sách đã cập nhật
+              await transactionalEntityManager.save(GameSession, gameSession);
+            }
+          },
+        );
       }
+    } catch (error) {
+      console.error('Error triggering pending consequences:', error);
+      // Không throw lỗi ở đây vì đây là một cronjob, chúng ta không muốn nó crash server
     }
   }
 
@@ -356,17 +565,75 @@ export class ConsequenceService {
     return healthTerms.some((term) => description.toLowerCase().includes(term));
   }
 
+  /**
+   * Lấy danh sách các hậu quả đang chờ xử lý cho một phiên game
+   *
+   * Phương thức này trả về danh sách các hậu quả chưa được kích hoạt
+   * cho một phiên game cụ thể, sắp xếp theo thời gian kích hoạt.
+   *
+   * @param gameSessionId ID của phiên game
+   * @returns Danh sách các hậu quả đang chờ xử lý
+   */
   async getPendingConsequencesForSession(
     gameSessionId: string,
   ): Promise<Consequence[]> {
-    return this.consequenceRepository.find({
-      where: {
-        gameSessionId,
-        isTriggered: false,
-      },
-      order: {
-        triggerTime: 'ASC',
-      },
-    });
+    // Xác thực đầu vào
+    if (!gameSessionId || !isUUID(gameSessionId)) {
+      throw new Error('Invalid game session ID');
+    }
+
+    try {
+      // Lấy danh sách hậu quả từ cơ sở dữ liệu
+      const consequences = await this.consequenceRepository.find({
+        where: {
+          gameSessionId,
+          isTriggered: false,
+        },
+        order: {
+          triggerTime: 'ASC',
+        },
+      });
+
+      // Lấy phiên game để kiểm tra gameState.pendingConsequences
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: gameSessionId },
+      });
+
+      // Nếu không có phiên game hoặc không có hậu quả, trả về mảng rỗng
+      if (!gameSession || consequences.length === 0) {
+        return consequences;
+      }
+
+      // Đảm bảo gameState.pendingConsequences đồng bộ với cơ sở dữ liệu
+      // Đây là bước quan trọng để sửa lỗi không đồng bộ giữa hai nguồn dữ liệu
+      if (gameSession.gameState?.pendingConsequences) {
+        // Lấy tất cả ID hậu quả từ cơ sở dữ liệu
+        const consequenceIds = consequences.map((c) => c.id);
+
+        // Lọc ra các hậu quả trong gameState mà không còn tồn tại trong cơ sở dữ liệu
+        const validPendingConsequences =
+          gameSession.gameState.pendingConsequences.filter(
+            (pc: PendingConsequence) =>
+              typeof pc === 'object' && pc.id && consequenceIds.includes(pc.id),
+          );
+
+        // Nếu có sự khác biệt, cập nhật gameState
+        if (
+          validPendingConsequences.length !==
+          gameSession.gameState.pendingConsequences.length
+        ) {
+          gameSession.gameState.pendingConsequences = validPendingConsequences;
+          await this.gameSessionRepository.save(gameSession);
+        }
+      }
+
+      return consequences;
+    } catch (error) {
+      console.error(
+        `Error getting pending consequences for session ${gameSessionId}:`,
+        error,
+      );
+      return []; // Trả về mảng rỗng trong trường hợp lỗi
+    }
   }
 }

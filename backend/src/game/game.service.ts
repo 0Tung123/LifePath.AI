@@ -4,9 +4,11 @@ import {
   BadRequestException,
   Logger,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import {
   Character,
   GameGenre,
@@ -96,6 +98,19 @@ export class GameService {
       // Set default skills if not provided
       if (!characterData.skills || characterData.skills.length === 0) {
         characterData.skills = ['Basic Attack', 'Defend'];
+      }
+
+      // Set default settings if not provided
+      if (!characterData.settings) {
+        characterData.settings = {
+          permadeathEnabled: false,
+          difficultyLevel: 'normal',
+        };
+      }
+
+      // Initialize history array if not provided
+      if (!characterData.history) {
+        characterData.history = [];
       }
 
       const character = this.characterRepository.create({
@@ -508,19 +523,51 @@ export class GameService {
     return this.characterRepository.save(character);
   }
 
-  async deleteCharacter(id: string): Promise<void> {
-    const character = await this.getCharacterById(id);
-    await this.characterRepository.remove(character);
-  }
-
+  /**
+   * Khởi tạo một phiên game mới cho một nhân vật
+   *
+   * Phương thức này sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
+   * và tránh race condition khi nhiều người dùng tạo phiên game cùng lúc.
+   *
+   * @param characterId ID của nhân vật
+   * @param initialPrompt Prompt ban đầu (tùy chọn)
+   * @returns Phiên game đã được khởi tạo đầy đủ
+   */
   async startGameSession(
     characterId: string,
     initialPrompt?: string,
   ): Promise<GameSession> {
+    // Validate character ID trước khi bắt đầu quá trình
+    if (!characterId || !isUUID(characterId)) {
+      throw new BadRequestException('Invalid character ID');
+    }
+
     try {
+      // Lấy thông tin nhân vật với đầy đủ quan hệ
       const character = await this.getCharacterById(characterId);
 
-      // Create initial game state
+      // Kiểm tra xem nhân vật đã chết chưa
+      if (character.isDead) {
+        throw new BadRequestException(
+          'Cannot start a game session with a dead character',
+        );
+      }
+
+      // Kiểm tra xem nhân vật đã có phiên game đang hoạt động chưa
+      const existingActiveSessions = await this.gameSessionRepository.count({
+        where: {
+          character: { id: characterId },
+          isActive: true,
+        },
+      });
+
+      if (existingActiveSessions > 0) {
+        throw new BadRequestException(
+          'This character already has an active game session. Please end the current session before starting a new one.',
+        );
+      }
+
+      // Tạo trạng thái game ban đầu
       const gameState = {
         currentLocation: 'Starting Area',
         questLog: [],
@@ -536,18 +583,14 @@ export class GameService {
           minute: 0,
         },
         weather: 'clear',
+        dangerLevel: 0,
+        survivalChance: 100,
+        dangerWarnings: [],
+        nearDeathExperiences: 0,
+        pendingConsequences: [],
       };
 
-      // Create and save the game session
-      const gameSession = this.gameSessionRepository.create({
-        character,
-        gameState,
-        isActive: true,
-      });
-
-      const savedSession = await this.gameSessionRepository.save(gameSession);
-
-      // Generate initial story content
+      // Tạo prompt ban đầu nếu không được cung cấp
       if (!initialPrompt) {
         initialPrompt = `You are ${character.name}, a ${
           character.characterClass
@@ -558,44 +601,183 @@ export class GameService {
         }. Your adventure begins...`;
       }
 
-      const storyContent = await this.geminiAiService.generateStoryContent(
-        initialPrompt,
-        {
-          character,
-          gameState: gameSession.gameState,
-          user: character.user,
-        },
-      );
-
-      const storyNode = this.storyNodeRepository.create({
-        content: storyContent,
-        location: 'Starting Village',
-        gameSession: savedSession,
-      });
-
-      const savedStoryNode = await this.storyNodeRepository.save(storyNode);
-
-      // Generate choices for the initial story node
-      const choices = await this.geminiAiService.generateChoices(storyContent, {
-        character,
-        gameState: gameSession.gameState,
-      });
-
-      // Save the choices
-      for (const choiceData of choices) {
-        const choice = this.choiceRepository.create({
-          ...choiceData,
-          storyNode: savedStoryNode,
-        });
-        await this.choiceRepository.save(choice);
+      // Tạo nội dung truyện ban đầu
+      let storyContent: string;
+      try {
+        storyContent = await this.geminiAiService.generateStoryContent(
+          initialPrompt,
+          {
+            character,
+            gameState,
+            user: character.user,
+          },
+        );
+      } catch (aiError) {
+        this.logger.error(
+          `Error generating story content: ${aiError.message}`,
+          aiError.stack,
+        );
+        // Fallback nếu AI service gặp lỗi
+        storyContent = `${character.name}'s adventure begins in a small village. The sun is shining, and the air is filled with the promise of adventure. What will you do?`;
       }
 
-      // Update the game session with the current story node
-      savedSession.currentStoryNode = savedStoryNode;
-      await this.gameSessionRepository.save(savedSession);
+      // Tạo các lựa chọn ban đầu
+      let choices;
+      try {
+        choices = await this.geminiAiService.generateChoices(storyContent, {
+          character,
+          gameState,
+        });
+      } catch (aiError) {
+        this.logger.error(
+          `Error generating choices: ${aiError.message}`,
+          aiError.stack,
+        );
+        // Fallback nếu AI service gặp lỗi
+        choices = [
+          { text: 'Explore the village', order: 0 },
+          { text: 'Talk to the locals', order: 1 },
+          { text: 'Check your inventory', order: 2 },
+          {
+            text: 'Custom action...',
+            metadata: { isCustomAction: true },
+            order: 3,
+          },
+        ];
+      }
 
-      return this.getGameSessionWithDetails(savedSession.id);
+      // Sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
+      return await this.gameSessionRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          // Tạo và lưu phiên game
+          const gameSession = transactionalEntityManager.create(GameSession, {
+            character,
+            gameState,
+            isActive: true,
+            startedAt: new Date(),
+            lastSavedAt: new Date(),
+            // Thiết lập các tùy chọn permadeath dựa trên cài đặt của nhân vật
+            permadeathEnabled: character.settings?.permadeathEnabled || false,
+            difficultyLevel: character.settings?.difficultyLevel || 'normal',
+          });
+
+          const savedSession = await transactionalEntityManager.save(
+            GameSession,
+            gameSession,
+          );
+
+          // Tạo và lưu nút truyện gốc
+          const storyNode = transactionalEntityManager.create(StoryNode, {
+            content: storyContent,
+            location: 'Starting Village',
+            gameSession: savedSession,
+            isRoot: true, // Đánh dấu đây là nút gốc
+            createdAt: new Date(),
+            metadata: {
+              isInitialNode: true,
+              initialPrompt: initialPrompt,
+            },
+          });
+
+          const savedStoryNode = await transactionalEntityManager.save(
+            StoryNode,
+            storyNode,
+          );
+
+          // Tạo tất cả các đối tượng lựa chọn với quan hệ đúng đắn
+          const choiceEntities = choices.map((choiceData, index) => {
+            return transactionalEntityManager.create(Choice, {
+              ...choiceData,
+              storyNode: savedStoryNode,
+              storyNodeId: savedStoryNode.id,
+              order: choiceData.order || index,
+              metadata: choiceData.metadata || {},
+            });
+          });
+
+          // Lưu tất cả các lựa chọn trong một thao tác batch
+          const savedChoices = await transactionalEntityManager.save(
+            Choice,
+            choiceEntities,
+          );
+
+          // Cập nhật nút truyện với các lựa chọn đã lưu
+          // Ensure savedChoices is treated as Choice[] to match the entity type
+          if (
+            Array.isArray(savedChoices) &&
+            savedChoices.length > 0 &&
+            Array.isArray(savedChoices[0])
+          ) {
+            // If it's a nested array, create a properly typed flattened array
+            const flattenedChoices: Choice[] = [];
+            (savedChoices as unknown as any[][]).forEach((choiceArray) => {
+              choiceArray.forEach((choice) => {
+                flattenedChoices.push(choice as Choice);
+              });
+            });
+            savedStoryNode.choices = flattenedChoices;
+          } else {
+            // Otherwise use as is, but ensure proper typing
+            // Check if savedChoices is actually an array of Choice objects
+            if (
+              Array.isArray(savedChoices) &&
+              savedChoices.length > 0 &&
+              typeof savedChoices[0] === 'object' &&
+              'id' in savedChoices[0]
+            ) {
+              // It's already a properly typed Choice array
+              savedStoryNode.choices = savedChoices as unknown as Choice[];
+            } else {
+              // Handle unexpected type by creating an empty array
+              this.logger.warn(
+                'Unexpected type for savedChoices, using empty array',
+              );
+              savedStoryNode.choices = [];
+            }
+          }
+          await transactionalEntityManager.save(StoryNode, savedStoryNode);
+
+          // Cập nhật phiên game với nút truyện hiện tại
+          savedSession.currentStoryNode = savedStoryNode;
+          savedSession.currentStoryNodeId = savedStoryNode.id;
+          await transactionalEntityManager.save(GameSession, savedSession);
+
+          // Tạo bản ghi trong lịch sử nhân vật
+          if (!character.history) {
+            character.history = [];
+          }
+
+          character.history.push({
+            event: 'GAME_STARTED',
+            timestamp: new Date(),
+            details: {
+              gameSessionId: savedSession.id,
+              location: 'Starting Village',
+            },
+          });
+          await transactionalEntityManager.save(Character, character);
+
+          // Trả về phiên game đã được tải đầy đủ
+          return this.getGameSessionWithDetails(savedSession.id);
+        },
+      );
     } catch (error) {
+      // Phân loại và xử lý lỗi
+      if (error instanceof BadRequestException) {
+        // Truyền lại lỗi đã được xử lý
+        throw error;
+      }
+
+      if (error.name === 'QueryFailedError') {
+        this.logger.error(
+          `Database error starting game session: ${error.message}`,
+          error.stack,
+        );
+        throw new InternalServerErrorException(
+          'A database error occurred while starting the game session',
+        );
+      }
+
       this.logger.error(
         `Error starting game session: ${error.message}`,
         error.stack,
@@ -753,37 +935,60 @@ export class GameService {
         // Save character changes
         await this.characterRepository.save(character);
 
-        // Update game state flags
-        if (choice.consequences.flagChanges) {
-          for (const [flag, value] of Object.entries(
-            choice.consequences.flagChanges,
-          )) {
-            gameSession.gameState.flags[flag] = value;
+        // Update game state flags if gameSession and gameState exist
+        if (gameSession && gameSession.gameState) {
+          if (choice.consequences.flagChanges) {
+            for (const [flag, value] of Object.entries(
+              choice.consequences.flagChanges,
+            )) {
+              gameSession.gameState.flags[flag] = value;
+            }
           }
-        }
 
-        // Cũng hỗ trợ trường flags cho tương thích ngược
-        if (choice.consequences.flags) {
-          for (const [flag, value] of Object.entries(
-            choice.consequences.flags,
-          )) {
-            gameSession.gameState.flags[flag] = value;
+          // Cũng hỗ trợ trường flags cho tương thích ngược
+          if (choice.consequences.flags) {
+            for (const [flag, value] of Object.entries(
+              choice.consequences.flags,
+            )) {
+              gameSession.gameState.flags[flag] = value;
+            }
           }
-        }
 
-        // Update location if needed
-        if (choice.consequences.locationChange) {
-          gameSession.gameState.currentLocation =
-            choice.consequences.locationChange;
-          if (
-            !gameSession.gameState.discoveredLocations.includes(
-              choice.consequences.locationChange,
-            )
-          ) {
-            gameSession.gameState.discoveredLocations.push(
-              choice.consequences.locationChange,
-            );
+          // Update location if needed
+          if (choice.consequences.locationChange) {
+            gameSession.gameState.currentLocation =
+              choice.consequences.locationChange;
+            if (
+              !gameSession.gameState.discoveredLocations.includes(
+                choice.consequences.locationChange,
+              )
+            ) {
+              gameSession.gameState.discoveredLocations.push(
+                choice.consequences.locationChange,
+              );
+            }
           }
+        } else if (!gameSession) {
+          throw new InternalServerErrorException(
+            'Game session is null when updating game state',
+          );
+        } else if (!gameSession.gameState) {
+          // Initialize gameState if it doesn't exist
+          gameSession.gameState = {
+            flags: {},
+            currentLocation: 'Unknown',
+            visitedLocations: ['Unknown'],
+            discoveredLocations: ['Unknown'],
+            completedQuests: [],
+            questLog: [],
+            acquiredItems: [],
+            npcRelations: {},
+            dangerLevel: 0,
+            survivalChance: 100,
+            dangerWarnings: [],
+            nearDeathExperiences: 0,
+            pendingConsequences: [],
+          };
         }
       }
 
@@ -812,7 +1017,14 @@ export class GameService {
         nextPrompt,
         {
           character,
-          gameState: gameSession.gameState,
+          gameState:
+            gameSession && gameSession.gameState
+              ? gameSession.gameState
+              : {
+                  flags: {},
+                  currentLocation: 'Unknown',
+                  discoveredLocations: ['Unknown'],
+                },
           previousChoice: choice.text,
         },
       );
@@ -831,23 +1043,86 @@ export class GameService {
       // Generate choices for the new story node
       const choices = await this.geminiAiService.generateChoices(storyContent, {
         character,
-        gameState: gameSession.gameState,
+        gameState:
+          gameSession && gameSession.gameState
+            ? gameSession.gameState
+            : {
+                flags: {},
+                currentLocation: 'Unknown',
+                discoveredLocations: ['Unknown'],
+              },
         isCombatScene,
       });
 
-      // Save the choices
-      for (const choiceData of choices) {
-        const newChoice = this.choiceRepository.create({
+      // Create all choice entities with proper relationships
+      const choiceEntities = choices.map((choiceData) => {
+        return this.choiceRepository.create({
           ...choiceData,
           storyNode: savedStoryNode,
+          storyNodeId: savedStoryNode.id,
+          metadata: choiceData.metadata || {}, // Ensure metadata is always initialized
         });
-        await this.choiceRepository.save(newChoice);
-      }
+      });
 
-      // Update the game session with the current story node
-      gameSession.currentStoryNode = savedStoryNode;
-      await this.gameSessionRepository.save(gameSession);
+      // Use transaction to ensure data consistency
+      await this.choiceRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          // Save all choices in a single batch operation
+          const savedChoices =
+            await transactionalEntityManager.save(choiceEntities);
 
+          // Update the story node with the saved choices
+          // Ensure savedChoices is treated as Choice[] to match the entity type
+          if (
+            Array.isArray(savedChoices) &&
+            savedChoices.length > 0 &&
+            Array.isArray(savedChoices[0])
+          ) {
+            // If it's a nested array, create a properly typed flattened array
+            const flattenedChoices: Choice[] = [];
+            (savedChoices as unknown as any[][]).forEach((choiceArray) => {
+              choiceArray.forEach((choice) => {
+                flattenedChoices.push(choice as Choice);
+              });
+            });
+            savedStoryNode.choices = flattenedChoices;
+          } else {
+            // Otherwise use as is, but ensure proper typing
+            // Check if savedChoices is actually an array of Choice objects
+            if (
+              Array.isArray(savedChoices) &&
+              savedChoices.length > 0 &&
+              typeof savedChoices[0] === 'object' &&
+              'id' in savedChoices[0]
+            ) {
+              // It's already a properly typed Choice array
+              savedStoryNode.choices = savedChoices as unknown as Choice[];
+            } else {
+              // Handle unexpected type by creating an empty array
+              this.logger.warn(
+                'Unexpected type for savedChoices, using empty array',
+              );
+              savedStoryNode.choices = [];
+            }
+          }
+
+          await transactionalEntityManager.save(savedStoryNode);
+
+          // Update the game session with the current story node
+          if (gameSession) {
+            gameSession.currentStoryNode = savedStoryNode;
+            gameSession.currentStoryNodeId = savedStoryNode.id;
+            gameSession.lastSavedAt = new Date();
+            await transactionalEntityManager.save(gameSession);
+          } else {
+            throw new InternalServerErrorException(
+              'Game session is null during transaction',
+            );
+          }
+        },
+      );
+
+      // Return the updated game session with all details
       return this.getGameSessionWithDetails(gameSession.id);
     } catch (error) {
       this.logger.error(`Error making choice: ${error.message}`, error.stack);
@@ -892,6 +1167,33 @@ export class GameService {
     });
   }
 
+  /**
+   * Lấy tất cả các phiên game của một người dùng
+   * @param userId ID của người dùng
+   * @returns Danh sách các phiên game
+   */
+  async getGameSessionsByUserId(userId: string): Promise<GameSession[]> {
+    // Lấy tất cả các nhân vật của người dùng
+    const characters = await this.characterRepository.find({
+      where: { user: { id: userId } },
+      select: ['id'],
+    });
+
+    if (characters.length === 0) {
+      return [];
+    }
+
+    // Lấy tất cả các ID của nhân vật
+    const characterIds = characters.map((char) => char.id);
+
+    // Lấy tất cả các phiên game của các nhân vật này
+    return this.gameSessionRepository.find({
+      where: { character: { id: In(characterIds) } },
+      relations: ['character'],
+      order: { startedAt: 'DESC' },
+    });
+  }
+
   async processUserInput(
     gameSessionId: string,
     inputType: string,
@@ -899,7 +1201,7 @@ export class GameService {
     target?: string,
   ): Promise<GameSession> {
     // Get the game session with details
-    const gameSession = await this.gameSessionRepository.findOne({
+    let gameSession = await this.gameSessionRepository.findOne({
       where: { id: gameSessionId },
       relations: ['character', 'currentStoryNode'],
     });
@@ -1017,9 +1319,11 @@ export class GameService {
       choiceLines.push('Custom action...');
     }
 
-    // Create and save choice entities
+    // Create choice entities with proper bidirectional relationships
     const choices = choiceLines.map((choiceText, index) => {
       const choice = new Choice();
+      // Establish proper bidirectional relationship
+      choice.storyNode = savedNode;
       choice.storyNodeId = savedNode.id;
       choice.text = choiceText;
       choice.order = index;
@@ -1027,22 +1331,83 @@ export class GameService {
       // If it's the "Custom action" choice, mark it
       if (choiceText.toLowerCase().includes('custom action')) {
         choice.metadata = { isCustomAction: true };
+      } else {
+        // Ensure metadata is always initialized to prevent null reference errors
+        choice.metadata = {};
       }
 
       return choice;
     });
 
-    await this.choiceRepository.save(choices);
+    try {
+      // Use transaction to ensure data consistency across tables
+      await this.choiceRepository.manager.transaction(
+        async (transactionalEntityManager) => {
+          // Save choices within the transaction
+          const savedChoices = await transactionalEntityManager.save(choices);
 
-    // Add choices to the story node
-    savedNode.choices = choices;
+          // Update the story node with saved choices to ensure IDs are properly set
+          // Ensure savedChoices is treated as Choice[] to match the entity type
+          if (
+            Array.isArray(savedChoices) &&
+            savedChoices.length > 0 &&
+            Array.isArray(savedChoices[0])
+          ) {
+            // If it's a nested array, flatten it with proper type casting
+            savedNode.choices = (savedChoices as unknown as Choice[][]).flat();
+          } else {
+            // Otherwise use as is
+            savedNode.choices = savedChoices as unknown as Choice[];
+          }
 
-    // Update game session with new story node
-    gameSession.currentStoryNodeId = savedNode.id;
-    gameSession.currentStoryNode = savedNode;
-    gameSession.lastSavedAt = new Date();
+          // Save the updated story node within the same transaction
+          await transactionalEntityManager.save(savedNode);
 
-    await this.gameSessionRepository.save(gameSession);
+          // Update game session with the new story node
+          if (gameSession) {
+            gameSession.currentStoryNodeId = savedNode.id;
+            gameSession.currentStoryNode = savedNode;
+            gameSession.lastSavedAt = new Date();
+
+            // Save the game session within the same transaction
+            await transactionalEntityManager.save(gameSession);
+          } else {
+            throw new InternalServerErrorException(
+              'Game session is null during transaction',
+            );
+          }
+        },
+      );
+
+      // Reload the game session to ensure we have the latest data with all relationships
+      const updatedGameSession = await this.gameSessionRepository.findOne({
+        where: { id: gameSession.id },
+        relations: [
+          'currentStoryNode',
+          'currentStoryNode.choices',
+          'character',
+        ],
+      });
+
+      if (updatedGameSession) {
+        // Use the updated game session for further processing
+        gameSession = updatedGameSession;
+      } else {
+        this.logger.warn(
+          `Could not reload game session ${gameSession.id} after saving choices`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error saving choices and updating story node: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to process user input: ${error.message}`,
+      );
+    }
+
+    // No need to save gameSession again as it was already saved in the transaction
 
     // Calculate current danger level for permadeath evaluation
     const dangerLevel =
@@ -1111,5 +1476,189 @@ export class GameService {
     }
 
     return gameSession;
+  }
+
+  /**
+   * Lưu phiên game vào cơ sở dữ liệu
+   * @param gameSession Phiên game cần lưu
+   * @returns Phiên game đã lưu
+   */
+  async saveGameSession(gameSession: GameSession): Promise<GameSession> {
+    try {
+      return await this.gameSessionRepository.save(gameSession);
+    } catch (error) {
+      this.logger.error(
+        `Error saving game session: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        `Failed to save game session: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Xóa phiên game và tất cả dữ liệu liên quan
+   * @param gameSessionId ID của phiên game cần xóa
+   * @returns Thông báo kết quả
+   */
+  async deleteGameSession(
+    gameSessionId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Lấy phiên game với các mối quan hệ
+      const gameSession = await this.gameSessionRepository.findOne({
+        where: { id: gameSessionId },
+        relations: [
+          'character',
+          'currentStoryNode',
+          'storyNodes',
+          'storyNodes.choices',
+        ],
+      });
+
+      if (!gameSession) {
+        throw new NotFoundException(
+          `Game session with ID ${gameSessionId} not found`,
+        );
+      }
+
+      // Lưu thông tin nhân vật để xóa sau
+      const character = gameSession.character;
+
+      // Lấy tất cả các storyNode của phiên game
+      const storyNodes = gameSession.storyNodes || [];
+
+      // Xóa tất cả các lựa chọn (choices) của mỗi storyNode
+      for (const node of storyNodes) {
+        if (node.choices && node.choices.length > 0) {
+          await this.choiceRepository.remove(node.choices);
+        }
+      }
+
+      // Xóa tất cả các storyNode
+      if (storyNodes.length > 0) {
+        await this.storyNodeRepository.remove(storyNodes);
+      }
+
+      // Xóa phiên game
+      await this.gameSessionRepository.remove(gameSession);
+
+      // Xóa nhân vật nếu có
+      if (character) {
+        // Kiểm tra xem nhân vật có phiên game khác không
+        const otherSessions = await this.gameSessionRepository.count({
+          where: { character: { id: character.id } },
+        });
+
+        // Nếu không có phiên game nào khác, xóa nhân vật
+        if (otherSessions === 0) {
+          await this.characterRepository.remove(character);
+          return {
+            success: true,
+            message: `Game session and character have been successfully deleted`,
+          };
+        }
+      }
+
+      return {
+        success: true,
+        message: `Game session has been successfully deleted`,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error deleting game session: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new BadRequestException(
+        `Failed to delete game session: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Xóa nhân vật và tất cả phiên game liên quan
+   * @param id ID của nhân vật cần xóa
+   * @returns Thông báo kết quả
+   */
+  async deleteCharacter(
+    id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Lấy nhân vật với các phiên game
+      const character = await this.characterRepository.findOne({
+        where: { id },
+        relations: ['gameSessions'],
+      });
+
+      if (!character) {
+        throw new NotFoundException(`Character with ID ${id} not found`);
+      }
+
+      // Lấy tất cả các phiên game của nhân vật
+      const gameSessions = character.gameSessions || [];
+      const gameSessionIds = gameSessions.map((session) => session.id);
+
+      this.logger.log(
+        `Deleting character ${id} with ${gameSessionIds.length} game sessions`,
+      );
+
+      if (gameSessionIds.length > 0) {
+        // 1. Lấy tất cả các storyNode của tất cả phiên game
+        const storyNodes = await this.storyNodeRepository.find({
+          where: { gameSession: { id: In(gameSessionIds) } },
+          relations: ['choices'],
+        });
+
+        this.logger.log(`Found ${storyNodes.length} story nodes to delete`);
+
+        // 2. Xóa tất cả các lựa chọn (choices) của tất cả storyNode
+        for (const node of storyNodes) {
+          if (node.choices && node.choices.length > 0) {
+            this.logger.log(
+              `Deleting ${node.choices.length} choices for story node ${node.id}`,
+            );
+            await this.choiceRepository.remove(node.choices);
+          }
+        }
+
+        // 3. Xóa tất cả các storyNode
+        if (storyNodes.length > 0) {
+          this.logger.log(`Deleting ${storyNodes.length} story nodes`);
+          await this.storyNodeRepository.remove(storyNodes);
+        }
+
+        // 4. Xóa tất cả các phiên game
+        this.logger.log(`Deleting ${gameSessions.length} game sessions`);
+        await this.gameSessionRepository.remove(gameSessions);
+      }
+
+      // 5. Cuối cùng, xóa nhân vật
+      this.logger.log(`Deleting character ${character.id} (${character.name})`);
+      await this.characterRepository.remove(character);
+
+      return {
+        success: true,
+        message: `Character and all related game sessions have been successfully deleted`,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error deleting character: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new BadRequestException(
+        `Failed to delete character: ${error.message}`,
+      );
+    }
   }
 }

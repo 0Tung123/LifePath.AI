@@ -55,15 +55,21 @@ export class GameSession {
     survivalChance: number; // Current chance of survival as a percentage
     dangerWarnings: string[]; // Array of warning messages
     nearDeathExperiences: number; // Counter of close calls
-    pendingConsequences: string[]; // IDs of consequences that will trigger
+    pendingConsequences: Array<{
+      id: string;
+      title: string;
+      triggerTime: string;
+      severity: string;
+      description: string;
+    }>; // Pending consequences that will trigger
   };
-  
+
   @Column({ default: 'normal' })
   difficultyLevel: 'easy' | 'normal' | 'hard' | 'hardcore';
-  
+
   @Column({ default: false })
   permadeathEnabled: boolean;
-  
+
   @Column({ nullable: true })
   deathReason: string;
 
