@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Get,
   Param,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -100,5 +101,26 @@ export class GamesController {
   async findOne(@Param('id') id: string, @Request() req): Promise<Game> {
     const userId = req.user.userId;
     return this.gamesService.findOne(id, userId);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a game by ID' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiResponse({
+    status: 204,
+    description: 'Game deleted successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async remove(@Param('id') id: string, @Request() req): Promise<void> {
+    const userId = req.user.userId;
+    return this.gamesService.remove(id, userId);
   }
 }

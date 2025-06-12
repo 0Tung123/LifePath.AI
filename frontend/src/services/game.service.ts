@@ -108,6 +108,13 @@ class GameService {
     });
     return response.data;
   }
+
+  /**
+   * Delete a game by ID
+   */
+  async deleteGame(gameId: string): Promise<void> {
+    await api.delete(`/games/${gameId}`);
+  }
 }
 
 export const gameService = new GameService();

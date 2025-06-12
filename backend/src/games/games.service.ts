@@ -106,6 +106,32 @@ export class GamesService {
       throw new InternalServerErrorException('Failed to fetch game');
     }
   }
+  
+  /**
+   * Remove a game by ID
+   */
+  async remove(id: string, userId: string): Promise<void> {
+    try {
+      // First check if the game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId }
+      });
+      
+      if (!game) {
+        throw new BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+      }
+      
+      // Delete the game
+      await this.gamesRepository.delete({ id, userId });
+      this.logger.log(`Game ${id} successfully deleted`);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error deleting game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to delete game');
+    }
+  }
 
   private buildInitialPrompt(gameSettings: GameSettingsDto): string {
     try {
