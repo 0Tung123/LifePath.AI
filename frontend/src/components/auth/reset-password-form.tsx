@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { AIContainer } from '@/components/ui/ai-container';
+import { AIButton } from '@/components/ui/ai-button';
+import { AIInput } from '@/components/ui/ai-input';
+import { AIText } from '@/components/ui/ai-text';
+import { AICard } from '@/components/ui/ai-card';
 import {
   Form,
   FormControl,
@@ -16,7 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/auth-store';
 
 const resetPasswordSchema = z.object({
@@ -74,52 +77,77 @@ export function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="mx-auto max-w-md space-y-6 p-6 bg-white rounded-lg shadow-md">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Đặt lại mật khẩu</h1>
-          <p className="text-red-500">Token không hợp lệ hoặc đã hết hạn.</p>
-          <div className="mt-4">
-            <Link href="/forgot-password" className="text-blue-500 hover:underline">
+      <AIContainer variant="glass" glowing className="max-w-md mx-auto p-8">
+        <div className="space-y-4 text-center">
+          <AIText variant="gradient" as="h1" className="text-3xl font-bold">
+            Đặt lại mật khẩu
+          </AIText>
+          <AIText variant="neon" className="text-red-500">
+            Token không hợp lệ hoặc đã hết hạn.
+          </AIText>
+          <div className="mt-6">
+            <Link href="/forgot-password" className="ai-text text-primary hover:text-primary/80">
               Yêu cầu đặt lại mật khẩu mới
             </Link>
           </div>
         </div>
-      </div>
+      </AIContainer>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6 p-6 bg-white rounded-lg shadow-md">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold">Đặt lại mật khẩu</h1>
-        <p className="text-gray-500">Nhập mật khẩu mới của bạn</p>
+    <AIContainer variant="glass" glowing className="max-w-md mx-auto p-8">
+      <div className="space-y-4 text-center">
+        <AIText variant="gradient" as="h1" className="text-3xl font-bold">
+          Đặt lại mật khẩu
+        </AIText>
+        <AIText variant="typing" className="text-muted-foreground" delay={500} speed={30}>
+          Nhập mật khẩu mới của bạn để tiếp tục...
+        </AIText>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-          {error}
-        </div>
+        <AICard variant="gradient" className="mt-6 p-4 border-destructive/50">
+          <AIText variant="glitch" className="text-destructive text-sm">
+            {error}
+          </AIText>
+        </AICard>
       )}
 
       {success && (
-        <div className="bg-green-50 text-green-500 p-3 rounded-md text-sm">
-          {success}
-          <p className="mt-2">Đang chuyển hướng đến trang đăng nhập...</p>
-        </div>
+        <AICard variant="gradient" className="mt-6 p-4 border-green-500/50">
+          <div className="space-y-2">
+            <AIText variant="neon" className="text-green-500 text-sm">
+              {success}
+            </AIText>
+            <p className="text-sm text-muted-foreground">
+              Đang chuyển hướng đến trang đăng nhập...
+              <span className="inline-block ml-2 animate-pulse">●</span>
+              <span className="inline-block ml-1 animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
+              <span className="inline-block ml-1 animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+            </p>
+          </div>
+        </AICard>
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mật khẩu mới</FormLabel>
+                <FormLabel className="text-foreground/80">Mật khẩu mới</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="******" {...field} />
+                  <AIInput 
+                    type="password" 
+                    placeholder="••••••" 
+                    variant="neon" 
+                    glow 
+                    {...field} 
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-destructive text-xs" />
               </FormItem>
             )}
           />
@@ -129,28 +157,41 @@ export function ResetPasswordForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Xác nhận mật khẩu</FormLabel>
+                <FormLabel className="text-foreground/80">Xác nhận mật khẩu</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="******" {...field} />
+                  <AIInput 
+                    type="password" 
+                    placeholder="••••••" 
+                    variant="neon" 
+                    glow 
+                    {...field} 
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-destructive text-xs" />
               </FormItem>
             )}
           />
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || !!success}>
-            {isSubmitting ? 'Đang đặt lại mật khẩu...' : 'Đặt lại mật khẩu'}
-          </Button>
+          <AIButton 
+            type="submit" 
+            variant="gradient" 
+            glow 
+            className="w-full" 
+            loading={isSubmitting} 
+            disabled={isSubmitting || !!success}
+          >
+            Đặt lại mật khẩu
+          </AIButton>
         </form>
       </Form>
 
       {!success && (
-        <div className="text-center text-sm">
-          <Link href="/login" className="text-blue-500 hover:underline">
+        <div className="text-center mt-6">
+          <Link href="/login" className="ai-text text-primary hover:text-primary/80">
             Quay lại đăng nhập
           </Link>
         </div>
       )}
-    </div>
+    </AIContainer>
   );
 }
