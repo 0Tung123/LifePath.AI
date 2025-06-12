@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-import { Button } from '@/components/ui/button';
+import { AIButton } from "@/components/ui/ai-button";
+import { AIInput } from "@/components/ui/ai-input";
+import { AIText } from "@/components/ui/ai-text";
+import { AICard } from "@/components/ui/ai-card";
 import {
   Form,
   FormControl,
@@ -13,15 +16,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useAuthStore } from '@/store/auth-store';
+} from "@/components/ui/form";
+import { useAuthStore } from "@/store/auth-store";
 
 const profileSchema = z.object({
-  firstName: z.string().min(1, { message: 'Vui lòng nhập tên' }),
-  lastName: z.string().min(1, { message: 'Vui lòng nhập họ' }),
-  email: z.string().email({ message: 'Email không hợp lệ' }).optional(),
-  profilePicture: z.string().url({ message: 'URL không hợp lệ' }).optional().or(z.literal('')),
+  firstName: z.string().min(1, { message: "Vui lòng nhập tên" }),
+  lastName: z.string().min(1, { message: "Vui lòng nhập họ" }),
+  email: z.string().email({ message: "Email không hợp lệ" }).optional(),
+  profilePicture: z
+    .string()
+    .url({ message: "URL không hợp lệ" })
+    .optional()
+    .or(z.literal("")),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -35,10 +41,10 @@ export function ProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      email: user?.email || '',
-      profilePicture: user?.profilePicture || '',
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      profilePicture: user?.profilePicture || "",
     },
   });
 
@@ -53,9 +59,12 @@ export function ProfileForm() {
         lastName: data.lastName,
         profilePicture: data.profilePicture,
       });
-      setSuccess('Thông tin cá nhân đã được cập nhật thành công.');
+      setSuccess("Thông tin cá nhân đã được cập nhật thành công.");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Không thể cập nhật thông tin. Vui lòng thử lại.');
+      setError(
+        err.response?.data?.message ||
+          "Không thể cập nhật thông tin. Vui lòng thử lại."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -64,37 +73,43 @@ export function ProfileForm() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Thông tin cá nhân</h3>
-        <p className="text-sm text-gray-500">
-          Cập nhật thông tin cá nhân của bạn
+        <AIText variant="gradient" as="h3" className="text-xl font-bold">
+          Thông tin cá nhân
+        </AIText>
+        <p className="text-sm text-muted-foreground mt-1">
+          Cập nhật thông tin cá nhân của bạn trong hệ thống AI Narrative
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-          {error}
-        </div>
+        <AICard variant="gradient" className="p-4 border-destructive/50">
+          <AIText variant="glitch" className="text-destructive text-sm">
+            {error}
+          </AIText>
+        </AICard>
       )}
 
       {success && (
-        <div className="bg-green-50 text-green-500 p-3 rounded-md text-sm">
-          {success}
-        </div>
+        <AICard variant="gradient" className="p-4 border-green-500/50">
+          <AIText variant="neon" className="text-green-500 text-sm">
+            {success}
+          </AIText>
+        </AICard>
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tên</FormLabel>
+                  <FormLabel className="text-foreground/80">Tên</FormLabel>
                   <FormControl>
-                    <Input placeholder="Tên" {...field} />
+                    <AIInput variant="neon" glow placeholder="Tên" {...field} />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive text-xs" />
                 </FormItem>
               )}
             />
@@ -104,11 +119,11 @@ export function ProfileForm() {
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Họ</FormLabel>
+                  <FormLabel className="text-foreground/80">Họ</FormLabel>
                   <FormControl>
-                    <Input placeholder="Họ" {...field} />
+                    <AIInput variant="neon" glow placeholder="Họ" {...field} />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-destructive text-xs" />
                 </FormItem>
               )}
             />
@@ -119,11 +134,16 @@ export function ProfileForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-foreground/80">Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@example.com" {...field} disabled />
+                  <AIInput
+                    variant="terminal"
+                    placeholder="email@example.com"
+                    {...field}
+                    disabled
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-destructive text-xs" />
               </FormItem>
             )}
           />
@@ -133,18 +153,36 @@ export function ProfileForm() {
             name="profilePicture"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>URL ảnh đại diện</FormLabel>
+                <FormLabel className="text-foreground/80">
+                  URL ảnh đại diện
+                </FormLabel>
                 <FormControl>
-                  <Input placeholder="https://example.com/avatar.jpg" {...field} />
+                  <AIInput
+                    variant="neon"
+                    glow
+                    placeholder="https://example.com/avatar.jpg"
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-destructive text-xs" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Nhập URL hình ảnh để sử dụng làm ảnh đại diện
+                </p>
               </FormItem>
             )}
           />
 
-          <Button type="submit" className="mt-4" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật thông tin'}
-          </Button>
+          <div className="pt-4 border-t border-[rgb(var(--border))]">
+            <AIButton
+              type="submit"
+              variant="gradient"
+              glow
+              className="w-full md:w-auto"
+              loading={isSubmitting}
+            >
+              Cập nhật thông tin
+            </AIButton>
+          </div>
         </form>
       </Form>
     </div>
