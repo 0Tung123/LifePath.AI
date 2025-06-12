@@ -113,7 +113,13 @@ class GameService {
    * Delete a game by ID
    */
   async deleteGame(gameId: string): Promise<void> {
-    await api.delete(`/games/${gameId}`);
+    try {
+      await api.delete(`/games/${gameId}`);
+      console.log(`Game ${gameId} deleted successfully`);
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      throw error; // Re-throw to allow handling in the UI
+    }
   }
 }
 
