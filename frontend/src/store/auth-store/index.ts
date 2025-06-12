@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "@/utils/api";
+import {
+  setAuthToken,
+  clearAuthToken,
+  initializeAuthToken,
+} from "@/utils/auth-token";
 
 interface User {
   id: string;
@@ -30,6 +35,7 @@ interface AuthState {
   resendVerification: (email: string) => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
   clearError: () => void;
+  setUserData: (userData: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -44,16 +50,31 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
+          console.log("🔑 [LOGIN-START] Attempting login", {
+            email,
+            timestamp: new Date().toISOString(),
+          });
+
           const response = await api.post("/auth/login", { email, password });
           const { access_token } = response.data;
+          console.log("✅ [LOGIN-SUCCESS] Login successful", {
+            timestamp: new Date().toISOString(),
+          });
 
-          // Set token in axios defaults
-          api.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${access_token}`;
+          // Set token in localStorage and API headers
+          setAuthToken(access_token);
 
           // Get user profile
+          console.log("👤 [PROFILE-FETCH] Fetching user profile");
           const userResponse = await api.get("/user/profile");
+          console.log(
+            "✅ [PROFILE-SUCCESS] User profile fetched successfully",
+            {
+              userId: userResponse.data.id,
+              email: userResponse.data.email,
+              timestamp: new Date().toISOString(),
+            }
+          );
 
           set({
             token: access_token,
@@ -62,6 +83,11 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         } catch (error: any) {
+          console.error("❌ [LOGIN-ERROR] Login failed:", {
+            status: error.response?.status,
+            message: error.response?.data?.message || error.message,
+            timestamp: new Date().toISOString(),
+          });
           set({
             isLoading: false,
             error: error.response?.data?.message || "Login failed",
@@ -95,8 +121,19 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        // Remove token from axios defaults
-        delete api.defaults.headers.common["Authorization"];
+        // Get user info before logout for logging
+        const { user } = useAuthStore.getState();
+        const userId = user?.id;
+        const userEmail = user?.email;
+
+        // Clear token from localStorage and API headers
+        clearAuthToken();
+
+        console.log("🚪 [LOGOUT] User logged out", {
+          userId,
+          userEmail,
+          timestamp: new Date().toISOString(),
+        });
 
         set({
           user: null,
@@ -108,7 +145,7 @@ export const useAuthStore = create<AuthState>()(
       verifyEmail: async (token: string) => {
         try {
           set({ isLoading: true, error: null });
-          await api.post("/auth/verify-email", { token });
+          await api.get(`/auth/verify-email?token=${token}`);
           set({ isLoading: false });
         } catch (error: any) {
           set({
@@ -182,6 +219,19 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      setUserData: (userData: User) => {
+        console.log("👤 [USER-RESTORE] Restoring user session", {
+          userId: userData.id,
+          email: userData.email,
+          timestamp: new Date().toISOString(),
+        });
+
+        set({
+          user: userData,
+          isAuthenticated: true,
+        });
       },
     }),
     {

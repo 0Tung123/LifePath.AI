@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "@/utils/api";
+import { initializeAuthToken } from "@/utils/auth-token";
 
 // Types
 export interface Character {
@@ -239,9 +240,30 @@ export const useGameStore = create<GameState>()(
       fetchCharacters: async () => {
         try {
           set({ isLoading: true, error: null });
+          
+          // Ensure token is set
+          initializeAuthToken();
+          
+          console.log("👤 [GAME-STORE-FETCH] Fetching characters", {
+            timestamp: new Date().toISOString()
+          });
+          
           const response = await api.get("/game/characters");
+          
+          console.log("✅ [GAME-STORE-FETCH-SUCCESS] Characters fetched successfully", {
+            count: response.data.length,
+            timestamp: new Date().toISOString()
+          });
+          
           set({ characters: response.data, isLoading: false });
         } catch (error: any) {
+          console.error("❌ [GAME-STORE-FETCH-ERROR] Failed to fetch characters", {
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            url: error.config?.url,
+            timestamp: new Date().toISOString()
+          });
+          
           set({
             isLoading: false,
             error:
@@ -254,8 +276,14 @@ export const useGameStore = create<GameState>()(
       createCharacter: async (characterData: Partial<Character>) => {
         try {
           set({ isLoading: true, error: null });
+          
+          // Ensure token is set
+          initializeAuthToken();
+          
+          console.log("GameStore: Creating character", characterData);
           const response = await api.post("/game/characters", characterData);
           const newCharacter = response.data;
+          console.log("GameStore: Character created successfully", newCharacter.id);
 
           set((state) => ({
             characters: [...state.characters, newCharacter],
@@ -264,6 +292,7 @@ export const useGameStore = create<GameState>()(
 
           return newCharacter;
         } catch (error: any) {
+          console.error("GameStore: Failed to create character", error.response?.status, error.response?.data);
           set({
             isLoading: false,
             error:
@@ -276,11 +305,17 @@ export const useGameStore = create<GameState>()(
       generateCharacter: async (description: string, primaryGenre?: string) => {
         try {
           set({ isLoading: true, error: null });
+          
+          // Ensure token is set
+          initializeAuthToken();
+          
+          console.log("GameStore: Generating character", { description, primaryGenre });
           const response = await api.post("/game/characters/generate", {
             description,
             primaryGenre,
           });
           const newCharacter = response.data;
+          console.log("GameStore: Character generated successfully", newCharacter.id);
 
           set((state) => ({
             characters: [...state.characters, newCharacter],
@@ -289,6 +324,7 @@ export const useGameStore = create<GameState>()(
 
           return newCharacter;
         } catch (error: any) {
+          console.error("GameStore: Failed to generate character", error.response?.status, error.response?.data);
           set({
             isLoading: false,
             error:
@@ -301,15 +337,24 @@ export const useGameStore = create<GameState>()(
       selectCharacter: async (characterId: string) => {
         try {
           set({ isLoading: true, error: null });
+          
+          // Ensure token is set
+          initializeAuthToken();
+          
+          console.log("GameStore: Selecting character", characterId);
           const character = get().characters.find((c) => c.id === characterId);
 
           if (!character) {
+            console.log("GameStore: Character not found in store, fetching from API");
             const response = await api.get(`/game/characters/${characterId}`);
+            console.log("GameStore: Character fetched successfully", response.data);
             set({ selectedCharacter: response.data, isLoading: false });
           } else {
+            console.log("GameStore: Character found in store");
             set({ selectedCharacter: character, isLoading: false });
           }
         } catch (error: any) {
+          console.error("GameStore: Failed to select character", error.response?.status, error.response?.data);
           set({
             isLoading: false,
             error:
@@ -322,8 +367,29 @@ export const useGameStore = create<GameState>()(
       startGameSession: async (characterId: string) => {
         try {
           set({ isLoading: true, error: null });
+          
+          // Ensure token is set
+          initializeAuthToken();
+          
+          console.log("🎲 [GAME-SESSION-START] Starting game session", {
+            characterId,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Add request timestamp for tracking request duration
+          const requestStartTime = Date.now();
+          
           const response = await api.post("/game/sessions", { characterId });
           const session = response.data;
+          
+          const requestDuration = Date.now() - requestStartTime;
+          
+          console.log("✅ [GAME-SESSION-SUCCESS] Game session started successfully", {
+            sessionId: session.id,
+            characterId,
+            requestDurationMs: requestDuration,
+            timestamp: new Date().toISOString()
+          });
 
           // Initialize adventure log with the first story node
           const initialLogEntry: Omit<AdventureLogEntry, "id" | "timestamp"> = {
@@ -353,7 +419,20 @@ export const useGameStore = create<GameState>()(
             type: "system",
             content: "Game session started",
           });
+          
+          console.log("📝 [GAME-LOG-INIT] Adventure log initialized", {
+            firstNodeId: session.currentStoryNode?.id,
+            timestamp: new Date().toISOString()
+          });
         } catch (error: any) {
+          console.error("❌ [GAME-SESSION-ERROR] Failed to start game session", {
+            characterId,
+            status: error.response?.status,
+            message: error.response?.data?.message,
+            url: error.config?.url,
+            timestamp: new Date().toISOString()
+          });
+          
           set({
             isLoading: false,
             error:
@@ -366,15 +445,32 @@ export const useGameStore = create<GameState>()(
       makeChoice: async (choiceId: string) => {
         try {
           const { currentSession } = get();
-          if (!currentSession) throw new Error("No active game session");
+          if (!currentSession) {
+            console.error("❌ [GAME-CHOICE-ERROR] No active game session", {
+              timestamp: new Date().toISOString()
+            });
+            throw new Error("No active game session");
+          }
 
           set({ isLoading: true, error: null });
+          
+          console.log("🎲 [GAME-CHOICE] Making choice in game session", {
+            sessionId: currentSession.id,
+            choiceId,
+            timestamp: new Date().toISOString()
+          });
 
           // Find the choice text to add to adventure log
           const choice = currentSession.currentStoryNode?.choices.find(
             (c) => c.id === choiceId
           );
           if (choice) {
+            console.log("📝 [GAME-LOG-CHOICE] Adding choice to adventure log", {
+              choiceId,
+              choiceText: choice.text,
+              timestamp: new Date().toISOString()
+            });
+            
             get().addToAdventureLog({
               type: "choice",
               content: choice.text,
@@ -382,13 +478,31 @@ export const useGameStore = create<GameState>()(
             });
           }
 
+          // Add request timestamp for tracking request duration
+          const requestStartTime = Date.now();
+          
           const response = await api.post(
             `/game/sessions/${currentSession.id}/choices/${choiceId}`
           );
           const updatedSession = response.data;
+          
+          const requestDuration = Date.now() - requestStartTime;
+          
+          console.log("✅ [GAME-CHOICE-SUCCESS] Choice processed successfully", {
+            sessionId: currentSession.id,
+            choiceId,
+            newNodeId: updatedSession.currentStoryNode?.id,
+            requestDurationMs: requestDuration,
+            timestamp: new Date().toISOString()
+          });
 
           // Add new story node to adventure log
           if (updatedSession.currentStoryNode) {
+            console.log("📝 [GAME-LOG-STORY] Adding new story node to adventure log", {
+              nodeId: updatedSession.currentStoryNode.id,
+              timestamp: new Date().toISOString()
+            });
+            
             get().addToAdventureLog({
               type: "story",
               content: updatedSession.currentStoryNode.content,
@@ -404,6 +518,15 @@ export const useGameStore = create<GameState>()(
             isLoading: false,
           });
         } catch (error: any) {
+          console.error("❌ [GAME-CHOICE-ERROR] Failed to make choice", {
+            sessionId: get().currentSession?.id,
+            choiceId,
+            status: error.response?.status,
+            message: error.response?.data?.message || error.message,
+            url: error.config?.url,
+            timestamp: new Date().toISOString()
+          });
+          
           set({
             isLoading: false,
             error: error.response?.data?.message || "Failed to make choice",

@@ -68,10 +68,39 @@ export function LoginForm() {
     setError(null);
     setSuccess(null);
 
+    console.log("🔑 [LOGIN-FORM-SUBMIT] Login form submitted", {
+      email: data.email,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       await login(data.email, data.password);
-      router.push("/dashboard");
+
+      // Check if there's a redirect parameter
+      const redirectTo = searchParams.get("redirect");
+      const expired = searchParams.get("expired");
+      
+      if (redirectTo) {
+        console.log("✅ [LOGIN-REDIRECT] Redirecting after login", {
+          redirectTo,
+          wasExpired: expired === "true",
+          timestamp: new Date().toISOString()
+        });
+        router.push(redirectTo);
+      } else {
+        console.log("✅ [LOGIN-REDIRECT] Redirecting to dashboard", {
+          timestamp: new Date().toISOString()
+        });
+        router.push("/dashboard");
+      }
     } catch (err: any) {
+      console.error("❌ [LOGIN-FORM-ERROR] Login failed", {
+        email: data.email,
+        status: err.response?.status,
+        message: err.response?.data?.message || err.message,
+        timestamp: new Date().toISOString()
+      });
+      
       setError(
         err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại."
       );

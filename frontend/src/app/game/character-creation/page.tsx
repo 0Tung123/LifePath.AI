@@ -144,50 +144,50 @@ export default function CharacterCreationPage() {
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Create Your Character</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gradient">Create Your Character</h1>
       
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-destructive/20 border border-destructive text-destructive px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
       
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Choose Game Genre</h2>
+        <h2 className="text-2xl font-semibold mb-4 neon-text">Choose Game Genre</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {genreOptions.map((genre) => (
             <div
               key={genre.id}
               className={`border rounded-lg p-4 cursor-pointer transition-colors ${
                 selectedGenre === genre.id
-                  ? "border-primary-500 bg-primary-50"
-                  : "hover:bg-gray-50"
+                  ? "neon-border bg-card/80"
+                  : "border-muted hover:border-primary/50 bg-card"
               }`}
               onClick={() => setSelectedGenre(genre.id)}
             >
-              <h3 className="font-medium text-lg mb-1">{genre.name}</h3>
-              <p className="text-sm text-gray-600">{genre.description}</p>
+              <h3 className="font-medium text-lg mb-1 text-foreground">{genre.name}</h3>
+              <p className="text-sm text-muted-foreground">{genre.description}</p>
             </div>
           ))}
         </div>
       </div>
       
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Creation Method</h2>
+        <h2 className="text-2xl font-semibold mb-4 neon-text">Creation Method</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <div
             className={`flex-1 border rounded-lg p-6 cursor-pointer transition-colors ${
               creationMethod === "manual"
-                ? "border-primary-500 bg-primary-50"
-                : "hover:bg-gray-50"
+                ? "neon-border bg-card/80"
+                : "border-muted hover:border-primary/50 bg-card"
             }`}
             onClick={() => setCreationMethod("manual")}
           >
-            <h3 className="font-medium text-xl mb-2">Manual Creation</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="font-medium text-xl mb-2 text-foreground">Manual Creation</h3>
+            <p className="text-muted-foreground mb-4">
               Create your character by manually setting attributes, skills, and background.
             </p>
-            <ul className="list-disc list-inside text-sm text-gray-600">
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
               <li>Full control over character details</li>
               <li>Customize attributes and skills</li>
               <li>Write your own backstory</li>
@@ -197,16 +197,16 @@ export default function CharacterCreationPage() {
           <div
             className={`flex-1 border rounded-lg p-6 cursor-pointer transition-colors ${
               creationMethod === "ai"
-                ? "border-primary-500 bg-primary-50"
-                : "hover:bg-gray-50"
+                ? "neon-border bg-card/80"
+                : "border-muted hover:border-primary/50 bg-card"
             }`}
             onClick={() => setCreationMethod("ai")}
           >
-            <h3 className="font-medium text-xl mb-2">AI Generation</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="font-medium text-xl mb-2 text-foreground">AI Generation</h3>
+            <p className="text-muted-foreground mb-4">
               Let AI create a character based on your description.
             </p>
-            <ul className="list-disc list-inside text-sm text-gray-600">
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
               <li>Quick character creation</li>
               <li>Provide a brief description</li>
               <li>AI generates complete character details</li>
@@ -216,39 +216,39 @@ export default function CharacterCreationPage() {
       </div>
       
       {creationMethod === "manual" ? (
-        <form onSubmit={handleManualSubmit} className="bg-white rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">Manual Character Creation</h2>
+        <form onSubmit={handleManualSubmit} className="glass rounded-lg border border-muted p-6">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">Manual Character Creation</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-medium mb-1">Character Name</label>
+              <label className="block text-sm font-medium mb-1 text-foreground">Character Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-md"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-1">Character Class</label>
+              <label className="block text-sm font-medium mb-1 text-foreground">Character Class</label>
               <input
                 type="text"
                 value={characterClass}
                 onChange={(e) => setCharacterClass(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-md"
                 required
                 placeholder="Warrior, Mage, Rogue, etc."
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-1">Gender</label>
+              <label className="block text-sm font-medium mb-1 text-foreground">Gender</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-md"
               >
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -259,18 +259,18 @@ export default function CharacterCreationPage() {
           
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium">Attributes</h3>
-              <span className="text-sm">
-                Remaining Points: <span className="font-medium">{remainingPoints}</span>
+              <h3 className="font-medium text-foreground">Attributes</h3>
+              <span className="text-sm text-foreground">
+                Remaining Points: <span className="font-medium text-primary">{remainingPoints}</span>
               </span>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {Object.entries(attributes).map(([attr, value]) => (
-                <div key={attr} className="border rounded-md p-3">
+                <div key={attr} className="border border-muted rounded-md p-3 bg-card">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-sm font-medium capitalize">{attr}</label>
-                    <span className="text-sm font-medium">{value}</span>
+                    <label className="text-sm font-medium capitalize text-foreground">{attr}</label>
+                    <span className="text-sm font-medium text-primary">{value}</span>
                   </div>
                   <input
                     type="range"
@@ -278,7 +278,7 @@ export default function CharacterCreationPage() {
                     max={attr === "health" || attr === "mana" ? 150 : 20}
                     value={value}
                     onChange={(e) => handleAttributeChange(attr, parseInt(e.target.value))}
-                    className="w-full"
+                    className="w-full accent-primary"
                   />
                 </div>
               ))}
@@ -286,11 +286,11 @@ export default function CharacterCreationPage() {
           </div>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-1">Backstory (Optional)</label>
+            <label className="block text-sm font-medium mb-1 text-foreground">Backstory (Optional)</label>
             <textarea
               value={backstory}
               onChange={(e) => setBackstory(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md h-32"
+              className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-md h-32"
               placeholder="Write a brief backstory for your character..."
             />
           </div>
@@ -299,35 +299,35 @@ export default function CharacterCreationPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border rounded-md mr-2"
+              className="px-4 py-2 border border-muted bg-card text-foreground rounded-md mr-2 hover:bg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80 disabled:bg-gray-400"
+              className="btn-ai disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating..." : "Create Character"}
             </button>
           </div>
         </form>
       ) : (
-        <form onSubmit={handleAISubmit} className="bg-white rounded-lg border p-6">
-          <h2 className="text-xl font-semibold mb-4">AI Character Generation</h2>
+        <form onSubmit={handleAISubmit} className="glass rounded-lg border border-muted p-6">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">AI Character Generation</h2>
           
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-foreground">
               Character Description
             </label>
             <textarea
               value={characterDescription}
               onChange={(e) => setCharacterDescription(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md h-40"
+              className="w-full px-3 py-2 border border-input bg-card text-foreground rounded-md h-40"
               required
               placeholder="Describe your character in a few sentences. For example: 'An old wizard librarian who guards ancient tomes of forbidden knowledge. He's wise but eccentric, with a mysterious past.'"
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               The more details you provide, the better the AI can generate a character that matches your vision.
             </p>
           </div>
@@ -336,14 +336,14 @@ export default function CharacterCreationPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border rounded-md mr-2"
+              className="px-4 py-2 border border-muted bg-card text-foreground rounded-md mr-2 hover:bg-muted"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80 disabled:bg-gray-400"
+              className="btn-ai disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Generating..." : "Generate Character"}
             </button>
