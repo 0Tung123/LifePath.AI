@@ -11,6 +11,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
+import { GameActionDto } from './dto/game-action.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -122,5 +123,41 @@ export class GamesController {
   async remove(@Param('id') id: string, @Request() req): Promise<void> {
     const userId = req.user.userId;
     return this.gamesService.remove(id, userId);
+  }
+
+  @Post(':id/action')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Process a player action in the game' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: GameActionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Action processed successfully',
+    type: Game,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid input or game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async processAction(
+    @Param('id') id: string, 
+    @Request() req,
+    @Body() actionDto: GameActionDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    const { choiceNumber, action, think, communication } = actionDto;
+    
+    return this.gamesService.processAction(
+      id,
+      userId,
+      choiceNumber,
+      action,
+      think,
+      communication,
+    );
   }
 }

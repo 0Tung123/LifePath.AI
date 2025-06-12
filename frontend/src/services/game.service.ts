@@ -98,13 +98,44 @@ class GameService {
   }
 
   /**
-   * Process player choice and continue game
-   * Note: This endpoint wasn't visible in the controller we examined,
-   * but would be necessary for gameplay.
+   * Process player action in the game (choice, action, think, communication)
    */
   async makeChoice(gameId: string, choiceNumber: number): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/choice`, {
+    const response = await api.post<Game>(`/games/${gameId}/action`, {
       choiceNumber,
+    });
+    return response.data;
+  }
+
+  /**
+   * Submit a custom action for the character
+   */
+  async performAction(gameId: string, action: string): Promise<Game> {
+    const response = await api.post<Game>(`/games/${gameId}/action`, {
+      action,
+    });
+    return response.data;
+  }
+
+  /**
+   * Submit character thoughts
+   */
+  async performThinking(gameId: string, think: string): Promise<Game> {
+    const response = await api.post<Game>(`/games/${gameId}/action`, {
+      think,
+    });
+    return response.data;
+  }
+
+  /**
+   * Submit character communication
+   */
+  async performCommunication(
+    gameId: string,
+    communication: string
+  ): Promise<Game> {
+    const response = await api.post<Game>(`/games/${gameId}/action`, {
+      communication,
     });
     return response.data;
   }
