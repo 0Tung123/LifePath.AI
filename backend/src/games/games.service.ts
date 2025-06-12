@@ -69,6 +69,44 @@ export class GamesService {
     }
   }
 
+  /**
+   * Find all games for a specific user
+   */
+  async findAllByUser(userId: string): Promise<Game[]> {
+    try {
+      return this.gamesRepository.find({
+        where: { userId },
+        order: { updatedAt: 'DESC' } // Show newest games first
+      });
+    } catch (error) {
+      this.logger.error(`Error fetching games for user ${userId}:`, error);
+      throw new InternalServerErrorException('Failed to fetch games');
+    }
+  }
+
+  /**
+   * Find a specific game by ID
+   */
+  async findOne(id: string, userId: string): Promise<Game> {
+    try {
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId }
+      });
+      
+      if (!game) {
+        throw new BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+      }
+      
+      return game;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error fetching game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to fetch game');
+    }
+  }
+
   private buildInitialPrompt(gameSettings: GameSettingsDto): string {
     try {
       const style = gameSettings.additionalSettings?.style?.toLowerCase() || '';

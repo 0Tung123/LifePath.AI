@@ -7,6 +7,8 @@ import {
   BadRequestException,
   HttpCode,
   HttpStatus,
+  Get,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GamesService } from './games.service';
@@ -57,5 +60,45 @@ export class GamesController {
 
     // Create the game
     return this.gamesService.create(userId, createGameDto);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all games for the authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of games retrieved successfully',
+    type: [Game],
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async findAll(@Request() req): Promise<Game[]> {
+    const userId = req.user.userId;
+    return this.gamesService.findAllByUser(userId);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a specific game by ID' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Game retrieved successfully',
+    type: Game,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async findOne(@Param('id') id: string, @Request() req): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.findOne(id, userId);
   }
 }

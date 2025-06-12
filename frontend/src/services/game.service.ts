@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 // Game types
 export interface GameStats {
@@ -19,7 +19,7 @@ export interface Skill {
 }
 
 export interface LoreFragment {
-  type: 'npc' | 'item' | 'location' | 'general';
+  type: "npc" | "item" | "location" | "general";
   name?: string;
   title?: string;
   description?: string;
@@ -77,7 +77,23 @@ class GameService {
    * Create a new game
    */
   async createGame(createGameData: CreateGameDto): Promise<Game> {
-    const response = await api.post<Game>('/games', createGameData);
+    const response = await api.post<Game>("/games", createGameData);
+    return response.data;
+  }
+
+  /**
+   * Get all games for the current user
+   */
+  async getGames(): Promise<Game[]> {
+    const response = await api.get<Game[]>("/games");
+    return response.data;
+  }
+
+  /**
+   * Get a specific game by ID
+   */
+  async getGameById(gameId: string): Promise<Game> {
+    const response = await api.get<Game>(`/games/${gameId}`);
     return response.data;
   }
 
@@ -87,7 +103,9 @@ class GameService {
    * but would be necessary for gameplay.
    */
   async makeChoice(gameId: string, choiceNumber: number): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/choice`, { choiceNumber });
+    const response = await api.post<Game>(`/games/${gameId}/choice`, {
+      choiceNumber,
+    });
     return response.data;
   }
 }
