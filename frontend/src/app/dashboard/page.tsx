@@ -214,6 +214,32 @@ export default function DashboardPage() {
                       Dashboard
                     </a>
                     <a
+                      href="/game"
+                      className="flex items-center px-3 py-2 text-sm rounded-md text-foreground hover:bg-primary/5"
+                    >
+                      <svg
+                        className="mr-2 h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      AI Adventure Game
+                    </a>
+                    <a
                       href="#"
                       className="flex items-center px-3 py-2 text-sm rounded-md text-foreground hover:bg-primary/5"
                     >
@@ -331,6 +357,60 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Tiến độ trung bình
+                    </div>
+                  </div>
+                </AICard>
+              </div>
+
+              <div className="mb-8">
+                <AICard variant="hover" glowing className="p-6 border-2 border-primary/20">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-10 w-10 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                      <h3 className="text-xl font-bold mb-2">AI Adventure Game</h3>
+                      <p className="text-gray-600 mb-4">
+                        Trải nghiệm cuộc phiêu lưu tương tác với AI. Tạo nhân vật, khám phá thế giới và đưa ra quyết định ảnh hưởng đến cốt truyện.
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                          Tương tác
+                        </span>
+                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                          Nhập vai
+                        </span>
+                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                          AI Storytelling
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <AIButton
+                        variant="gradient"
+                        onClick={() => router.push("/game")}
+                      >
+                        Chơi ngay
+                      </AIButton>
                     </div>
                   </div>
                 </AICard>
