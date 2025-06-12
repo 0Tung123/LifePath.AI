@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  HarmBlockThreshold,
+  HarmCategory,
+} from '@google/generative-ai';
 
 @Injectable()
 export class GeminiService {
@@ -12,10 +16,10 @@ export class GeminiService {
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not defined in environment variables');
     }
-    
+
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-pro',
+      model: 'gemini-2.0-flash',
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,

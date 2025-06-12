@@ -19,4 +19,5 @@ export declare class AuthController {
     resendVerification(resendVerificationDto: ResendVerificationDto): Promise<any>;
     googleAuth(): void;
     googleAuthRedirect(req: any, res: Response): Promise<void>;
+    getProfile(req: any): Promise<any>;
 }

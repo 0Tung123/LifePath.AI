@@ -29,5 +29,6 @@ export declare class AuthService {
     verifyEmail(token: string): Promise<any>;
     resendVerificationEmail(email: string): Promise<any>;
     validateOrCreateGoogleUser(googleUser: GoogleUser): Promise<any>;
+    getProfile(userId: string): Promise<any>;
 }
 export {};

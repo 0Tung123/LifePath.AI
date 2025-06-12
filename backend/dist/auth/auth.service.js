@@ -216,6 +216,14 @@ let AuthService = class AuthService {
         }
         return this.login(user);
     }
+    async getProfile(userId) {
+        const user = await this.usersService.findById(userId);
+        if (!user) {
+            return { message: 'User not found', statusCode: 404 };
+        }
+        const { password, emailVerificationToken, emailVerificationExpires, ...result } = user;
+        return result;
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

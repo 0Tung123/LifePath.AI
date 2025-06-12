@@ -16,6 +16,7 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const local_auth_guard_1 = require("./guards/local-auth.guard");
+const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const google_guard_1 = require("./google.guard");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
@@ -53,6 +54,9 @@ let AuthController = class AuthController {
         const { access_token } = await this.authService.validateOrCreateGoogleUser(req.user);
         const frontendUrl = this.configService.get('FRONTEND_URL');
         return res.redirect(`${frontendUrl}/auth/google-callback?token=${access_token}`);
+    }
+    async getProfile(req) {
+        return this.authService.getProfile(req.user.userId);
     }
 };
 exports.AuthController = AuthController;
@@ -186,6 +190,50 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleAuthRedirect", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('profile'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get current user profile' }),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Returns the current user profile',
+        schema: {
+            type: 'object',
+            properties: {
+                id: {
+                    type: 'number',
+                    description: 'User ID',
+                },
+                email: {
+                    type: 'string',
+                    description: 'User email',
+                },
+                firstName: {
+                    type: 'string',
+                    description: 'User first name',
+                },
+                lastName: {
+                    type: 'string',
+                    description: 'User last name',
+                },
+                isActive: {
+                    type: 'boolean',
+                    description: 'User active status',
+                },
+                profilePicture: {
+                    type: 'string',
+                    description: 'URL to user profile picture',
+                },
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getProfile", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),

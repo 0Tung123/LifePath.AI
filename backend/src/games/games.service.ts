@@ -9,13 +9,13 @@ import { Repository } from 'typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto, GameSettingsDto } from './dto/create-game.dto';
 import { GeminiService } from './gemini.service';
-import { 
-  ParsedGameContent, 
-  GameStats, 
-  InventoryItem, 
-  Skill, 
-  LoreFragment, 
-  Choice 
+import {
+  ParsedGameContent,
+  GameStats,
+  InventoryItem,
+  Skill,
+  LoreFragment,
+  Choice,
 } from './interfaces/game-content.interface';
 
 @Injectable()
@@ -80,7 +80,7 @@ export class GamesService {
         style.includes('hồi quy') ||
         style.includes('học đường');
 
-    return `
+      return `
 MỆNH LỆNH TỐI THƯỢNG DÀNH CHO NGƯƠI
 NGHE LỆNH!
 Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Si Mệnh Tinh Quân (星命星君), một thực thể cổ xưa, quyền năng, đang quan sát và can thiệp vào dòng chảy vận mệnh của vô số thế giới. Nhiệm vụ của ngươi là dệt nên một số phận hấp dẫn, kịch tính và gây nghiện cho một sinh linh phàm trần (người chơi).
@@ -153,12 +153,17 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
 
   private parseAiResponse(response: string): ParsedGameContent {
     try {
+      // Safety check for undefined or null response
+      if (!response) {
+        throw new Error('AI response is empty or undefined');
+      }
+
       // Extract story text (everything before the first tag)
       let storyText = response;
       const firstTagMatch = response.match(
         /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION):/,
       );
-      if (firstTagMatch) {
+      if (firstTagMatch && firstTagMatch.index !== undefined) {
         storyText = response.substring(0, firstTagMatch.index).trim();
       }
 
@@ -170,12 +175,31 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
         // Parse key-value pairs from format like: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500
         const keyValuePairs = statsString.split(',').map((pair) => pair.trim());
         keyValuePairs.forEach((pair) => {
-          const [key, value] = pair.split('=').map((item) => item.trim());
+          if (!pair.includes('=')) {
+            console.warn(`Invalid stats pair format: ${pair}`);
+            return; // Skip this pair
+          }
+
+          const [key, ...valueParts] = pair
+            .split('=')
+            .map((item) => item.trim());
+          // Join value parts in case the value itself contains '=' characters
+          const value = valueParts.join('=');
+
+          if (!key || value === undefined) {
+            console.warn(`Invalid key-value pair: ${pair}`);
+            return; // Skip this pair
+          }
+
           // Remove quotes if they exist
           const cleanValue =
-            value.startsWith('"') && value.endsWith('"')
+            value &&
+            typeof value === 'string' &&
+            value.startsWith('"') &&
+            value.endsWith('"')
               ? value.substring(1, value.length - 1)
               : value;
+
           stats[key] = cleanValue;
         });
       }
@@ -190,7 +214,7 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
         const itemString = match[1];
         const itemProps: InventoryItem = {
           name: '',
-          quantity: 1
+          quantity: 1,
         };
 
         // Parse name, description, etc
@@ -272,7 +296,10 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
 
       const lore: LoreFragment[] = [];
 
-      const processLoreMatch = (match: RegExpMatchArray, type: 'npc' | 'item' | 'location' | 'general') => {
+      const processLoreMatch = (
+        match: RegExpMatchArray,
+        type: 'npc' | 'item' | 'location' | 'general',
+      ) => {
         const loreString = match[1];
         const loreProps: LoreFragment = { type };
 
@@ -338,7 +365,7 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
           const number = index + 1;
           return {
             text: choiceText,
-            number
+            number,
           };
         });
       } else {
@@ -348,10 +375,12 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
           try {
             const parsedChoices = JSON.parse(choicesMatch[1]);
             if (parsedChoices.options && Array.isArray(parsedChoices.options)) {
-              choices = parsedChoices.options.map((option: any, index: number) => ({
-                text: option.text || option,
-                number: option.number || index + 1
-              }));
+              choices = parsedChoices.options.map(
+                (option: any, index: number) => ({
+                  text: option.text || option,
+                  number: option.number || index + 1,
+                }),
+              );
             }
           } catch (e) {
             const logger = new Logger('GamesService');
