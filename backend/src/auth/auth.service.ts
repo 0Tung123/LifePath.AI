@@ -262,4 +262,22 @@ export class AuthService {
 
     return this.login(user);
   }
+
+  async getProfile(userId: string): Promise<any> {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) {
+      return { message: 'User not found', statusCode: 404 };
+    }
+
+    // Return user data without sensitive information
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      ...result
+    } = user;
+
+    return result;
+  }
 }

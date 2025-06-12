@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './google.guard';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -167,5 +168,47 @@ export class AuthController {
     return res.redirect(
       `${frontendUrl}/auth/google-callback?token=${access_token}`,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the current user profile',
+    schema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'User ID',
+        },
+        email: {
+          type: 'string',
+          description: 'User email',
+        },
+        firstName: {
+          type: 'string',
+          description: 'User first name',
+        },
+        lastName: {
+          type: 'string',
+          description: 'User last name',
+        },
+        isActive: {
+          type: 'boolean',
+          description: 'User active status',
+        },
+        profilePicture: {
+          type: 'string',
+          description: 'URL to user profile picture',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getProfile(@Request() req) {
+    return this.authService.getProfile(req.user.userId);
   }
 }
