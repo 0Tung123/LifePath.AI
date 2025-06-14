@@ -12,6 +12,7 @@ interface GameContextType {
   isLoading: boolean;
   error: string | null;
   createGame: (settings: GameSettings) => Promise<Game>;
+  loadGame: (gameId: string) => Promise<void>;
   makeChoice: (choiceNumber: number) => Promise<void>;
   clearError: () => void;
 }
@@ -38,6 +39,22 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       return game;
     } catch (err) {
       const errorMessage = "Failed to create game. Please try again.";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadGame = async (gameId: string): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const game = await gameService.getGameById(gameId);
+      setCurrentGame(game);
+    } catch (err) {
+      const errorMessage = "Failed to load game. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -78,6 +95,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     isLoading,
     error,
     createGame,
+    loadGame,
     makeChoice,
     clearError,
   };
