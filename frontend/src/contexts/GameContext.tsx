@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
 import gameService, {
   Game,
   CreateGameDto,
@@ -14,6 +20,7 @@ interface GameContextType {
   createGame: (settings: GameSettings) => Promise<Game>;
   loadGame: (gameId: string) => Promise<void>;
   makeChoice: (choiceNumber: number) => Promise<void>;
+  performAction: (action: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -28,25 +35,28 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createGame = async (gameSettings: GameSettings): Promise<Game> => {
-    setIsLoading(true);
-    setError(null);
+  const createGame = useCallback(
+    async (gameSettings: GameSettings): Promise<Game> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const createGameDto: CreateGameDto = { gameSettings };
-      const game = await gameService.createGame(createGameDto);
-      setCurrentGame(game);
-      return game;
-    } catch (err) {
-      const errorMessage = "Failed to create game. Please try again.";
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        const createGameDto: CreateGameDto = { gameSettings };
+        const game = await gameService.createGame(createGameDto);
+        setCurrentGame(game);
+        return game;
+      } catch (err) {
+        const errorMessage = "Failed to create game. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
-  const loadGame = async (gameId: string): Promise<void> => {
+  const loadGame = useCallback(async (gameId: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
@@ -60,35 +70,65 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const makeChoice = async (choiceNumber: number): Promise<void> => {
-    if (!currentGame) {
-      setError("No active game found");
-      return;
-    }
+  const makeChoice = useCallback(
+    async (choiceNumber: number): Promise<void> => {
+      if (!currentGame) {
+        setError("No active game found");
+        return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const updatedGame = await gameService.makeChoice(
+          currentGame.id,
+          choiceNumber
+        );
+        setCurrentGame(updatedGame);
+      } catch (err) {
+        const errorMessage = "Failed to process choice. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentGame]
+  );
+
+  const performAction = useCallback(
+    async (action: string): Promise<void> => {
+      if (!currentGame) {
+        setError("No active game found");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const updatedGame = await gameService.performAction(
+          currentGame.id,
+          action
+        );
+        setCurrentGame(updatedGame);
+      } catch (err) {
+        const errorMessage = "Failed to process action. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentGame]
+  );
+
+  const clearError = useCallback(() => {
     setError(null);
-
-    try {
-      const updatedGame = await gameService.makeChoice(
-        currentGame.id,
-        choiceNumber
-      );
-      setCurrentGame(updatedGame);
-    } catch (err) {
-      const errorMessage = "Failed to process choice. Please try again.";
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearError = () => {
-    setError(null);
-  };
+  }, []);
 
   const value = {
     currentGame,
@@ -97,6 +137,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     createGame,
     loadGame,
     makeChoice,
+    performAction,
     clearError,
   };
 

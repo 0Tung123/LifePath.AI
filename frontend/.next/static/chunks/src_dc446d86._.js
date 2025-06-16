@@ -290,18 +290,63 @@ class GameService {
     /**
    * Create a new game
    */ async createGame(createGameData) {
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post('/games', createGameData);
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post("/games", createGameData);
         return response.data;
     }
     /**
-   * Process player choice and continue game
-   * Note: This endpoint wasn't visible in the controller we examined,
-   * but would be necessary for gameplay.
+   * Get all games for the current user
+   */ async getGames() {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("/games");
+        return response.data;
+    }
+    /**
+   * Get a specific game by ID
+   */ async getGameById(gameId) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/games/${gameId}`);
+        return response.data;
+    }
+    /**
+   * Process player action in the game (choice, action, think, communication)
    */ async makeChoice(gameId, choiceNumber) {
-        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/choice`, {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/action`, {
             choiceNumber
         });
         return response.data;
+    }
+    /**
+   * Submit a custom action for the character
+   */ async performAction(gameId, action) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/action`, {
+            action
+        });
+        return response.data;
+    }
+    /**
+   * Submit character thoughts
+   */ async performThinking(gameId, think) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/action`, {
+            think
+        });
+        return response.data;
+    }
+    /**
+   * Submit character communication
+   */ async performCommunication(gameId, communication) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/action`, {
+            communication
+        });
+        return response.data;
+    }
+    /**
+   * Delete a game by ID
+   */ async deleteGame(gameId) {
+        try {
+            await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].delete(`/games/${gameId}`);
+            console.log(`Game ${gameId} deleted successfully`);
+        } catch (error) {
+            console.error("Error deleting game:", error);
+            throw error; // Re-throw to allow handling in the UI
+        }
     }
 }
 const gameService = new GameService();
@@ -334,51 +379,99 @@ const GameProvider = ({ children })=>{
     const [currentGame, setCurrentGame] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [isLoading, setIsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const createGame = async (gameSettings)=>{
-        setIsLoading(true);
-        setError(null);
-        try {
-            const createGameDto = {
-                gameSettings
-            };
-            const game = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].createGame(createGameDto);
-            setCurrentGame(game);
-            return game;
-        } catch (err) {
-            const errorMessage = "Failed to create game. Please try again.";
-            setError(errorMessage);
-            throw new Error(errorMessage);
-        } finally{
-            setIsLoading(false);
+    const createGame = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[createGame]": async (gameSettings)=>{
+            setIsLoading(true);
+            setError(null);
+            try {
+                const createGameDto = {
+                    gameSettings
+                };
+                const game = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].createGame(createGameDto);
+                setCurrentGame(game);
+                return game;
+            } catch (err) {
+                const errorMessage = "Failed to create game. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
         }
-    };
-    const makeChoice = async (choiceNumber)=>{
-        if (!currentGame) {
-            setError("No active game found");
-            return;
+    }["GameProvider.useCallback[createGame]"], []);
+    const loadGame = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[loadGame]": async (gameId)=>{
+            setIsLoading(true);
+            setError(null);
+            try {
+                const game = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].getGameById(gameId);
+                setCurrentGame(game);
+            } catch (err) {
+                const errorMessage = "Failed to load game. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
         }
-        setIsLoading(true);
-        setError(null);
-        try {
-            const updatedGame = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].makeChoice(currentGame.id, choiceNumber);
-            setCurrentGame(updatedGame);
-        } catch (err) {
-            const errorMessage = "Failed to process choice. Please try again.";
-            setError(errorMessage);
-            throw new Error(errorMessage);
-        } finally{
-            setIsLoading(false);
+    }["GameProvider.useCallback[loadGame]"], []);
+    const makeChoice = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[makeChoice]": async (choiceNumber)=>{
+            if (!currentGame) {
+                setError("No active game found");
+                return;
+            }
+            setIsLoading(true);
+            setError(null);
+            try {
+                const updatedGame = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].makeChoice(currentGame.id, choiceNumber);
+                setCurrentGame(updatedGame);
+            } catch (err) {
+                const errorMessage = "Failed to process choice. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
         }
-    };
-    const clearError = ()=>{
-        setError(null);
-    };
+    }["GameProvider.useCallback[makeChoice]"], [
+        currentGame
+    ]);
+    const performAction = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[performAction]": async (action)=>{
+            if (!currentGame) {
+                setError("No active game found");
+                return;
+            }
+            setIsLoading(true);
+            setError(null);
+            try {
+                const updatedGame = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].performAction(currentGame.id, action);
+                setCurrentGame(updatedGame);
+            } catch (err) {
+                const errorMessage = "Failed to process action. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
+        }
+    }["GameProvider.useCallback[performAction]"], [
+        currentGame
+    ]);
+    const clearError = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[clearError]": ()=>{
+            setError(null);
+        }
+    }["GameProvider.useCallback[clearError]"], []);
     const value = {
         currentGame,
         isLoading,
         error,
         createGame,
+        loadGame,
         makeChoice,
+        performAction,
         clearError
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(GameContext.Provider, {
@@ -386,11 +479,11 @@ const GameProvider = ({ children })=>{
         children: children
     }, void 0, false, {
         fileName: "[project]/src/contexts/GameContext.tsx",
-        lineNumber: 85,
+        lineNumber: 144,
         columnNumber: 10
     }, this);
 };
-_s(GameProvider, "VCuFcLSfzMoJvbIIhpH0lvCTYwk=");
+_s(GameProvider, "D6Ezdyjxjd8zTxkOXp5bcHAmgVE=");
 _c = GameProvider;
 const useGame = ()=>{
     _s1();

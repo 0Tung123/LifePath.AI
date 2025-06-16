@@ -29,8 +29,11 @@ let GamesService = GamesService_1 = class GamesService {
         try {
             const { gameSettings } = createGameDto;
             const initialPrompt = this.buildInitialPrompt(gameSettings);
+            this.logger.log('Generating initial game content with Gemini...');
             const aiResponse = await this.geminiService.generateGameContent(initialPrompt);
+            this.logger.log(`AI Response length: ${aiResponse.length} characters`);
             const parsedContent = this.parseAiResponse(aiResponse);
+            this.logger.log(`Parsed content - Choices found: ${parsedContent.choices.length}`);
             const newGame = this.gamesRepository.create({
                 userId,
                 settings: gameSettings,
@@ -53,6 +56,280 @@ let GamesService = GamesService_1 = class GamesService {
                 throw error;
             }
             throw new common_1.InternalServerErrorException('Failed to create game');
+        }
+    }
+    async findAllByUser(userId) {
+        try {
+            return this.gamesRepository.find({
+                where: { userId },
+                order: { updatedAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error fetching games for user ${userId}:`, error);
+            throw new common_1.InternalServerErrorException('Failed to fetch games');
+        }
+    }
+    async findOne(id, userId) {
+        try {
+            const game = await this.gamesRepository.findOne({
+                where: { id, userId },
+            });
+            if (!game) {
+                throw new common_1.BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+            }
+            return game;
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            this.logger.error(`Error fetching game ${id}:`, error);
+            throw new common_1.InternalServerErrorException('Failed to fetch game');
+        }
+    }
+    async remove(id, userId) {
+        try {
+            const game = await this.gamesRepository.findOne({
+                where: { id, userId },
+            });
+            if (!game) {
+                throw new common_1.BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+            }
+            await this.gamesRepository.delete({ id, userId });
+            this.logger.log(`Game ${id} successfully deleted`);
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            this.logger.error(`Error deleting game ${id}:`, error);
+            throw new common_1.InternalServerErrorException('Failed to delete game');
+        }
+    }
+    async processAction(id, userId, choiceNumber, action, think, communication) {
+        try {
+            const game = await this.gamesRepository.findOne({
+                where: { id, userId },
+            });
+            if (!game) {
+                throw new common_1.BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+            }
+            if (!choiceNumber && !action && !think && !communication) {
+                throw new common_1.BadRequestException('Must provide a choice number, action, thought, or communication');
+            }
+            if (choiceNumber) {
+                const validChoice = game.currentChoices.find((choice) => choice.number === choiceNumber);
+                if (!validChoice) {
+                    throw new common_1.BadRequestException(`Invalid choice number: ${choiceNumber}`);
+                }
+            }
+            const prompt = this.buildActionPrompt(game, choiceNumber, action, think, communication);
+            const aiResponse = await this.geminiService.generateGameContent(prompt);
+            const parsedContent = this.parseAiResponse(aiResponse);
+            game.storyHistory.push({
+                text: parsedContent.storyText,
+                timestamp: new Date(),
+            });
+            game.currentPrompt = parsedContent.storyText;
+            game.currentChoices = parsedContent.choices;
+            game.characterStats = { ...game.characterStats, ...parsedContent.stats };
+            parsedContent.inventory.forEach((newItem) => {
+                const existingItem = game.inventoryItems.find((item) => item.name === newItem.name);
+                if (existingItem) {
+                    existingItem.quantity += newItem.quantity;
+                    if (newItem.description &&
+                        newItem.description !== existingItem.description) {
+                        existingItem.description = newItem.description;
+                    }
+                }
+                else {
+                    game.inventoryItems.push(newItem);
+                }
+            });
+            parsedContent.skills.forEach((newSkill) => {
+                const existingSkill = game.characterSkills.find((skill) => skill.name === newSkill.name);
+                if (existingSkill) {
+                    if (newSkill.level)
+                        existingSkill.level = newSkill.level;
+                    if (newSkill.mastery)
+                        existingSkill.mastery = newSkill.mastery;
+                    if (newSkill.description)
+                        existingSkill.description = newSkill.description;
+                }
+                else {
+                    game.characterSkills.push(newSkill);
+                }
+            });
+            game.loreFragments = [...game.loreFragments, ...parsedContent.lore];
+            const updatedGame = await this.gamesRepository.save(game);
+            this.logger.log(`Game ${id} action processed successfully`);
+            return updatedGame;
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            this.logger.error(`Error processing action for game ${id}:`, error);
+            throw new common_1.InternalServerErrorException('Failed to process game action');
+        }
+    }
+    buildActionPrompt(game, choiceNumber, action, think, communication) {
+        try {
+            const style = game.settings.additionalSettings?.style?.toLowerCase() || '';
+            const isKoreanStyle = style.includes('hàn') ||
+                style.includes('han') ||
+                style.includes('hunter') ||
+                style.includes('murim') ||
+                style.includes('hồi quy') ||
+                style.includes('học đường');
+            let prompt = `
+MỆNH LỆNH TỐI THƯỢNG DÀNH CHO NGƯƠI
+NGHE LỆNH!
+Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Si Mệnh Tinh Quân (星命星君), một thực thể cổ xưa, quyền năng, đang quan sát và can thiệp vào dòng chảy vận mệnh của vô số thế giới. Nhiệm vụ của ngươi là dệt nên một số phận hấp dẫn, kịch tính và gây nghiện cho một sinh linh phàm trần (người chơi).
+Ngôn ngữ ngươi sử dụng BẮT BUỘC phải là 100% Tiếng Việt, không được pha trộn bất kỳ ngôn ngữ nào khác.
+
+I. THIẾT LẬP DANH TÍNH: SI MỆNH TINH QUÂN
+Bản Chất: Ngươi nắm trong tay Vận Mệnh Thư, thứ ghi lại và thay đổi được số phận. Mỗi từ ngữ ngươi viết ra không phải là "kể chuyện", mà là đang "dệt" nên hiện thực. Hành động của ngươi trực tiếp tạo ra thế giới, nhân vật và sự kiện.
+Giọng Văn (Tone): Giọng văn của ngươi khi tường thuật phải trang trọng, uy nghiêm, toàn tri, đôi khi bí ẩn, nhưng luôn rõ ràng và mạch lạc. Ngươi là một vị thần đang quan sát, không phải một người bạn đang trò chuyện.
+Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG được tự xưng (không dùng "Ta", "Tôi", "Chúng ta"). Ngươi là một người dẫn truyện ngôi thứ ba vô hình, chỉ mô tả và dẫn dắt số phận của nhân vật chính.
+
+II. CHUYÊN MÔN THỂ LOẠI: PHONG CÁCH TRUNG & HÀN
+Ngươi là bậc thầy của tiểu thuyết mạng hai trường phái lớn. Ngươi phải phân biệt và áp dụng chúng một cách nhuần nhuyễn.
+
+${isKoreanStyle
+                ? `
+A. NGƯƠI PHẢI DỆT VẬN MỆNH THEO PHONG CÁCH HÀN QUỐC (Hầm Ngục, Hồi Quy, Võ Lâm, Học Đường...)
+Văn Phong: Thẳng thắn, trực diện, hiện đại, nhịp độ nhanh. Tập trung mạnh vào hành động, hệ thống (cửa sổ trạng thái, kỹ năng), và diễn biến nội tâm phức tạp của nhân vật chính.
+Cách Xưng Hô (Cực kỳ quan trọng):
+Bối cảnh Võ Lâm (Murim): "Tại hạ", "tiểu nhân", "tiền bối", "hậu bối", "đại nhân", "tiểu thư", "thiếu chủ".
+Bối cảnh Hiện Đại (Hunter, Hồi quy, Học đường): Cách xưng hô rất gần gũi và đời thường. "Tôi", "cậu", "anh", "cô ấy", "gã đó", "tên khốn đó", "con nhỏ đó". Ít dùng "ngươi", "hắn", "nàng" hơn so với phong cách Trung Quốc.
+Thể loại Tổng tài: "Anh - em", "tôi - cô", "giám đốc", "thư ký Kim".
+Tư Duy Nhân Vật: Thường thực dụng, toan tính, bị ám ảnh bởi quá khứ (đối với thể loại hồi quy/tái sinh), khao khát báo thù hoặc thay đổi một sai lầm định mệnh. Luôn tìm cách khai thác hệ thống để trở nên mạnh nhất.`
+                : `
+A. NGƯƠI PHẢI DỆT VẬN MỆNH THEO PHONG CÁCH TRUNG QUỐC (Tiên Hiệp, Huyền Huyễn, Đô Thị, Tổng Tài...)
+Văn Phong: Hào hùng, hoa mỹ, có phần cổ kính. Thường sử dụng các từ ngữ và thành ngữ Hán Việt. Mô tả chi tiết về cảnh giới tu luyện, pháp bảo, linh khí, đan dược, và các trận pháp phức tạp.
+Cách Xưng Hô (Cực kỳ quan trọng):
+Nhân vật quyền cao/lớn tuổi/cổ xưa: "Bản tọa", "lão phu", "bổn cô nương", "bổn thiếu gia".
+Giao tiếp trang trọng: "Đạo hữu", "tiểu hữu", "các hạ", "tiền bối".
+Xưng hô thông thường: "Ngươi", "hắn", "nàng", "tiểu tử", "nha đầu", "cô nương", "công tử".
+Thể loại Tổng tài/Đô thị: "Tôi - em", "anh - em", "chủ tịch", "phu nhân".
+Tư Duy Nhân Vật: Thường trọng nhân quả, cơ duyên, khí phách ngút trời, không chịu khuất phục, sát phạt quyết đoán, có thù tất báo.`}
+
+III. CẤU TRÚC TƯƠNG TÁC: CÁC THẺ VẬN MỆNH
+Để sinh linh phàm trần có thể hiểu được những thay đổi của số phận, ngươi phải sử dụng các thẻ đặc biệt sau. Mỗi thẻ phải nằm trên một dòng riêng biệt.
+
+[STATS: ...]: Ghi lại sự thay đổi về thuộc tính của nhân vật.
+Ví dụ Tiên Hiệp: [STATS: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500]
+Ví dụ Hunter: [STATS: Cấp Độ=12, Sức Mạnh=35, Năng Lượng=150/150]
+
+[INVENTORY_ADD: ...] / [INVENTORY_REMOVE: ...]: Thêm hoặc bớt vật phẩm khỏi túi đồ của nhân vật.
+Ví dụ: [INVENTORY_ADD: Name="Hồi Nguyên Đan", Description="Phục hồi 100 điểm chân khí."]
+
+[SKILL: ...]: Ghi lại việc học được hoặc nâng cấp một kỹ năng/công pháp.
+Ví dụ Murim: [SKILL: Name="Vô Ảnh Kiếm Pháp", ThanhThuc="Tiểu thành", Description="Kiếm pháp xuất chiêu không thấy hình bóng."]
+Ví dụ Hunter: [SKILL: Name="Cú Đấm Cường Lực (Cấp 2)", Description="Gây sát thương vật lý bằng 150% Sức Mạnh."]
+
+[LORE_NPC: ...] / [LORE_ITEM: ...] / [LORE_LOCATION: ...]: Ghi lại thông tin về thế giới.
+Ví dụ: [LORE_NPC: Name="Trưởng Lão Vân Du", Description="Một trưởng lão bí ẩn của Thanh Vân Môn."]
+
+IV. DIỄN BIẾN HIỆN TẠI VÀ HÀNH ĐỘNG CỦA NHÂN VẬT
+THÔNG TIN NHÂN VẬT:
+Theme: ${game.settings.theme}
+Setting: ${game.settings.setting}
+Character: ${game.settings.characterName}
+Backstory: ${game.settings.characterBackstory}
+`;
+            prompt += '\nTRẠNG THÁI HIỆN TẠI:\n';
+            prompt += 'Chỉ số hiện tại:\n';
+            Object.entries(game.characterStats).forEach(([key, value]) => {
+                prompt += `- ${key}: ${value}\n`;
+            });
+            prompt += '\nTúi đồ hiện tại:\n';
+            if (game.inventoryItems.length === 0) {
+                prompt += '- Trống\n';
+            }
+            else {
+                game.inventoryItems.forEach((item) => {
+                    prompt += `- ${item.name} (${item.quantity}): ${item.description || 'Không có mô tả'}\n`;
+                });
+            }
+            prompt += '\nKỹ năng hiện tại:\n';
+            if (game.characterSkills.length === 0) {
+                prompt += '- Chưa có kỹ năng\n';
+            }
+            else {
+                game.characterSkills.forEach((skill) => {
+                    let skillDesc = `- ${skill.name}`;
+                    if (skill.level)
+                        skillDesc += ` (Cấp ${skill.level})`;
+                    if (skill.mastery)
+                        skillDesc += ` (${skill.mastery})`;
+                    if (skill.description)
+                        skillDesc += `: ${skill.description}`;
+                    prompt += skillDesc + '\n';
+                });
+            }
+            prompt += '\nCÂU CHUYỆN GẦN ĐÂY:\n';
+            if (game.storyHistory.length > 0) {
+                const recentHistory = game.storyHistory.slice(-2);
+                recentHistory.forEach((segment) => {
+                    prompt += segment.text + '\n\n';
+                });
+            }
+            if (game.currentChoices && game.currentChoices.length > 0) {
+                prompt += '\nCÁC LỰA CHỌN HIỆN TẠI:\n';
+                game.currentChoices.forEach((choice) => {
+                    prompt += `${choice.number}. ${choice.text}\n`;
+                });
+            }
+            prompt += '\nHÀNH ĐỘNG CỦA NHÂN VẬT:\n';
+            if (choiceNumber) {
+                const selectedChoice = game.currentChoices.find((c) => c.number === choiceNumber);
+                if (selectedChoice) {
+                    prompt += `Nhân vật đã chọn lựa chọn số ${choiceNumber}: ${selectedChoice.text}`;
+                }
+            }
+            else if (action) {
+                prompt += `Nhân vật quyết định thực hiện hành động: ${action}`;
+            }
+            else if (think) {
+                prompt += `Nhân vật đang suy nghĩ: ${think}`;
+            }
+            else if (communication) {
+                prompt += `Nhân vật nói: "${communication}"`;
+            }
+            prompt += `
+
+V. NHIỆM VỤ CỦA NGƯƠI BÂY GIỜ
+1. Dựa trên hành động của nhân vật, hãy tiếp tục dệt nên số phận của họ với phong cách đã định.
+2. Hãy mô tả diễn biến tiếp theo một cách hấp dẫn, chi tiết, có hình ảnh, và phù hợp với thế giới.
+3. Cập nhật các chỉ số nếu có thay đổi, thêm vật phẩm nếu nhận được, và mô tả kỹ năng mới nếu có.
+4. Tạo ra những hệ quả tự nhiên từ hành động của nhân vật, đừng quá dễ dàng hay quá khắc nghiệt.
+5. Luôn đảm bảo rằng câu chuyện mang tính NHẤT QUÁN, theo dõi được các sự kiện đã xảy ra trước đó.
+
+VI. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
+BẮT BUỘC: Sau khi mô tả diễn biến, ngươi PHẢI kết thúc bằng 3-4 lựa chọn hành động cụ thể:
+
+Định dạng bắt buộc (VÍ DỤ):
+1. Lao thẳng vào cuộc chiến để hỗ trợ đồng đội
+2. Lén lút di chuyển để tấn công từ phía sau
+3. Sử dụng phép thuật để tạo ra lợi thế chiến thuật
+4. Tìm cách đàm phán để tránh xung đột
+
+Yêu cầu:
+- Mỗi lựa chọn phải là hành động CỤ THỂ, không mơ hồ
+- Các lựa chọn phải KHÁC BIỆT về hướng phát triển
+- Phải có cả lựa chọn thận trọng và táo bạo
+- KHÔNG ĐƯỢC bỏ qua phần lựa chọn
+
+Hãy bắt đầu dệt ngay!
+`;
+            return prompt;
+        }
+        catch (error) {
+            this.logger.error('Error building action prompt:', error);
+            throw new common_1.BadRequestException('Failed to build action prompt');
         }
     }
     buildInitialPrompt(gameSettings) {
@@ -121,11 +398,30 @@ CHARACTER NAME: ${gameSettings.characterName}
 CHARACTER BACKSTORY: ${gameSettings.characterBackstory}
 ${gameSettings.additionalSettings ? 'ADDITIONAL SETTINGS: ' + JSON.stringify(gameSettings.additionalSettings) : ''}
 
-V. LỜI NHẮC CUỐI CÙNG
-Kết thúc mỗi đoạn dệt vận mệnh của ngươi phải là 2-4 lựa chọn hành động rõ ràng, được đánh số, để sinh linh phàm trần kia có thể tự mình quyết định con đường phía trước. Sự tồn vong của họ, sự hấp dẫn của câu chuyện, tất cả đều nằm trong tay ngươi.
+V. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
+QUAN TRỌNG: Mỗi lần dệt vận mệnh (kể cả lần đầu tiên), ngươi BẮT BUỘC phải kết thúc bằng 3-4 lựa chọn hành động cụ thể cho nhân vật.
 
-Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Đừng làm ta thất vọng.
-Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
+Định dạng lựa chọn (VÍ DỤ):
+1. Tiến lại gần và quan sát kỹ hơn chiếc cổng bí ẩn
+2. Rút vũ khí ra và chuẩn bị chiến đấu với những gì có thể xuất hiện
+3. Tìm kiếm một lối đi khác để tránh nguy hiểm
+4. Gọi to để thử liên lạc với ai đó bên trong
+
+Yêu cầu về lựa chọn:
+- Mỗi lựa chọn phải là một hành động CỤ THỂ, không mơ hồ
+- Các lựa chọn phải KHÁC BIỆT rõ rệt về hướng phát triển
+- Phải có ít nhất 1 lựa chọn táo bạo/mạo hiểm và 1 lựa chọn thận trọng
+- Lựa chọn phải phù hợp với bối cảnh và tính cách nhân vật
+- TUYỆT ĐỐI không được bỏ qua phần lựa chọn
+
+VI. NHIỆM VỤ KHỞI ĐẦU
+Bây giờ, hãy dệt nên KHỞI ĐẦU của số phận dựa trên thông tin đã cung cấp:
+1. Tạo ra tình huống mở đầu hấp dẫn và phù hợp với theme/setting
+2. Giới thiệu nhân vật trong bối cảnh cụ thể
+3. Thiết lập các thẻ vận mệnh ban đầu ([STATS], [INVENTORY_ADD], [SKILL], [LORE] nếu cần)
+4. KẾT THÚC BẰNG 3-4 LỰA CHỌN rõ ràng để nhân vật bắt đầu cuộc phiêu lưu
+
+Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm trần này bắt đầu từ đây!
     `;
         }
         catch (error) {
@@ -290,10 +586,23 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
                     }
                 }
             }
-            const choiceLines = storyText
-                .split('\n')
-                .filter((line) => /^\d+\./.test(line.trim()));
             let choices = [];
+            const lines = response.split('\n');
+            const choiceLines = [];
+            let foundChoicesSection = false;
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i].trim();
+                if (/^\d+\.\s+/.test(line)) {
+                    choiceLines.unshift(line);
+                    foundChoicesSection = true;
+                }
+                else if (foundChoicesSection && line === '') {
+                    continue;
+                }
+                else if (foundChoicesSection) {
+                    break;
+                }
+            }
             if (choiceLines.length >= 2) {
                 choices = choiceLines.map((line, index) => {
                     const choiceText = line.replace(/^\d+\.\s*/, '').trim();
@@ -303,30 +612,55 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
                         number,
                     };
                 });
-            }
-            else {
-                const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
-                if (choicesMatch) {
-                    try {
-                        const parsedChoices = JSON.parse(choicesMatch[1]);
-                        if (parsedChoices.options && Array.isArray(parsedChoices.options)) {
-                            choices = parsedChoices.options.map((option, index) => ({
-                                text: option.text || option,
-                                number: option.number || index + 1,
-                            }));
-                        }
-                    }
-                    catch (e) {
-                        const logger = new common_1.Logger('GamesService');
-                        logger.error('Error parsing CHOICES:', e);
-                    }
-                }
-            }
-            if (choices.length > 0 && choiceLines.length >= 2) {
                 choiceLines.forEach((line) => {
                     storyText = storyText.replace(line, '');
                 });
                 storyText = storyText.trim();
+            }
+            else {
+                const storyChoiceLines = storyText
+                    .split('\n')
+                    .filter((line) => /^\d+\./.test(line.trim()));
+                if (storyChoiceLines.length >= 2) {
+                    choices = storyChoiceLines.map((line, index) => {
+                        const choiceText = line.replace(/^\d+\.\s*/, '').trim();
+                        const number = index + 1;
+                        return {
+                            text: choiceText,
+                            number,
+                        };
+                    });
+                    storyChoiceLines.forEach((line) => {
+                        storyText = storyText.replace(line, '');
+                    });
+                    storyText = storyText.trim();
+                }
+                else {
+                    const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
+                    if (choicesMatch) {
+                        try {
+                            const parsedChoices = JSON.parse(choicesMatch[1]);
+                            if (parsedChoices.options &&
+                                Array.isArray(parsedChoices.options)) {
+                                choices = parsedChoices.options.map((option, index) => ({
+                                    text: option.text || option,
+                                    number: option.number || index + 1,
+                                }));
+                            }
+                        }
+                        catch (e) {
+                            this.logger.error('Error parsing CHOICES tag:', e);
+                        }
+                    }
+                }
+            }
+            if (choices.length === 0) {
+                this.logger.warn('No choices found in AI response, adding default choices');
+                choices = [
+                    { text: 'Tiếp tục quan sát tình hình', number: 1 },
+                    { text: 'Hành động ngay lập tức', number: 2 },
+                    { text: 'Tìm cách khác để giải quyết', number: 3 },
+                ];
             }
             return {
                 storyText,

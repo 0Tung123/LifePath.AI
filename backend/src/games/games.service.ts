@@ -36,11 +36,18 @@ export class GamesService {
       const initialPrompt = this.buildInitialPrompt(gameSettings);
 
       // Get response from Gemini API
+      this.logger.log('Generating initial game content with Gemini...');
       const aiResponse =
         await this.geminiService.generateGameContent(initialPrompt);
 
+      this.logger.log(`AI Response length: ${aiResponse.length} characters`);
+
       // Parse AI response
       const parsedContent = this.parseAiResponse(aiResponse);
+
+      this.logger.log(
+        `Parsed content - Choices found: ${parsedContent.choices.length}`,
+      );
 
       // Create new game record
       const newGame = this.gamesRepository.create({
@@ -76,7 +83,7 @@ export class GamesService {
     try {
       return this.gamesRepository.find({
         where: { userId },
-        order: { updatedAt: 'DESC' } // Show newest games first
+        order: { updatedAt: 'DESC' }, // Show newest games first
       });
     } catch (error) {
       this.logger.error(`Error fetching games for user ${userId}:`, error);
@@ -90,13 +97,15 @@ export class GamesService {
   async findOne(id: string, userId: string): Promise<Game> {
     try {
       const game = await this.gamesRepository.findOne({
-        where: { id, userId }
+        where: { id, userId },
       });
-      
+
       if (!game) {
-        throw new BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
       }
-      
+
       return game;
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -106,7 +115,7 @@ export class GamesService {
       throw new InternalServerErrorException('Failed to fetch game');
     }
   }
-  
+
   /**
    * Remove a game by ID
    */
@@ -114,13 +123,15 @@ export class GamesService {
     try {
       // First check if the game exists and belongs to the user
       const game = await this.gamesRepository.findOne({
-        where: { id, userId }
+        where: { id, userId },
       });
-      
+
       if (!game) {
-        throw new BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
       }
-      
+
       // Delete the game
       await this.gamesRepository.delete({ id, userId });
       this.logger.log(`Game ${id} successfully deleted`);
@@ -137,38 +148,52 @@ export class GamesService {
    * Process a player action in the game (choice or custom action)
    */
   async processAction(
-    id: string, 
-    userId: string, 
-    choiceNumber?: number, 
-    action?: string, 
-    think?: string, 
+    id: string,
+    userId: string,
+    choiceNumber?: number,
+    action?: string,
+    think?: string,
     communication?: string,
   ): Promise<Game> {
     try {
       // 1. Check if game exists and belongs to the user
       const game = await this.gamesRepository.findOne({
-        where: { id, userId }
+        where: { id, userId },
       });
-      
+
       if (!game) {
-        throw new BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
       }
 
       // 2. Validate input
       if (!choiceNumber && !action && !think && !communication) {
-        throw new BadRequestException('Must provide a choice number, action, thought, or communication');
+        throw new BadRequestException(
+          'Must provide a choice number, action, thought, or communication',
+        );
       }
 
       // Validate choice number against available choices
       if (choiceNumber) {
-        const validChoice = game.currentChoices.find(choice => choice.number === choiceNumber);
+        const validChoice = game.currentChoices.find(
+          (choice) => choice.number === choiceNumber,
+        );
         if (!validChoice) {
-          throw new BadRequestException(`Invalid choice number: ${choiceNumber}`);
+          throw new BadRequestException(
+            `Invalid choice number: ${choiceNumber}`,
+          );
         }
       }
 
       // 3. Build prompt for Gemini based on the action
-      const prompt = this.buildActionPrompt(game, choiceNumber, action, think, communication);
+      const prompt = this.buildActionPrompt(
+        game,
+        choiceNumber,
+        action,
+        think,
+        communication,
+      );
 
       // 4. Send to Gemini and get response
       const aiResponse = await this.geminiService.generateGameContent(prompt);
@@ -187,14 +212,19 @@ export class GamesService {
       game.currentPrompt = parsedContent.storyText;
       game.currentChoices = parsedContent.choices;
       game.characterStats = { ...game.characterStats, ...parsedContent.stats };
-      
+
       // Handle inventory changes (merge with existing inventory)
       // Update quantities for existing items or add new ones
-      parsedContent.inventory.forEach(newItem => {
-        const existingItem = game.inventoryItems.find(item => item.name === newItem.name);
+      parsedContent.inventory.forEach((newItem) => {
+        const existingItem = game.inventoryItems.find(
+          (item) => item.name === newItem.name,
+        );
         if (existingItem) {
           existingItem.quantity += newItem.quantity;
-          if (newItem.description && newItem.description !== existingItem.description) {
+          if (
+            newItem.description &&
+            newItem.description !== existingItem.description
+          ) {
             existingItem.description = newItem.description; // Update description if changed
           }
         } else {
@@ -203,13 +233,16 @@ export class GamesService {
       });
 
       // Handle new skills
-      parsedContent.skills.forEach(newSkill => {
-        const existingSkill = game.characterSkills.find(skill => skill.name === newSkill.name);
+      parsedContent.skills.forEach((newSkill) => {
+        const existingSkill = game.characterSkills.find(
+          (skill) => skill.name === newSkill.name,
+        );
         if (existingSkill) {
           // Update existing skill
           if (newSkill.level) existingSkill.level = newSkill.level;
           if (newSkill.mastery) existingSkill.mastery = newSkill.mastery;
-          if (newSkill.description) existingSkill.description = newSkill.description;
+          if (newSkill.description)
+            existingSkill.description = newSkill.description;
         } else {
           // Add new skill
           game.characterSkills.push(newSkill);
@@ -222,7 +255,7 @@ export class GamesService {
       // 7. Save updated game to database
       const updatedGame = await this.gamesRepository.save(game);
       this.logger.log(`Game ${id} action processed successfully`);
-      
+
       return updatedGame;
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -237,15 +270,16 @@ export class GamesService {
    * Build a prompt for the AI based on player action
    */
   private buildActionPrompt(
-    game: Game, 
-    choiceNumber?: number, 
-    action?: string, 
-    think?: string, 
+    game: Game,
+    choiceNumber?: number,
+    action?: string,
+    think?: string,
     communication?: string,
   ): string {
     try {
       // Get the style from game settings
-      const style = game.settings.additionalSettings?.style?.toLowerCase() || '';
+      const style =
+        game.settings.additionalSettings?.style?.toLowerCase() || '';
       const isKoreanStyle =
         style.includes('hàn') ||
         style.includes('han') ||
@@ -269,8 +303,9 @@ Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG đư�
 II. CHUYÊN MÔN THỂ LOẠI: PHONG CÁCH TRUNG & HÀN
 Ngươi là bậc thầy của tiểu thuyết mạng hai trường phái lớn. Ngươi phải phân biệt và áp dụng chúng một cách nhuần nhuyễn.
 
-${isKoreanStyle 
-  ? `
+${
+  isKoreanStyle
+    ? `
 A. NGƯƠI PHẢI DỆT VẬN MỆNH THEO PHONG CÁCH HÀN QUỐC (Hầm Ngục, Hồi Quy, Võ Lâm, Học Đường...)
 Văn Phong: Thẳng thắn, trực diện, hiện đại, nhịp độ nhanh. Tập trung mạnh vào hành động, hệ thống (cửa sổ trạng thái, kỹ năng), và diễn biến nội tâm phức tạp của nhân vật chính.
 Cách Xưng Hô (Cực kỳ quan trọng):
@@ -278,7 +313,7 @@ Bối cảnh Võ Lâm (Murim): "Tại hạ", "tiểu nhân", "tiền bối", "h�
 Bối cảnh Hiện Đại (Hunter, Hồi quy, Học đường): Cách xưng hô rất gần gũi và đời thường. "Tôi", "cậu", "anh", "cô ấy", "gã đó", "tên khốn đó", "con nhỏ đó". Ít dùng "ngươi", "hắn", "nàng" hơn so với phong cách Trung Quốc.
 Thể loại Tổng tài: "Anh - em", "tôi - cô", "giám đốc", "thư ký Kim".
 Tư Duy Nhân Vật: Thường thực dụng, toan tính, bị ám ảnh bởi quá khứ (đối với thể loại hồi quy/tái sinh), khao khát báo thù hoặc thay đổi một sai lầm định mệnh. Luôn tìm cách khai thác hệ thống để trở nên mạnh nhất.`
-  : `
+    : `
 A. NGƯƠI PHẢI DỆT VẬN MỆNH THEO PHONG CÁCH TRUNG QUỐC (Tiên Hiệp, Huyền Huyễn, Đô Thị, Tổng Tài...)
 Văn Phong: Hào hùng, hoa mỹ, có phần cổ kính. Thường sử dụng các từ ngữ và thành ngữ Hán Việt. Mô tả chi tiết về cảnh giới tu luyện, pháp bảo, linh khí, đan dược, và các trận pháp phức tạp.
 Cách Xưng Hô (Cực kỳ quan trọng):
@@ -315,60 +350,62 @@ Backstory: ${game.settings.characterBackstory}
 `;
 
       // Add current stats, inventory, skills to the prompt
-      prompt += "\nTRẠNG THÁI HIỆN TẠI:\n";
-      
+      prompt += '\nTRẠNG THÁI HIỆN TẠI:\n';
+
       // Add stats
-      prompt += "Chỉ số hiện tại:\n";
+      prompt += 'Chỉ số hiện tại:\n';
       Object.entries(game.characterStats).forEach(([key, value]) => {
         prompt += `- ${key}: ${value}\n`;
       });
-      
+
       // Add inventory
-      prompt += "\nTúi đồ hiện tại:\n";
+      prompt += '\nTúi đồ hiện tại:\n';
       if (game.inventoryItems.length === 0) {
-        prompt += "- Trống\n";
+        prompt += '- Trống\n';
       } else {
-        game.inventoryItems.forEach(item => {
+        game.inventoryItems.forEach((item) => {
           prompt += `- ${item.name} (${item.quantity}): ${item.description || 'Không có mô tả'}\n`;
         });
       }
-      
+
       // Add skills
-      prompt += "\nKỹ năng hiện tại:\n";
+      prompt += '\nKỹ năng hiện tại:\n';
       if (game.characterSkills.length === 0) {
-        prompt += "- Chưa có kỹ năng\n";
+        prompt += '- Chưa có kỹ năng\n';
       } else {
-        game.characterSkills.forEach(skill => {
+        game.characterSkills.forEach((skill) => {
           let skillDesc = `- ${skill.name}`;
           if (skill.level) skillDesc += ` (Cấp ${skill.level})`;
           if (skill.mastery) skillDesc += ` (${skill.mastery})`;
           if (skill.description) skillDesc += `: ${skill.description}`;
-          prompt += skillDesc + "\n";
+          prompt += skillDesc + '\n';
         });
       }
 
       // Add story history context (last segment)
-      prompt += "\nCÂU CHUYỆN GẦN ĐÂY:\n";
+      prompt += '\nCÂU CHUYỆN GẦN ĐÂY:\n';
       if (game.storyHistory.length > 0) {
         // Get the last 1-2 story segments for context
         const recentHistory = game.storyHistory.slice(-2);
-        recentHistory.forEach(segment => {
-          prompt += segment.text + "\n\n";
+        recentHistory.forEach((segment) => {
+          prompt += segment.text + '\n\n';
         });
       }
 
       // Add current choices if available
       if (game.currentChoices && game.currentChoices.length > 0) {
-        prompt += "\nCÁC LỰA CHỌN HIỆN TẠI:\n";
-        game.currentChoices.forEach(choice => {
+        prompt += '\nCÁC LỰA CHỌN HIỆN TẠI:\n';
+        game.currentChoices.forEach((choice) => {
           prompt += `${choice.number}. ${choice.text}\n`;
         });
       }
 
       // Add player's action
-      prompt += "\nHÀNH ĐỘNG CỦA NHÂN VẬT:\n";
+      prompt += '\nHÀNH ĐỘNG CỦA NHÂN VẬT:\n';
       if (choiceNumber) {
-        const selectedChoice = game.currentChoices.find(c => c.number === choiceNumber);
+        const selectedChoice = game.currentChoices.find(
+          (c) => c.number === choiceNumber,
+        );
         if (selectedChoice) {
           prompt += `Nhân vật đã chọn lựa chọn số ${choiceNumber}: ${selectedChoice.text}`;
         }
@@ -387,9 +424,23 @@ V. NHIỆM VỤ CỦA NGƯƠI BÂY GIỜ
 1. Dựa trên hành động của nhân vật, hãy tiếp tục dệt nên số phận của họ với phong cách đã định.
 2. Hãy mô tả diễn biến tiếp theo một cách hấp dẫn, chi tiết, có hình ảnh, và phù hợp với thế giới.
 3. Cập nhật các chỉ số nếu có thay đổi, thêm vật phẩm nếu nhận được, và mô tả kỹ năng mới nếu có.
-4. KẾT THÚC với 3-4 lựa chọn thú vị và khác biệt cho nhân vật. Các lựa chọn phải rõ ràng, đánh số 1, 2, 3, 4 và đặt ở cuối.
-5. Tạo ra những hệ quả tự nhiên từ hành động của nhân vật, đừng quá dễ dàng hay quá khắc nghiệt.
-6. Luôn đảm bảo rằng câu chuyện mang tính NHẤT QUÁN, theo dõi được các sự kiện đã xảy ra trước đó.
+4. Tạo ra những hệ quả tự nhiên từ hành động của nhân vật, đừng quá dễ dàng hay quá khắc nghiệt.
+5. Luôn đảm bảo rằng câu chuyện mang tính NHẤT QUÁN, theo dõi được các sự kiện đã xảy ra trước đó.
+
+VI. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
+BẮT BUỘC: Sau khi mô tả diễn biến, ngươi PHẢI kết thúc bằng 3-4 lựa chọn hành động cụ thể:
+
+Định dạng bắt buộc (VÍ DỤ):
+1. Lao thẳng vào cuộc chiến để hỗ trợ đồng đội
+2. Lén lút di chuyển để tấn công từ phía sau
+3. Sử dụng phép thuật để tạo ra lợi thế chiến thuật
+4. Tìm cách đàm phán để tránh xung đột
+
+Yêu cầu:
+- Mỗi lựa chọn phải là hành động CỤ THỂ, không mơ hồ
+- Các lựa chọn phải KHÁC BIỆT về hướng phát triển
+- Phải có cả lựa chọn thận trọng và táo bạo
+- KHÔNG ĐƯỢC bỏ qua phần lựa chọn
 
 Hãy bắt đầu dệt ngay!
 `;
@@ -471,11 +522,30 @@ CHARACTER NAME: ${gameSettings.characterName}
 CHARACTER BACKSTORY: ${gameSettings.characterBackstory}
 ${gameSettings.additionalSettings ? 'ADDITIONAL SETTINGS: ' + JSON.stringify(gameSettings.additionalSettings) : ''}
 
-V. LỜI NHẮC CUỐI CÙNG
-Kết thúc mỗi đoạn dệt vận mệnh của ngươi phải là 2-4 lựa chọn hành động rõ ràng, được đánh số, để sinh linh phàm trần kia có thể tự mình quyết định con đường phía trước. Sự tồn vong của họ, sự hấp dẫn của câu chuyện, tất cả đều nằm trong tay ngươi.
+V. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
+QUAN TRỌNG: Mỗi lần dệt vận mệnh (kể cả lần đầu tiên), ngươi BẮT BUỘC phải kết thúc bằng 3-4 lựa chọn hành động cụ thể cho nhân vật.
 
-Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Đừng làm ta thất vọng.
-Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
+Định dạng lựa chọn (VÍ DỤ):
+1. Tiến lại gần và quan sát kỹ hơn chiếc cổng bí ẩn
+2. Rút vũ khí ra và chuẩn bị chiến đấu với những gì có thể xuất hiện
+3. Tìm kiếm một lối đi khác để tránh nguy hiểm
+4. Gọi to để thử liên lạc với ai đó bên trong
+
+Yêu cầu về lựa chọn:
+- Mỗi lựa chọn phải là một hành động CỤ THỂ, không mơ hồ
+- Các lựa chọn phải KHÁC BIỆT rõ rệt về hướng phát triển
+- Phải có ít nhất 1 lựa chọn táo bạo/mạo hiểm và 1 lựa chọn thận trọng
+- Lựa chọn phải phù hợp với bối cảnh và tính cách nhân vật
+- TUYỆT ĐỐI không được bỏ qua phần lựa chọn
+
+VI. NHIỆM VỤ KHỞI ĐẦU
+Bây giờ, hãy dệt nên KHỞI ĐẦU của số phận dựa trên thông tin đã cung cấp:
+1. Tạo ra tình huống mở đầu hấp dẫn và phù hợp với theme/setting
+2. Giới thiệu nhân vật trong bối cảnh cụ thể
+3. Thiết lập các thẻ vận mệnh ban đầu ([STATS], [INVENTORY_ADD], [SKILL], [LORE] nếu cần)
+4. KẾT THÚC BẰNG 3-4 LỰA CHỌN rõ ràng để nhân vật bắt đầu cuộc phiêu lưu
+
+Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm trần này bắt đầu từ đây!
     `;
     } catch (error) {
       console.error('Error building initial prompt:', error);
@@ -684,12 +754,28 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
         }
       }
 
-      // Extract choices
-      // First, try to find numbered options at the end of the text (common format in Vietnamese stories)
-      const choiceLines = storyText
-        .split('\n')
-        .filter((line) => /^\d+\./.test(line.trim()));
+      // Extract choices - improved logic to handle various formats
       let choices: Choice[] = [];
+
+      // Method 1: Look for numbered choices at the end of the response (most common)
+      const lines = response.split('\n');
+      const choiceLines: string[] = [];
+      let foundChoicesSection = false;
+
+      // Look for numbered choices from the end of the response
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (/^\d+\.\s+/.test(line)) {
+          choiceLines.unshift(line);
+          foundChoicesSection = true;
+        } else if (foundChoicesSection && line === '') {
+          // Empty line after choices is OK
+          continue;
+        } else if (foundChoicesSection) {
+          // Non-choice line found, stop looking
+          break;
+        }
+      }
 
       if (choiceLines.length >= 2) {
         choices = choiceLines.map((line, index) => {
@@ -700,33 +786,67 @@ Bắt đầu dệt nên số phận dựa trên thông tin đã cung cấp.
             number,
           };
         });
-      } else {
-        // If no numbered choices found, try the CHOICES tag
-        const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
-        if (choicesMatch) {
-          try {
-            const parsedChoices = JSON.parse(choicesMatch[1]);
-            if (parsedChoices.options && Array.isArray(parsedChoices.options)) {
-              choices = parsedChoices.options.map(
-                (option: any, index: number) => ({
-                  text: option.text || option,
-                  number: option.number || index + 1,
-                }),
-              );
-            }
-          } catch (e) {
-            const logger = new Logger('GamesService');
-            logger.error('Error parsing CHOICES:', e);
-          }
-        }
-      }
 
-      // Clean up story text by removing the numbered choices if they were extracted
-      if (choices.length > 0 && choiceLines.length >= 2) {
+        // Clean up story text by removing the numbered choices
         choiceLines.forEach((line) => {
           storyText = storyText.replace(line, '');
         });
         storyText = storyText.trim();
+      } else {
+        // Method 2: Look for choices in the main story text
+        const storyChoiceLines = storyText
+          .split('\n')
+          .filter((line) => /^\d+\./.test(line.trim()));
+
+        if (storyChoiceLines.length >= 2) {
+          choices = storyChoiceLines.map((line, index) => {
+            const choiceText = line.replace(/^\d+\.\s*/, '').trim();
+            const number = index + 1;
+            return {
+              text: choiceText,
+              number,
+            };
+          });
+
+          // Clean up story text
+          storyChoiceLines.forEach((line) => {
+            storyText = storyText.replace(line, '');
+          });
+          storyText = storyText.trim();
+        } else {
+          // Method 3: Try the CHOICES tag format
+          const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
+          if (choicesMatch) {
+            try {
+              const parsedChoices = JSON.parse(choicesMatch[1]);
+              if (
+                parsedChoices.options &&
+                Array.isArray(parsedChoices.options)
+              ) {
+                choices = parsedChoices.options.map(
+                  (option: any, index: number) => ({
+                    text: option.text || option,
+                    number: option.number || index + 1,
+                  }),
+                );
+              }
+            } catch (e) {
+              this.logger.error('Error parsing CHOICES tag:', e);
+            }
+          }
+        }
+      }
+
+      // Ensure we have at least some default choices if none were found
+      if (choices.length === 0) {
+        this.logger.warn(
+          'No choices found in AI response, adding default choices',
+        );
+        choices = [
+          { text: 'Tiếp tục quan sát tình hình', number: 1 },
+          { text: 'Hành động ngay lập tức', number: 2 },
+          { text: 'Tìm cách khác để giải quyết', number: 3 },
+        ];
       }
 
       return {
