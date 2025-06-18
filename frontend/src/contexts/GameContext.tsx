@@ -21,6 +21,9 @@ interface GameContextType {
   loadGame: (gameId: string) => Promise<void>;
   makeChoice: (choiceNumber: number) => Promise<void>;
   performAction: (action: string) => Promise<void>;
+  performThinking: (think: string) => Promise<void>;
+  performCommunication: (communication: string) => Promise<void>;
+  getSummary: () => Promise<string>;
   clearError: () => void;
 }
 
@@ -126,6 +129,81 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     [currentGame]
   );
 
+  const performThinking = useCallback(
+    async (think: string): Promise<void> => {
+      if (!currentGame) {
+        setError("No active game found");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const updatedGame = await gameService.performThinking(
+          currentGame.id,
+          think
+        );
+        setCurrentGame(updatedGame);
+      } catch (err) {
+        const errorMessage = "Failed to process thinking. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentGame]
+  );
+
+  const performCommunication = useCallback(
+    async (communication: string): Promise<void> => {
+      if (!currentGame) {
+        setError("No active game found");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const updatedGame = await gameService.performCommunication(
+          currentGame.id,
+          communication
+        );
+        setCurrentGame(updatedGame);
+      } catch (err) {
+        const errorMessage = "Failed to process communication. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentGame]
+  );
+
+  const getSummary = useCallback(async (): Promise<string> => {
+    if (!currentGame) {
+      setError("No active game found");
+      throw new Error("No active game found");
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const summary = await gameService.getSummary(currentGame.id);
+      return summary;
+    } catch (err) {
+      const errorMessage = "Failed to get summary. Please try again.";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentGame]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -138,6 +216,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     loadGame,
     makeChoice,
     performAction,
+    performThinking,
+    performCommunication,
+    getSummary,
     clearError,
   };
 

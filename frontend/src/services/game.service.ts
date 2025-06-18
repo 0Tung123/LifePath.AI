@@ -36,17 +36,38 @@ export interface StorySegment {
   timestamp: string;
 }
 
+export interface StoryHistoryItem {
+  type: 'story' | 'user_choice' | 'user_custom_action' | 'system';
+  content: string;
+  timestamp: string;
+}
+
+export interface ChatHistoryItem {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export interface KnowledgeBaseItem {
+  type: 'npc' | 'item' | 'location';
+  name: string;
+  description: string;
+  [key: string]: any;
+}
+
 export interface Game {
   id: string;
   userId: string;
   settings: GameSettings;
-  storyHistory: StorySegment[];
+  storyHistory: StoryHistoryItem[];
+  chatHistoryForGemini: ChatHistoryItem[];
   characterStats: GameStats;
   inventoryItems: InventoryItem[];
   characterSkills: Skill[];
   loreFragments: LoreFragment[];
+  knowledgeBase: KnowledgeBaseItem[];
   currentPrompt: string;
   currentChoices: Choice[];
+  currentObjective: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -138,6 +159,14 @@ class GameService {
       communication,
     });
     return response.data;
+  }
+
+  /**
+   * Get story summary from AI
+   */
+  async getSummary(gameId: string): Promise<string> {
+    const response = await api.post<{ summary: string }>(`/games/${gameId}/summary`);
+    return response.data.summary;
   }
 
   /**
