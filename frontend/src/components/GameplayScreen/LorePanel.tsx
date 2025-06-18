@@ -233,7 +233,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Mảnh Truyền Thuyết ({loreFragments.length})
+            Mảnh Truyền Thuyết ({loreFragments?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab("knowledge")}
@@ -243,7 +243,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Cơ Sở Kiến Thức ({knowledgeBase.length})
+            Cơ Sở Kiến Thức ({knowledgeBase?.length || 0})
           </button>
         </div>
       </div>
@@ -252,7 +252,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "fragments" ? (
           <div className="space-y-2">
-            {loreFragments.length === 0 ? (
+            {!loreFragments || loreFragments.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
                 <svg
                   className="w-12 h-12 mx-auto mb-4 opacity-50"
@@ -303,7 +303,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {knowledgeBase.length === 0 ? (
+            {!knowledgeBase || knowledgeBase.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
                 <svg
                   className="w-12 h-12 mx-auto mb-4 opacity-50"

@@ -143,7 +143,7 @@ export default function GamePage({
   // Combine errors
   const displayError = error || gameError;
 
-  if (authLoading || gameLoading) {
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="text-center">
@@ -253,19 +253,23 @@ export default function GamePage({
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-amber-400">
-                {currentGame.settings.characterName}&apos;s Adventure
+                {currentGame?.settings?.characterName || "Unknown"}&apos;s
+                Adventure
               </h1>
               <div className="text-gray-400 mt-2">
-                {currentGame.settings.theme} • {currentGame.settings.setting}
+                {currentGame?.settings?.theme || "Unknown"} •{" "}
+                {currentGame?.settings?.setting || "Unknown"}
               </div>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-400">
-                {currentGame.storyHistory ? currentGame.storyHistory.length : 0}{" "}
-                chapters written
+                {currentGame?.storyHistory?.length || 0} chapters written
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                Last updated: {new Date(currentGame.updatedAt).toLocaleString()}
+                Last updated:{" "}
+                {currentGame?.updatedAt
+                  ? new Date(currentGame.updatedAt).toLocaleString()
+                  : "Unknown"}
               </div>
             </div>
           </div>
@@ -294,7 +298,7 @@ export default function GamePage({
         )}
 
         {/* Current Objective Panel */}
-        {currentGame.currentObjective && (
+        {currentGame?.currentObjective && (
           <div className="mb-6">
             <CurrentObjectivePanel
               currentObjective={currentGame.currentObjective}
@@ -306,25 +310,30 @@ export default function GamePage({
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
           {/* Left Sidebar - Character Info */}
           <div className="lg:col-span-1 space-y-6 overflow-y-auto">
-            <CharacterStatsPanel characterStats={currentGame.characterStats} />
-            <InventoryPanel inventoryItems={currentGame.inventoryItems} />
-            <SkillsPanel characterSkills={currentGame.characterSkills} />
+            <CharacterStatsPanel
+              characterStats={currentGame?.characterStats || {}}
+            />
+            <InventoryPanel
+              inventoryItems={currentGame?.inventoryItems || []}
+            />
+            <SkillsPanel characterSkills={currentGame?.characterSkills || []} />
           </div>
 
           {/* Center - Story History */}
           <div className="lg:col-span-2">
             <StoryHistoryPanel
-              storyHistory={currentGame.storyHistory}
-              knowledgeBase={currentGame.knowledgeBase}
+              storyHistory={currentGame?.storyHistory || []}
+              knowledgeBase={currentGame?.knowledgeBase || []}
               onLoreClick={handleLoreClick}
+              isLoading={gameLoading}
             />
           </div>
 
           {/* Right Sidebar - Lore & Actions */}
           <div className="lg:col-span-1 space-y-6 overflow-y-auto">
             <LorePanel
-              loreFragments={currentGame.loreFragments}
-              knowledgeBase={currentGame.knowledgeBase}
+              loreFragments={currentGame?.loreFragments || []}
+              knowledgeBase={currentGame?.knowledgeBase || []}
               selectedLoreItem={selectedLoreItem}
               onCloseLoreDetail={handleCloseLoreDetail}
             />
@@ -334,7 +343,7 @@ export default function GamePage({
         {/* Bottom Action Panel */}
         <div className="mt-6">
           <ActionInputPanel
-            currentChoices={currentGame.currentChoices}
+            currentChoices={currentGame?.currentChoices || []}
             isLoading={gameLoading}
             onMakeChoice={handleMakeChoice}
             onPerformAction={handlePerformAction}

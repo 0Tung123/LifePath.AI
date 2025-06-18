@@ -4,15 +4,19 @@ import React, { useRef, useEffect } from "react";
 import { StoryHistoryItem, KnowledgeBaseItem } from "@/services/game.service";
 
 interface StoryHistoryPanelProps {
-  storyHistory: StoryHistoryItem[];
+  storyHistory:
+    | StoryHistoryItem[]
+    | { text?: string; content?: string; type?: string; timestamp: string }[];
   knowledgeBase: KnowledgeBaseItem[];
   onLoreClick: (item: KnowledgeBaseItem) => void;
+  isLoading?: boolean;
 }
 
 const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   storyHistory,
   knowledgeBase,
   onLoreClick,
+  isLoading = false,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +33,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       return <span>{text}</span>;
     }
 
-    const highlightedText = text;
+    // const highlightedText = text;
     const loreItems: { item: KnowledgeBaseItem; regex: RegExp }[] = [];
 
     // Create regex patterns for each lore item
@@ -223,7 +227,26 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96"
       >
-        {storyHistory.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center text-amber-400 py-8">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+              <span className="text-sm font-medium">
+                Đang tải câu chuyện...
+              </span>
+            </div>
+          </div>
+        ) : !storyHistory || storyHistory.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             <svg
               className="w-12 h-12 mx-auto mb-4 opacity-50"
@@ -241,32 +264,40 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             <p>Câu chuyện của bạn sẽ bắt đầu ở đây...</p>
           </div>
         ) : (
-          storyHistory.map((item, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg border ${getItemStyle(
-                item.type
-              )} backdrop-blur-sm`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 text-sm text-gray-400">
-                  {getItemIcon(item.type)}
-                  <span className="capitalize">
-                    {item.type === "user_choice" && "Lựa chọn"}
-                    {item.type === "user_custom_action" && "Hành động"}
-                    {item.type === "story" && "Truyện"}
-                    {item.type === "system" && "Hệ thống"}
+          storyHistory.map((item, index) => {
+            // Handle both old format (StorySegment) and new format (StoryHistoryItem)
+            const isOldFormat = item.text && !item.content;
+            const content = isOldFormat ? item.text : item.content;
+            const type = isOldFormat ? "story" : item.type;
+            const timestamp = item.timestamp;
+
+            return (
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${getItemStyle(
+                  type
+                )} backdrop-blur-sm`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2 text-sm text-gray-400">
+                    {getItemIcon(type)}
+                    <span className="capitalize">
+                      {type === "user_choice" && "Lựa chọn"}
+                      {type === "user_custom_action" && "Hành động"}
+                      {type === "story" && "Truyện"}
+                      {type === "system" && "Hệ thống"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {new Date(timestamp).toLocaleTimeString()}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">
-                  {formatTimestamp(item.timestamp)}
-                </span>
+                <div className="text-gray-200 leading-relaxed">
+                  {highlightLoreItems(content)}
+                </div>
               </div>
-              <div className="text-gray-200 leading-relaxed">
-                {highlightLoreItems(item.content)}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
