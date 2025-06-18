@@ -65,16 +65,29 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       }
 
       // Dialogue detection (quotes or speaker patterns)
-      const dialogueMatch = trimmedLine.match(
-        /^([^"]*?):\s*"([^"]*)"$|^"([^"]*)"$/
+      // Pattern 1: "Speaker: 'dialogue'" or "Speaker: "dialogue""
+      const speakerDialogueMatch = trimmedLine.match(
+        /^([^:"]+):\s*["']([^"']*)["']$/
       );
-      if (dialogueMatch) {
-        const speaker = dialogueMatch[1]?.trim();
-        const dialogue = dialogueMatch[2] || dialogueMatch[3];
+      if (speakerDialogueMatch) {
+        const speaker = speakerDialogueMatch[1]?.trim();
+        const dialogue = speakerDialogueMatch[2];
         segments.push({
           type: "dialogue",
           content: dialogue,
-          speaker: speaker || undefined,
+          speaker: speaker,
+        });
+        continue;
+      }
+
+      // Pattern 2: Just quoted text ""dialogue"" or 'dialogue'
+      const quotedTextMatch = trimmedLine.match(/^["']([^"']*)["']$/);
+      if (quotedTextMatch) {
+        const dialogue = quotedTextMatch[1];
+        segments.push({
+          type: "dialogue",
+          content: dialogue,
+          speaker: undefined,
         });
         continue;
       }
@@ -147,6 +160,60 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     setTooltip((prev) => ({ ...prev, visible: false }));
   };
 
+  // Function to get character color based on name
+  const getCharacterColor = (speakerName: string) => {
+    // Predefined colors for common character types
+    const colorMap: { [key: string]: string } = {
+      // Main character variations
+      bạn: "text-emerald-400",
+      tôi: "text-emerald-400",
+      ta: "text-emerald-400",
+
+      // Elder/Master titles
+      "trưởng lão": "text-amber-400",
+      "sư phụ": "text-amber-400",
+      thầy: "text-amber-400",
+      "sư tổ": "text-amber-400",
+
+      // System/Narrator
+      "hệ thống": "text-cyan-400",
+      "người kể": "text-gray-400",
+      narrator: "text-gray-400",
+    };
+
+    // Check for predefined mappings first
+    const lowerName = speakerName.toLowerCase();
+    for (const [key, color] of Object.entries(colorMap)) {
+      if (lowerName.includes(key)) {
+        return color;
+      }
+    }
+
+    // Generate consistent color based on name hash
+    const colors = [
+      "text-blue-400", // Default blue
+      "text-purple-400", // Purple
+      "text-pink-400", // Pink
+      "text-rose-400", // Rose
+      "text-orange-400", // Orange
+      "text-yellow-400", // Yellow
+      "text-lime-400", // Lime
+      "text-green-400", // Green
+      "text-teal-400", // Teal (but different from lore items)
+      "text-sky-400", // Sky
+      "text-indigo-400", // Indigo
+      "text-violet-400", // Violet
+    ];
+
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    for (let i = 0; i < speakerName.length; i++) {
+      hash = ((hash << 5) - hash + speakerName.charCodeAt(i)) & 0xffffffff;
+    }
+
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   // Function to highlight lore items in text
   const highlightLoreItems = (text: string) => {
     if (!knowledgeBase || knowledgeBase.length === 0) {
@@ -217,7 +284,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             )
           }
           onMouseLeave={hideTooltip}
-          className="text-amber-400 underline hover:text-amber-300 cursor-pointer font-medium transition-colors duration-200"
+          className="text-teal-400 hover:text-teal-300 cursor-pointer font-medium transition-colors duration-200 underline decoration-teal-400/50 hover:decoration-teal-300/70"
         >
           {matchText}
         </button>
@@ -239,16 +306,25 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return segments.map((segment, index) => {
       switch (segment.type) {
         case "dialogue":
+          const speakerColor = segment.speaker
+            ? getCharacterColor(segment.speaker)
+            : "text-blue-400";
+          const borderColor = speakerColor
+            .replace("text-", "border-")
+            .replace("-400", "-400/30");
+
           return (
-            <div key={index} className="mb-2">
+            <div key={index} className="mb-3">
               {segment.speaker && (
-                <span className="font-bold text-emerald-400 mr-2">
+                <div className={`font-bold ${speakerColor} mb-1`}>
                   {segment.speaker}:
-                </span>
+                </div>
               )}
-              <span className="text-gray-200 font-serif">
+              <div
+                className={`text-gray-200 font-serif pl-4 border-l-2 ${borderColor}`}
+              >
                 &ldquo;{highlightLoreItems(segment.content)}&rdquo;
-              </span>
+              </div>
             </div>
           );
 
