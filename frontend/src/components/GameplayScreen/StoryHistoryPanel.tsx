@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { StoryHistoryItem, KnowledgeBaseItem } from "@/services/game.service";
 
 interface StoryHistoryPanelProps {
@@ -12,6 +12,20 @@ interface StoryHistoryPanelProps {
   isLoading?: boolean;
 }
 
+interface TooltipState {
+  visible: boolean;
+  content: string;
+  x: number;
+  y: number;
+}
+
+interface ContentSegment {
+  type: "dialogue" | "monologue" | "action" | "description" | "system" | "item";
+  content: string;
+  speaker?: string;
+  itemRarity?: "common" | "good" | "rare" | "epic" | "legendary";
+}
+
 const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   storyHistory,
   knowledgeBase,
@@ -19,6 +33,12 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   isLoading = false,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<TooltipState>({
+    visible: false,
+    content: "",
+    x: 0,
+    y: 0,
+  });
 
   // Auto scroll to bottom when new content is added
   useEffect(() => {
@@ -26,6 +46,106 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [storyHistory]);
+
+  // Content type detection functions
+  const detectContentType = (text: string): ContentSegment[] => {
+    const segments: ContentSegment[] = [];
+    const lines = text.split("\n").filter((line) => line.trim());
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // System messages
+      if (trimmedLine.match(/^\[Hệ Thống\]|^\[System\]|^✨|^📊|^🎯/)) {
+        segments.push({
+          type: "system",
+          content: trimmedLine,
+        });
+        continue;
+      }
+
+      // Dialogue detection (quotes or speaker patterns)
+      const dialogueMatch = trimmedLine.match(
+        /^([^"]*?):\s*"([^"]*)"$|^"([^"]*)"$/
+      );
+      if (dialogueMatch) {
+        const speaker = dialogueMatch[1]?.trim();
+        const dialogue = dialogueMatch[2] || dialogueMatch[3];
+        segments.push({
+          type: "dialogue",
+          content: dialogue,
+          speaker: speaker || undefined,
+        });
+        continue;
+      }
+
+      // Internal monologue (italic markers or thought patterns)
+      if (trimmedLine.match(/^\*.*\*$|^_.*_$|nghĩ thầm|tự nhủ|trong lòng/i)) {
+        segments.push({
+          type: "monologue",
+          content: trimmedLine.replace(/^\*|\*$|^_|_$/g, "").trim(),
+        });
+        continue;
+      }
+
+      // Item detection (brackets or item keywords)
+      const itemMatch = trimmedLine.match(
+        /\[([^\]]+)\]|\b(kiếm|đao|giáp|bùa|thuốc|đan|thạch|ngọc|châu|bảo)\b/i
+      );
+      if (itemMatch) {
+        segments.push({
+          type: "item",
+          content: trimmedLine,
+          itemRarity: detectItemRarity(trimmedLine),
+        });
+        continue;
+      }
+
+      // Action detection (action verbs or movement)
+      if (
+        trimmedLine.match(
+          /\b(đi|chạy|nhảy|tấn công|phòng thủ|sử dụng|cầm|lấy|mở|đóng|nói|hét|thì thầm)\b/i
+        )
+      ) {
+        segments.push({
+          type: "action",
+          content: trimmedLine,
+        });
+        continue;
+      }
+
+      // Default to description
+      segments.push({
+        type: "description",
+        content: trimmedLine,
+      });
+    }
+
+    return segments;
+  };
+
+  const detectItemRarity = (text: string): ContentSegment["itemRarity"] => {
+    if (text.match(/huyền thoại|legendary|vàng kim/i)) return "legendary";
+    if (text.match(/sử thi|epic|tím|violet/i)) return "epic";
+    if (text.match(/hiếm|rare|xanh lam|blue/i)) return "rare";
+    if (text.match(/tốt|good|xanh lục|green/i)) return "good";
+    return "common";
+  };
+
+  // Tooltip functions
+  const showTooltip = (content: string, event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltip({
+      visible: true,
+      content,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+    });
+  };
+
+  const hideTooltip = () => {
+    setTooltip((prev) => ({ ...prev, visible: false }));
+  };
 
   // Function to highlight lore items in text
   const highlightLoreItems = (text: string) => {
@@ -90,8 +210,14 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         <button
           key={`lore-${index}`}
           onClick={() => onLoreClick(match.item)}
-          className="text-amber-400 underline hover:text-amber-300 cursor-pointer font-medium"
-          title={`Click to view ${match.item.name} details`}
+          onMouseEnter={(e) =>
+            showTooltip(
+              match.item.description || `Chi tiết về ${match.item.name}`,
+              e
+            )
+          }
+          onMouseLeave={hideTooltip}
+          className="text-amber-400 underline hover:text-amber-300 cursor-pointer font-medium transition-colors duration-200"
         >
           {matchText}
         </button>
@@ -108,18 +234,129 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return <>{parts}</>;
   };
 
+  // Render content segments with styling
+  const renderContentSegments = (segments: ContentSegment[]) => {
+    return segments.map((segment, index) => {
+      switch (segment.type) {
+        case "dialogue":
+          return (
+            <div key={index} className="mb-2">
+              {segment.speaker && (
+                <span className="font-bold text-emerald-400 mr-2">
+                  {segment.speaker}:
+                </span>
+              )}
+              <span className="text-gray-200 font-serif">
+                &ldquo;{highlightLoreItems(segment.content)}&rdquo;
+              </span>
+            </div>
+          );
+
+        case "monologue":
+          return (
+            <div key={index} className="mb-2 italic text-purple-300 font-serif">
+              <span className="opacity-60">*</span>
+              {highlightLoreItems(segment.content)}
+              <span className="opacity-60">*</span>
+            </div>
+          );
+
+        case "action":
+          return (
+            <div key={index} className="mb-2 font-bold text-orange-400">
+              {highlightLoreItems(segment.content)}
+            </div>
+          );
+
+        case "system":
+          const systemIcon = segment.content.includes("✨")
+            ? "✨"
+            : segment.content.includes("📊")
+            ? "📊"
+            : segment.content.includes("🎯")
+            ? "🎯"
+            : "⚙️";
+          const systemColor = segment.content.includes("✨")
+            ? "text-yellow-400"
+            : segment.content.includes("📊")
+            ? "text-blue-400"
+            : segment.content.includes("🎯")
+            ? "text-green-400"
+            : "text-gray-400";
+
+          return (
+            <div
+              key={index}
+              className={`mb-2 p-3 rounded-lg bg-gray-800/50 border-l-4 ${
+                segment.content.includes("✨")
+                  ? "border-yellow-400"
+                  : segment.content.includes("📊")
+                  ? "border-blue-400"
+                  : segment.content.includes("🎯")
+                  ? "border-green-400"
+                  : "border-gray-400"
+              }`}
+            >
+              <span className={`${systemColor} font-medium`}>
+                {systemIcon} {highlightLoreItems(segment.content)}
+              </span>
+            </div>
+          );
+
+        case "item":
+          const rarityColors = {
+            common: "text-gray-400 border-gray-500",
+            good: "text-green-400 border-green-500",
+            rare: "text-blue-400 border-blue-500",
+            epic: "text-purple-400 border-purple-500",
+            legendary: "text-yellow-400 border-yellow-500",
+          };
+
+          return (
+            <div key={index} className="mb-2">
+              <span
+                className={`inline-block px-2 py-1 rounded border ${
+                  rarityColors[segment.itemRarity || "common"]
+                } bg-gray-800/30 font-medium cursor-help`}
+                onMouseEnter={(e) =>
+                  showTooltip(
+                    `Vật phẩm ${segment.itemRarity || "phổ thông"}`,
+                    e
+                  )
+                }
+                onMouseLeave={hideTooltip}
+              >
+                {highlightLoreItems(segment.content)}
+              </span>
+            </div>
+          );
+
+        case "description":
+        default:
+          return (
+            <div
+              key={index}
+              className="mb-2 text-gray-200 font-serif leading-relaxed"
+            >
+              {highlightLoreItems(segment.content)}
+            </div>
+          );
+      }
+    });
+  };
+
   const getItemStyle = (type: StoryHistoryItem["type"]) => {
     switch (type) {
       case "story":
-        return "bg-gray-700 border-gray-600";
+        return "bg-gray-900/80 border-gray-600/50 backdrop-blur-sm";
       case "user_choice":
-        return "bg-blue-900/50 border-blue-500/50";
+        return "bg-blue-900/30 border-blue-400/40 backdrop-blur-sm";
       case "user_custom_action":
-        return "bg-purple-900/50 border-purple-500/50";
+        return "bg-purple-900/30 border-purple-400/40 backdrop-blur-sm";
       case "system":
-        return "bg-yellow-900/50 border-yellow-500/50";
+        return "bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm";
       default:
-        return "bg-gray-700 border-gray-600";
+        return "bg-gray-900/80 border-gray-600/50 backdrop-blur-sm";
     }
   };
 
@@ -203,53 +440,27 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 h-full flex flex-col">
-      <div className="p-4 border-b border-gray-700">
-        <h3 className="text-lg font-semibold text-amber-400 flex items-center">
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
-          Lịch Sử Câu Chuyện
-        </h3>
-      </div>
+    <div className="relative">
+      {/* Tooltip */}
+      {tooltip.visible && (
+        <div
+          className="fixed z-50 px-3 py-2 text-sm text-white bg-gray-900 border border-gray-600 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+          }}
+        >
+          {tooltip.content}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
 
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96"
-      >
-        {isLoading ? (
-          <div className="text-center text-amber-400 py-8">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-              <span className="text-sm font-medium">
-                Đang tải câu chuyện...
-              </span>
-            </div>
-          </div>
-        ) : !storyHistory || storyHistory.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+      <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg border border-purple-500/20 h-full flex flex-col shadow-2xl">
+        {/* Header với thiết kế thư pháp */}
+        <div className="p-4 border-b border-purple-500/30 bg-gradient-to-r from-gray-800 to-gray-900">
+          <h3 className="text-xl font-bold text-amber-400 flex items-center font-serif">
             <svg
-              className="w-12 h-12 mx-auto mb-4 opacity-50"
+              className="w-6 h-6 mr-3 text-amber-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -261,44 +472,155 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
               />
             </svg>
-            <p>Câu chuyện của bạn sẽ bắt đầu ở đây...</p>
-          </div>
-        ) : (
-          storyHistory.map((item, index) => {
-            // Handle both old format (StorySegment) and new format (StoryHistoryItem)
-            const isOldFormat = item.text && !item.content;
-            const content = isOldFormat ? item.text : item.content;
-            const type = isOldFormat ? "story" : item.type;
-            const timestamp = item.timestamp;
+            <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
+              Mặc Ảnh Thư Hương
+            </span>
+            <span className="text-sm text-gray-400 ml-2 font-normal">
+              • Lịch Sử Câu Chuyện
+            </span>
+          </h3>
+        </div>
 
-            return (
-              <div
-                key={index}
-                className={`p-4 rounded-lg border ${getItemStyle(
-                  type
-                )} backdrop-blur-sm`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-400">
-                    {getItemIcon(type)}
-                    <span className="capitalize">
-                      {type === "user_choice" && "Lựa chọn"}
-                      {type === "user_custom_action" && "Hành động"}
-                      {type === "story" && "Truyện"}
-                      {type === "system" && "Hệ thống"}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {new Date(timestamp).toLocaleTimeString()}
-                  </span>
+        {/* Content Area với thiết kế giấy cổ */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-6 space-y-6 max-h-96 bg-gradient-to-b from-gray-800/50 to-gray-900/50"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)
+            `,
+          }}
+        >
+          {isLoading ? (
+            <div className="text-center text-amber-400 py-12">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-amber-400/20 rounded-full"></div>
+                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-amber-400 rounded-full border-t-transparent animate-spin"></div>
                 </div>
-                <div className="text-gray-200 leading-relaxed">
-                  {highlightLoreItems(content)}
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                </div>
+                <span className="text-lg font-serif text-amber-300">
+                  Mực đang thấm vào giấy...
+                </span>
+                <span className="text-sm text-gray-400">
+                  Đang tải câu chuyện của bạn
+                </span>
+              </div>
+            </div>
+          ) : !storyHistory || storyHistory.length === 0 ? (
+            <div className="text-center text-gray-400 py-12">
+              <div className="relative mb-6">
+                <svg
+                  className="w-20 h-20 mx-auto opacity-30"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-amber-400/20 to-purple-400/20 rounded-full animate-pulse"></div>
                 </div>
               </div>
-            );
-          })
-        )}
+              <p className="text-lg font-serif text-gray-300 mb-2">
+                Trang giấy còn trắng...
+              </p>
+              <p className="text-sm text-gray-500">
+                Câu chuyện của bạn sẽ được viết nên từ đây
+              </p>
+            </div>
+          ) : (
+            storyHistory.map((item, index) => {
+              // Handle both old format (StorySegment) and new format (StoryHistoryItem)
+              const isOldFormat =
+                "text" in item && item.text && !("content" in item);
+              const content = isOldFormat
+                ? (item as { text: string }).text
+                : (item as StoryHistoryItem).content;
+              const type = isOldFormat
+                ? "story"
+                : (item as StoryHistoryItem).type;
+              const timestamp = item.timestamp;
+
+              // Detect content segments for advanced styling
+              const contentSegments = detectContentType(content);
+
+              return (
+                <div
+                  key={index}
+                  className={`relative p-5 rounded-xl border ${getItemStyle(
+                    type
+                  )} shadow-lg hover:shadow-xl transition-all duration-300 group`}
+                >
+                  {/* Decorative corner elements */}
+                  <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-600/30">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-gray-800/50">
+                        {getItemIcon(type)}
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-300 capitalize font-serif">
+                          {type === "user_choice" && "Lựa Chọn Của Bạn"}
+                          {type === "user_custom_action" && "Hành Động Tự Do"}
+                          {type === "story" && "Câu Chuyện"}
+                          {type === "system" && "Thông Báo Hệ Thống"}
+                        </span>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {formatTimestamp(timestamp)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Type indicator */}
+                    <div
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        type === "story"
+                          ? "bg-gray-700/50 text-gray-300"
+                          : type === "user_choice"
+                          ? "bg-blue-900/50 text-blue-300"
+                          : type === "user_custom_action"
+                          ? "bg-purple-900/50 text-purple-300"
+                          : "bg-yellow-900/50 text-yellow-300"
+                      }`}
+                    >
+                      {contentSegments.length} đoạn
+                    </div>
+                  </div>
+
+                  {/* Content with advanced styling */}
+                  <div className="space-y-3">
+                    {renderContentSegments(contentSegments)}
+                  </div>
+
+                  {/* Subtle bottom decoration */}
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent"></div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

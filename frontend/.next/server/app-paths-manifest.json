@@ -1,6 +1,11 @@
 {
-  "/create-game/page": "app/create-game/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/game/[id]/page": "app/game/[id]/page.js",
-  "/page": "app/page.js"
+  "/create-game/page": "app/create-game/page.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/register/page": "app/register/page.js"
 }
