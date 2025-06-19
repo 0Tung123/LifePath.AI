@@ -18,7 +18,13 @@ import {
 } from '../interfaces/game-content.interface';
 
 interface StorySegment {
-  type: 'story' | 'user_choice' | 'user_custom_action' | 'user_thinking' | 'user_communication' | 'system';
+  type:
+    | 'story'
+    | 'user_choice'
+    | 'user_custom_action'
+    | 'user_thinking'
+    | 'user_communication'
+    | 'system';
   content: string;
   timestamp: Date;
 }
@@ -58,6 +64,15 @@ export class Game {
 
   @Column({ type: 'jsonb', name: 'current_choices', nullable: true })
   currentChoices: Choice[];
+
+  @Column({ type: 'jsonb', name: 'chat_history_for_gemini', nullable: true })
+  chatHistoryForGemini: any[];
+
+  @Column({ type: 'jsonb', name: 'knowledge_base', nullable: true })
+  knowledgeBase: any[];
+
+  @Column({ type: 'text', name: 'current_objective', nullable: true })
+  currentObjective: string | null;
 
   @Column({ default: true })
   active: boolean;

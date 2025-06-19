@@ -18,6 +18,9 @@ export declare class Game {
     loreFragments: LoreFragment[];
     currentPrompt: string;
     currentChoices: Choice[];
+    chatHistoryForGemini: any[];
+    knowledgeBase: any[];
+    currentObjective: string | null;
     active: boolean;
     createdAt: Date;
     updatedAt: Date;

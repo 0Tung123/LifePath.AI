@@ -66,11 +66,30 @@ export class GamesService {
         loreFragments: parsedContent.lore,
         currentPrompt: parsedContent.storyText,
         currentChoices: parsedContent.choices,
+        chatHistoryForGemini: [],
+        knowledgeBase: [],
+        currentObjective: null,
         active: true,
       });
 
+      // Debug logging
+      this.logger.log(
+        `Creating game with settings: ${JSON.stringify(gameSettings)}`,
+      );
+      this.logger.log(`Character name: ${gameSettings.characterName}`);
+
       // Save to database
-      return this.gamesRepository.save(newGame);
+      const savedGame = (await this.gamesRepository.save(newGame)) as Game;
+
+      // Debug logging after save
+      this.logger.log(
+        `Saved game settings: ${JSON.stringify(savedGame.settings)}`,
+      );
+      this.logger.log(
+        `Saved character name: ${savedGame.settings.characterName}`,
+      );
+
+      return savedGame;
     } catch (error) {
       console.error('Error creating game:', error);
       if (error instanceof BadRequestException) {
@@ -109,6 +128,14 @@ export class GamesService {
           `Game with ID ${id} not found or you don't have access to it`,
         );
       }
+
+      // Debug logging
+      this.logger.log(
+        `Retrieved game settings: ${JSON.stringify(game.settings)}`,
+      );
+      this.logger.log(
+        `Retrieved character name: ${game.settings.characterName}`,
+      );
 
       return game;
     } catch (error) {

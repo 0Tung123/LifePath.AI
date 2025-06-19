@@ -50,9 +50,17 @@ let GamesService = GamesService_1 = class GamesService {
                 loreFragments: parsedContent.lore,
                 currentPrompt: parsedContent.storyText,
                 currentChoices: parsedContent.choices,
+                chatHistoryForGemini: [],
+                knowledgeBase: [],
+                currentObjective: null,
                 active: true,
             });
-            return this.gamesRepository.save(newGame);
+            this.logger.log(`Creating game with settings: ${JSON.stringify(gameSettings)}`);
+            this.logger.log(`Character name: ${gameSettings.characterName}`);
+            const savedGame = (await this.gamesRepository.save(newGame));
+            this.logger.log(`Saved game settings: ${JSON.stringify(savedGame.settings)}`);
+            this.logger.log(`Saved character name: ${savedGame.settings.characterName}`);
+            return savedGame;
         }
         catch (error) {
             console.error('Error creating game:', error);
@@ -82,6 +90,8 @@ let GamesService = GamesService_1 = class GamesService {
             if (!game) {
                 throw new common_1.BadRequestException(`Game with ID ${id} not found or you don't have access to it`);
             }
+            this.logger.log(`Retrieved game settings: ${JSON.stringify(game.settings)}`);
+            this.logger.log(`Retrieved character name: ${game.settings.characterName}`);
             return game;
         }
         catch (error) {

@@ -62,6 +62,18 @@ __decorate([
     __metadata("design:type", Array)
 ], Game.prototype, "currentChoices", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'chat_history_for_gemini', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "chatHistoryForGemini", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'knowledge_base', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "knowledgeBase", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', name: 'current_objective', nullable: true }),
+    __metadata("design:type", Object)
+], Game.prototype, "currentObjective", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], Game.prototype, "active", void 0);

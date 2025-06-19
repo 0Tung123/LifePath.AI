@@ -80,15 +80,60 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         continue;
       }
 
+      // Pattern for character speaking without quotes: "Character nói: content"
+      const characterSpeakingMatch = trimmedLine.match(
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*)\s+(nói|hét|thì thầm|chửi|gào|la|kêu|thốt|thở dài|cười|khẽ nói):\s*(.+)$/i
+      );
+      if (characterSpeakingMatch) {
+        const speaker = characterSpeakingMatch[1]?.trim();
+        const dialogue = characterSpeakingMatch[3]
+          ?.trim()
+          .replace(/^["']|["']$/g, "");
+        segments.push({
+          type: "dialogue",
+          content: dialogue,
+          speaker: speaker,
+        });
+        continue;
+      }
+
       // Pattern 2: Just quoted text ""dialogue"" or 'dialogue'
       const quotedTextMatch = trimmedLine.match(/^["']([^"']*)["']$/);
       if (quotedTextMatch) {
         const dialogue = quotedTextMatch[1];
-        segments.push({
-          type: "dialogue",
-          content: dialogue,
-          speaker: "Không rõ", // Default speaker for unknown dialogue
-        });
+
+        // Check if it's a sound effect, skill name, or exclamation (not actual dialogue)
+        const soundEffectPattern =
+          /^(xoẹt|boom|bang|crash|whoosh|slash|thud|clang|rít|gầm|gừ|ầm|ào|khốn|chết|damn|shit|fuck|hell)[\s!]*$/i;
+        const isShortExclamation =
+          dialogue.length <= 10 &&
+          /^[!?]+$/.test(dialogue.replace(/[a-zA-ZÀ-ỹ\s]/g, ""));
+        const isSkillOrAction =
+          /^(tấn công|phòng thủ|né tránh|skill|kỹ năng|magic|spell|attack|defend|dodge|cơ bản|nâng cao|đặc biệt)/i.test(
+            dialogue
+          );
+        const isSoundEffect =
+          /^[a-zA-ZÀ-ỹ]*[!]+$/.test(dialogue) && dialogue.length <= 8;
+
+        if (
+          soundEffectPattern.test(dialogue) ||
+          isShortExclamation ||
+          isSkillOrAction ||
+          isSoundEffect
+        ) {
+          // Treat as action/sound effect, not dialogue
+          segments.push({
+            type: "action",
+            content: `"${dialogue}"`,
+          });
+        } else {
+          // For actual dialogue, don't assign "Không rõ" unless it's clearly dialogue
+          // Most quoted text in story context should be treated as description or action
+          segments.push({
+            type: "description",
+            content: `"${dialogue}"`,
+          });
+        }
         continue;
       }
 
@@ -356,7 +401,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                 </div>
               )}
               <div
-                className={`text-gray-200 font-serif pl-4 border-l-2 ${borderColor}`}
+                className={`text-gray-200 font-sans pl-4 border-l-2 ${borderColor}`}
               >
                 &ldquo;{highlightLoreItems(segment.content)}&rdquo;
               </div>
@@ -365,7 +410,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
         case "monologue":
           return (
-            <div key={index} className="mb-2 italic text-purple-300 font-serif">
+            <div key={index} className="mb-2 italic text-purple-300 font-sans">
               <span className="opacity-60">*</span>
               {highlightLoreItems(segment.content)}
               <span className="opacity-60">*</span>
@@ -447,7 +492,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           return (
             <div
               key={index}
-              className="mb-2 text-gray-200 font-serif leading-relaxed"
+              className="mb-2 text-gray-200 font-sans leading-relaxed"
             >
               {highlightLoreItems(segment.content)}
             </div>
@@ -605,7 +650,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg border border-purple-500/20 h-full flex flex-col shadow-2xl">
         {/* Header với thiết kế thư pháp */}
         <div className="p-4 border-b border-purple-500/30 bg-gradient-to-r from-gray-800 to-gray-900">
-          <h3 className="text-xl font-bold text-amber-400 flex items-center font-serif">
+          <h3 className="text-xl font-bold text-amber-400 flex items-center font-sans">
             <svg
               className="w-6 h-6 mr-3 text-amber-500"
               fill="none"
@@ -657,7 +702,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                     style={{ animationDelay: "0.2s" }}
                   ></div>
                 </div>
-                <span className="text-lg font-serif text-amber-300">
+                <span className="text-lg font-sans text-amber-300">
                   Mực đang thấm vào giấy...
                 </span>
                 <span className="text-sm text-gray-400">
@@ -685,7 +730,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                   <div className="w-8 h-8 bg-gradient-to-r from-amber-400/20 to-purple-400/20 rounded-full animate-pulse"></div>
                 </div>
               </div>
-              <p className="text-lg font-serif text-gray-300 mb-2">
+              <p className="text-lg font-sans text-gray-300 mb-2">
                 Trang giấy còn trắng...
               </p>
               <p className="text-sm text-gray-500">
@@ -728,7 +773,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                         {getItemIcon(type)}
                       </div>
                       <div>
-                        <span className="text-sm font-medium text-gray-300 capitalize font-serif">
+                        <span className="text-sm font-medium text-gray-300 capitalize font-sans">
                           {type === "user_choice" && "Lựa Chọn Của Bạn"}
                           {type === "user_custom_action" && "Hành Động Tự Do"}
                           {type === "story" && "Câu Chuyện"}
