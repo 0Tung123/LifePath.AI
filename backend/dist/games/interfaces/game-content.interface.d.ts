@@ -23,6 +23,29 @@ export interface Choice {
     text: string;
     number: number;
 }
+export interface NpcMet {
+    name: string;
+    description: string;
+    firstMet: Date;
+    interactions: number;
+}
+export interface ItemUsed {
+    name: string;
+    description: string;
+    usedAt: Date;
+    quantity: number;
+}
+export interface ImportantEvent {
+    title: string;
+    description: string;
+    timestamp: Date;
+    type: string;
+}
+export interface Achievement {
+    name: string;
+    description: string;
+    unlockedAt: Date;
+}
 export interface ParsedGameContent {
     storyText: string;
     stats: GameStats;
@@ -30,4 +53,8 @@ export interface ParsedGameContent {
     skills: Skill[];
     lore: LoreFragment[];
     choices: Choice[];
+    npcsMet?: NpcMet[];
+    itemsUsed?: ItemUsed[];
+    importantEvents?: ImportantEvent[];
+    achievements?: Achievement[];
 }

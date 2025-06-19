@@ -354,6 +354,18 @@ class GameService {
             throw error; // Re-throw to allow handling in the UI
         }
     }
+    /**
+   * Get character life summary (for death screen)
+   */ async getLifeSummary(gameId) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/games/${gameId}/life-summary`);
+        return response.data;
+    }
+    /**
+   * Resurrect character with penalties
+   */ async resurrectCharacter(gameId) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(`/games/${gameId}/resurrect`);
+        return response.data;
+    }
 }
 const gameService = new GameService();
 const __TURBOPACK__default__export__ = gameService;
@@ -531,6 +543,50 @@ const GameProvider = ({ children })=>{
     }["GameProvider.useCallback[getSummary]"], [
         currentGame
     ]);
+    const getLifeSummary = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[getLifeSummary]": async ()=>{
+            if (!currentGame) {
+                setError("No active game found");
+                throw new Error("No active game found");
+            }
+            setIsLoading(true);
+            setError(null);
+            try {
+                const lifeSummary = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].getLifeSummary(currentGame.id);
+                return lifeSummary;
+            } catch (err) {
+                const errorMessage = "Failed to get life summary. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
+        }
+    }["GameProvider.useCallback[getLifeSummary]"], [
+        currentGame
+    ]);
+    const resurrectCharacter = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "GameProvider.useCallback[resurrectCharacter]": async ()=>{
+            if (!currentGame) {
+                setError("No active game found");
+                return;
+            }
+            setIsLoading(true);
+            setError(null);
+            try {
+                const updatedGame = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$game$2e$service$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].resurrectCharacter(currentGame.id);
+                setCurrentGame(updatedGame);
+            } catch (err) {
+                const errorMessage = "Failed to resurrect character. Please try again.";
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            } finally{
+                setIsLoading(false);
+            }
+        }
+    }["GameProvider.useCallback[resurrectCharacter]"], [
+        currentGame
+    ]);
     const clearError = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "GameProvider.useCallback[clearError]": ()=>{
             setError(null);
@@ -547,6 +603,8 @@ const GameProvider = ({ children })=>{
         performThinking,
         performCommunication,
         getSummary,
+        getLifeSummary,
+        resurrectCharacter,
         clearError
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(GameContext.Provider, {
@@ -554,11 +612,11 @@ const GameProvider = ({ children })=>{
         children: children
     }, void 0, false, {
         fileName: "[project]/src/contexts/GameContext.tsx",
-        lineNumber: 225,
+        lineNumber: 274,
         columnNumber: 10
     }, this);
 };
-_s(GameProvider, "GAO1S0msXY2sj7TmzFsJVYoryeg=");
+_s(GameProvider, "jOW/bOXwmVNCW//zYXTpUu8NRZs=");
 _c = GameProvider;
 const useGame = ()=>{
     _s1();

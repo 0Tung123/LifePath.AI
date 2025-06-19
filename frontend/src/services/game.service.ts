@@ -74,7 +74,28 @@ export interface Game {
   currentPrompt: string;
   currentChoices: Choice[];
   currentObjective: string;
+  npcsMet?: {
+    name: string;
+    description: string;
+    firstMet: string;
+    interactions: number;
+  }[];
+  itemsUsed?: {
+    name: string;
+    description: string;
+    usedAt: string;
+    quantity: number;
+  }[];
+  importantEvents?: {
+    title: string;
+    description: string;
+    timestamp: string;
+    type: string;
+  }[];
+  achievements?: { name: string; description: string; unlockedAt: string }[];
   active: boolean;
+  deathDate?: string;
+  deathCause?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -97,6 +118,23 @@ export interface GameSettings {
 
 export interface CreateGameDto {
   gameSettings: GameSettings;
+}
+
+export interface CharacterLifeSummary {
+  characterName: string;
+  theme: string;
+  setting: string;
+  birthDate: string;
+  deathDate: string;
+  deathCause: string;
+  playTime: string;
+  finalStats: GameStats;
+  inventory: InventoryItem[];
+  skills: Skill[];
+  npcsMet: { name: string; description: string }[];
+  importantEvents: { description: string; timestamp: string }[];
+  totalChapters: number;
+  achievements: { name: string; description: string; unlockedAt: string }[];
 }
 
 class GameService {
@@ -188,6 +226,24 @@ class GameService {
       console.error("Error deleting game:", error);
       throw error; // Re-throw to allow handling in the UI
     }
+  }
+
+  /**
+   * Get character life summary (for death screen)
+   */
+  async getLifeSummary(gameId: string): Promise<CharacterLifeSummary> {
+    const response = await api.get<CharacterLifeSummary>(
+      `/games/${gameId}/life-summary`
+    );
+    return response.data;
+  }
+
+  /**
+   * Resurrect character with penalties
+   */
+  async resurrectCharacter(gameId: string): Promise<Game> {
+    const response = await api.post<Game>(`/games/${gameId}/resurrect`);
+    return response.data;
   }
 }
 

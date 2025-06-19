@@ -74,8 +74,41 @@ export class Game {
   @Column({ type: 'text', name: 'current_objective', nullable: true })
   currentObjective: string | null;
 
+  @Column({ type: 'jsonb', name: 'npcs_met', nullable: true })
+  npcsMet: {
+    name: string;
+    description: string;
+    firstMet: Date;
+    interactions: number;
+  }[];
+
+  @Column({ type: 'jsonb', name: 'items_used', nullable: true })
+  itemsUsed: {
+    name: string;
+    description: string;
+    usedAt: Date;
+    quantity: number;
+  }[];
+
+  @Column({ type: 'jsonb', name: 'important_events', nullable: true })
+  importantEvents: {
+    title: string;
+    description: string;
+    timestamp: Date;
+    type: string;
+  }[];
+
+  @Column({ type: 'jsonb', name: 'achievements', nullable: true })
+  achievements: { name: string; description: string; unlockedAt: Date }[];
+
   @Column({ default: true })
   active: boolean;
+
+  @Column({ type: 'timestamp', name: 'death_date', nullable: true })
+  deathDate: Date | null;
+
+  @Column({ type: 'text', name: 'death_cause', nullable: true })
+  deathCause: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

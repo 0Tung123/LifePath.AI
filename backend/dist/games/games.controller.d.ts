@@ -10,4 +10,6 @@ export declare class GamesController {
     findOne(id: string, req: any): Promise<Game>;
     remove(id: string, req: any): Promise<void>;
     processAction(id: string, req: any, actionDto: GameActionDto): Promise<Game>;
+    getLifeSummary(id: string, req: any): Promise<any>;
+    resurrectCharacter(id: string, req: any): Promise<Game>;
 }

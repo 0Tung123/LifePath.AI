@@ -137,20 +137,23 @@ export class GamesController {
     description: 'Action processed successfully',
     type: Game,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid input or game not found' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async processAction(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Request() req,
     @Body() actionDto: GameActionDto,
   ): Promise<Game> {
     const userId = req.user.userId;
     const { choiceNumber, action, think, communication } = actionDto;
-    
+
     return this.gamesService.processAction(
       id,
       userId,
@@ -159,5 +162,50 @@ export class GamesController {
       think,
       communication,
     );
+  }
+
+  @Get(':id/life-summary')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get character life summary (for death screen)' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Life summary retrieved successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getLifeSummary(@Param('id') id: string, @Request() req): Promise<any> {
+    const userId = req.user.userId;
+    return this.gamesService.generateLifeSummary(id);
+  }
+
+  @Post(':id/resurrect')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resurrect character with penalties' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Character resurrected successfully',
+    type: Game,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Cannot resurrect' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async resurrectCharacter(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.resurrectCharacter(id, userId);
   }
 }

@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -49,28 +50,44 @@ export class GamesService {
         `Parsed content - Choices found: ${parsedContent.choices.length}`,
       );
 
+      // Ensure health is set in character stats
+      const statsWithHealth = {
+        ...parsedContent.stats,
+        // Add default health if not present
+        ...(!parsedContent.stats.Health &&
+          !parsedContent.stats['Máu'] &&
+          !parsedContent.stats['Sinh Lực'] && {
+            'Sinh Lực': '100/100',
+          }),
+      };
+
       // Create new game record
-      const newGame = this.gamesRepository.create({
-        userId,
-        settings: gameSettings,
-        storyHistory: [
-          {
-            type: 'story',
-            content: parsedContent.storyText,
-            timestamp: new Date(),
-          },
-        ],
-        characterStats: parsedContent.stats,
-        inventoryItems: parsedContent.inventory,
-        characterSkills: parsedContent.skills,
-        loreFragments: parsedContent.lore,
-        currentPrompt: parsedContent.storyText,
-        currentChoices: parsedContent.choices,
-        chatHistoryForGemini: [],
-        knowledgeBase: [],
-        currentObjective: null,
-        active: true,
-      });
+      const newGame = this.gamesRepository.create();
+      newGame.userId = userId;
+      newGame.settings = gameSettings;
+      newGame.storyHistory = [
+        {
+          type: 'story',
+          content: parsedContent.storyText,
+          timestamp: new Date(),
+        },
+      ];
+      newGame.characterStats = statsWithHealth;
+      newGame.inventoryItems = parsedContent.inventory;
+      newGame.characterSkills = parsedContent.skills;
+      newGame.loreFragments = parsedContent.lore;
+      newGame.currentPrompt = parsedContent.storyText;
+      newGame.currentChoices = parsedContent.choices;
+      newGame.chatHistoryForGemini = [];
+      newGame.knowledgeBase = [];
+      newGame.currentObjective = null;
+      newGame.npcsMet = [];
+      newGame.itemsUsed = [];
+      newGame.importantEvents = [];
+      newGame.achievements = [];
+      newGame.active = true;
+      newGame.deathDate = null;
+      newGame.deathCause = null;
 
       // Debug logging
       this.logger.log(
@@ -215,6 +232,18 @@ export class GamesService {
             `Invalid choice number: ${choiceNumber}`,
           );
         }
+
+        // Handle special resurrection choices
+        if (!game.active && validChoice.text.includes('hồi sinh')) {
+          // User chose to resurrect
+          return await this.resurrectCharacter(id, userId);
+        } else if (
+          !game.active &&
+          validChoice.text.includes('Chấp nhận cái chết')
+        ) {
+          // User chose to accept death - just return current game state
+          return game;
+        }
       }
 
       // 3. Build prompt for Gemini based on the action
@@ -277,6 +306,32 @@ export class GamesService {
       game.currentPrompt = parsedContent.storyText;
       game.currentChoices = parsedContent.choices;
       game.characterStats = { ...game.characterStats, ...parsedContent.stats };
+
+      // Check for death condition
+      const isDead = this.checkIfCharacterIsDead(game.characterStats);
+      if (isDead && game.active) {
+        // Check for resurrection items/skills
+        const hasResurrectionItem = this.checkForResurrectionItems(
+          game.inventoryItems,
+          game.characterSkills,
+        );
+
+        if (hasResurrectionItem) {
+          // Character has resurrection ability - add special choices
+          game.currentChoices = [
+            { text: 'Sử dụng khả năng hồi sinh (sẽ có hình phạt)', number: 1 },
+            { text: 'Chấp nhận cái chết và xem tóm tắt cuộc đời', number: 2 },
+          ];
+          game.currentPrompt = `${parsedContent.storyText}\n\n**CẢNH BÁO: Nhân vật của bạn đã chết!**\nTuy nhiên, bạn có khả năng hồi sinh. Hãy lựa chọn:`;
+        } else {
+          // Character is dead - end game
+          game.active = false;
+          game.deathDate = new Date();
+          game.deathCause = this.extractDeathCause(parsedContent.storyText);
+          game.currentChoices = [];
+          game.currentPrompt = `${parsedContent.storyText}\n\n**GAME OVER: Nhân vật của bạn đã chết!**`;
+        }
+      }
 
       // Handle inventory changes (merge with existing inventory)
       // Update quantities for existing items or add new ones
@@ -393,8 +448,10 @@ III. CẤU TRÚC TƯƠNG TÁC: CÁC THẺ VẬN MỆNH
 Để sinh linh phàm trần có thể hiểu được những thay đổi của số phận, ngươi phải sử dụng các thẻ đặc biệt sau. Mỗi thẻ phải nằm trên một dòng riêng biệt.
 
 [STATS: ...]: Ghi lại sự thay đổi về thuộc tính của nhân vật.
-Ví dụ Tiên Hiệp: [STATS: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500]
-Ví dụ Hunter: [STATS: Cấp Độ=12, Sức Mạnh=35, Năng Lượng=150/150]
+**QUAN TRỌNG: BẮT BUỘC phải có chỉ số Sinh Lực (Health) dạng "hiện tại/tối đa"**
+Ví dụ Tiên Hiệp: [STATS: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500, Sinh Lực=100/100]
+Ví dụ Hunter: [STATS: Cấp Độ=12, Sức Mạnh=35, Năng Lượng=150/150, Sinh Lực=80/80]
+Ví dụ Murim: [STATS: Cảnh Giới="Hậu Thiên", Nội Lực=300/300, Sinh Lực=120/120]
 
 [INVENTORY_ADD: ...] / [INVENTORY_REMOVE: ...]: Thêm hoặc bớt vật phẩm khỏi túi đồ của nhân vật.
 Ví dụ: [INVENTORY_ADD: Name="Hồi Nguyên Đan", Description="Phục hồi 100 điểm chân khí."]
@@ -567,8 +624,10 @@ III. CẤU TRÚC TƯƠNG TÁC: CÁC THẺ VẬN MỆNH
 Để sinh linh phàm trần có thể hiểu được những thay đổi của số phận, ngươi phải sử dụng các thẻ đặc biệt sau. Mỗi thẻ phải nằm trên một dòng riêng biệt.
 
 [STATS: ...]: Ghi lại sự thay đổi về thuộc tính của nhân vật.
-Ví dụ Tiên Hiệp: [STATS: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500]
-Ví dụ Hunter: [STATS: Cấp Độ=12, Sức Mạnh=35, Năng Lượng=150/150]
+**QUAN TRỌNG: BẮT BUỘC phải có chỉ số Sinh Lực (Health) dạng "hiện tại/tối đa"**
+Ví dụ Tiên Hiệp: [STATS: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500, Sinh Lực=100/100]
+Ví dụ Hunter: [STATS: Cấp Độ=12, Sức Mạnh=35, Năng Lượng=150/150, Sinh Lực=80/80]
+Ví dụ Murim: [STATS: Cảnh Giới="Hậu Thiên", Nội Lực=300/300, Sinh Lực=120/120]
 
 [INVENTORY_ADD: ...] / [INVENTORY_REMOVE: ...]: Thêm hoặc bớt vật phẩm khỏi túi đồ của nhân vật.
 Ví dụ: [INVENTORY_ADD: Name="Hồi Nguyên Đan", Description="Phục hồi 100 điểm chân khí."]
@@ -952,5 +1011,264 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
         'Failed to parse AI response: ' + error.message,
       );
     }
+  }
+
+  /**
+   * Check if character is dead based on health stats
+   */
+  private checkIfCharacterIsDead(stats: GameStats): boolean {
+    // Check various health stat names
+    const healthKeys = ['Health', 'Máu', 'Sinh Lực', 'HP', 'Sức Khỏe'];
+
+    for (const key of healthKeys) {
+      if (stats[key]) {
+        const healthValue = String(stats[key]);
+
+        // Handle formats like "0/100", "0", "0/50"
+        if (healthValue.includes('/')) {
+          const currentHealth = parseInt(healthValue.split('/')[0]);
+          return currentHealth <= 0;
+        } else {
+          const currentHealth = parseInt(healthValue);
+          return currentHealth <= 0;
+        }
+      }
+    }
+
+    return false; // No health stat found, assume alive
+  }
+
+  /**
+   * Check if character has resurrection items or skills
+   */
+  private checkForResurrectionItems(
+    inventory: InventoryItem[],
+    skills: Skill[],
+  ): boolean {
+    // Check inventory for resurrection items
+    const resurrectionItemNames = [
+      'luân hồi',
+      'trọng sinh',
+      'hồi sinh',
+      'phục sinh',
+      'tái sinh',
+      'bất tử',
+      'bất diệt',
+      'hồi nguyên đan',
+      'tái sinh đan',
+      'resurrection',
+      'revive',
+      'rebirth',
+      'reincarnation',
+    ];
+
+    const hasResurrectionItem = inventory.some(
+      (item) =>
+        resurrectionItemNames.some((name) =>
+          item.name.toLowerCase().includes(name.toLowerCase()),
+        ) && item.quantity > 0,
+    );
+
+    // Check skills for resurrection abilities
+    const hasResurrectionSkill = skills.some((skill) =>
+      resurrectionItemNames.some(
+        (name) =>
+          skill.name.toLowerCase().includes(name.toLowerCase()) ||
+          (skill.description &&
+            skill.description.toLowerCase().includes(name.toLowerCase())),
+      ),
+    );
+
+    return hasResurrectionItem || hasResurrectionSkill;
+  }
+
+  /**
+   * Extract death cause from story text
+   */
+  private extractDeathCause(storyText: string): string {
+    // Simple extraction - take last sentence or paragraph
+    const sentences = storyText
+      .split(/[.!?]+/)
+      .filter((s) => s.trim().length > 0);
+    return sentences[sentences.length - 1]?.trim() || 'Nguyên nhân không rõ';
+  }
+
+  /**
+   * Handle resurrection with penalties
+   */
+  private handleResurrection(game: Game): void {
+    // Restore health but apply penalties
+    const healthKeys = ['Health', 'Máu', 'Sinh Lực', 'HP', 'Sức Khỏe'];
+
+    for (const key of healthKeys) {
+      if (game.characterStats[key]) {
+        const healthValue = String(game.characterStats[key]);
+        if (healthValue.includes('/')) {
+          const maxHealth = parseInt(healthValue.split('/')[1]);
+          // Restore to 50% health as penalty
+          game.characterStats[key] =
+            `${Math.floor(maxHealth * 0.5)}/${maxHealth}`;
+        } else {
+          // If no max health, set to 50
+          game.characterStats[key] = '50';
+        }
+        break;
+      }
+    }
+
+    // Apply stat penalties (reduce by 10-20%)
+    Object.keys(game.characterStats).forEach((key) => {
+      if (
+        key !== 'Health' &&
+        key !== 'Máu' &&
+        key !== 'Sinh Lực' &&
+        key !== 'HP' &&
+        key !== 'Sức Khỏe'
+      ) {
+        const value = game.characterStats[key];
+        if (typeof value === 'number') {
+          game.characterStats[key] = Math.floor(value * 0.9); // 10% penalty
+        } else if (typeof value === 'string' && !isNaN(Number(value))) {
+          game.characterStats[key] = Math.floor(Number(value) * 0.9);
+        }
+      }
+    });
+
+    // Remove resurrection item if used
+    const resurrectionItemNames = [
+      'luân hồi',
+      'trọng sinh',
+      'hồi sinh',
+      'phục sinh',
+      'tái sinh',
+      'bất tử',
+      'bất diệt',
+      'hồi nguyên đan',
+      'tái sinh đan',
+    ];
+
+    game.inventoryItems.forEach((item) => {
+      if (
+        resurrectionItemNames.some((name) =>
+          item.name.toLowerCase().includes(name.toLowerCase()),
+        ) &&
+        item.quantity > 0
+      ) {
+        item.quantity -= 1;
+      }
+    });
+
+    // Remove items with 0 quantity
+    game.inventoryItems = game.inventoryItems.filter(
+      (item) => item.quantity > 0,
+    );
+  }
+
+  /**
+   * Generate character life summary
+   */
+  async generateLifeSummary(gameId: string): Promise<any> {
+    const game = await this.gamesRepository.findOne({
+      where: { id: gameId },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    // Calculate play time
+    const playTime = new Date().getTime() - new Date(game.createdAt).getTime();
+    const playDays = Math.floor(playTime / (1000 * 60 * 60 * 24));
+    const playHours = Math.floor(
+      (playTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    );
+
+    // Extract NPCs met from lore fragments
+    const npcsMet = game.loreFragments
+      .filter((lore) => lore.type === 'npc')
+      .map((npc) => ({ name: npc.name, description: npc.description }));
+
+    // Extract important events from story history
+    const importantEvents = game.storyHistory
+      .filter((story) => story.type === 'story')
+      .slice(0, 10) // First 10 major events
+      .map((event) => ({
+        description: event.content.substring(0, 100) + '...',
+        timestamp: event.timestamp,
+      }));
+
+    return {
+      characterName: game.settings.characterName,
+      theme: game.settings.theme,
+      setting: game.settings.setting,
+      birthDate: game.createdAt,
+      deathDate: game.deathDate || new Date(),
+      deathCause: game.deathCause || 'Không rõ nguyên nhân',
+      playTime: `${playDays} ngày ${playHours} giờ`,
+      finalStats: game.characterStats,
+      inventory: game.inventoryItems,
+      skills: game.characterSkills,
+      npcsMet: npcsMet,
+      importantEvents: importantEvents,
+      totalChapters: game.storyHistory.length,
+      achievements: game.achievements || [],
+    };
+  }
+
+  /**
+   * Resurrect character with penalties
+   */
+  async resurrectCharacter(gameId: string, userId: string): Promise<Game> {
+    const game = await this.gamesRepository.findOne({
+      where: { id: gameId, userId },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    if (game.active) {
+      throw new BadRequestException('Character is not dead');
+    }
+
+    // Check if character has resurrection items/skills
+    const hasResurrectionItem = this.checkForResurrectionItems(
+      game.inventoryItems,
+      game.characterSkills,
+    );
+
+    if (!hasResurrectionItem) {
+      throw new BadRequestException(
+        'No resurrection items or skills available',
+      );
+    }
+
+    // Apply resurrection with penalties
+    this.handleResurrection(game);
+
+    // Reactivate game
+    game.active = true;
+    game.deathDate = null;
+    game.deathCause = null;
+
+    // Add resurrection story
+    game.storyHistory.push({
+      type: 'system',
+      content:
+        'Nhân vật đã được hồi sinh với một số hình phạt về chỉ số. Cuộc phiêu lưu tiếp tục...',
+      timestamp: new Date(),
+    });
+
+    // Reset choices to continue game
+    game.currentChoices = [
+      { text: 'Tiếp tục cuộc phiêu lưu', number: 1 },
+      { text: 'Nghỉ ngơi để phục hồi', number: 2 },
+      { text: 'Kiểm tra tình trạng hiện tại', number: 3 },
+    ];
+
+    game.currentPrompt =
+      'Bạn đã được hồi sinh! Mặc dù còn yếu ớt sau cái chết, nhưng cuộc phiêu lưu vẫn tiếp tục. Bạn muốn làm gì tiếp theo?';
+
+    return await this.gamesRepository.save(game);
   }
 }

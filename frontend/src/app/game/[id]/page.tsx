@@ -4,7 +4,10 @@ import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGame } from "@/contexts/GameContext";
-import { KnowledgeBaseItem } from "@/services/game.service";
+import {
+  KnowledgeBaseItem,
+  CharacterLifeSummary,
+} from "@/services/game.service";
 import Header from "@/components/Header";
 
 // Import GameplayScreen components
@@ -15,6 +18,7 @@ import InventoryPanel from "@/components/GameplayScreen/InventoryPanel";
 import SkillsPanel from "@/components/GameplayScreen/SkillsPanel";
 import LorePanel from "@/components/GameplayScreen/LorePanel";
 import ActionInputPanel from "@/components/GameplayScreen/ActionInputPanel";
+import DeathScreen from "@/components/GameplayScreen/DeathScreen";
 
 export default function GamePage({
   params,
@@ -30,6 +34,8 @@ export default function GamePage({
     performThinking,
     performCommunication,
     getSummary,
+    getLifeSummary,
+    resurrectCharacter,
     isLoading: gameLoading,
     error: gameError,
     clearError,
@@ -44,6 +50,10 @@ export default function GamePage({
     useState<KnowledgeBaseItem | null>(null);
   const [summaryText, setSummaryText] = useState<string>("");
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showDeathScreen, setShowDeathScreen] = useState(false);
+  const [lifeSummary, setLifeSummary] = useState<CharacterLifeSummary | null>(
+    null
+  );
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -68,13 +78,29 @@ export default function GamePage({
     setError(null);
   }, [clearError]);
 
+  // Check for death condition
+  useEffect(() => {
+    if (currentGame && !currentGame.active && !showDeathScreen) {
+      // Character is dead, load life summary
+      getLifeSummary()
+        .then((summary) => {
+          setLifeSummary(summary);
+          setShowDeathScreen(true);
+        })
+        .catch((err) => {
+          console.error("Error loading life summary:", err);
+          setError("Failed to load character summary.");
+        });
+    }
+  }, [currentGame, showDeathScreen, getLifeSummary]);
+
   // Convert loreFragments to knowledgeBase
   const createKnowledgeBase = (): KnowledgeBaseItem[] => {
     if (!currentGame?.loreFragments) return [];
-    
+
     return currentGame.loreFragments
-      .filter(fragment => fragment.name && fragment.description)
-      .map(fragment => ({
+      .filter((fragment) => fragment.name && fragment.description)
+      .map((fragment) => ({
         type: fragment.type,
         name: fragment.name!,
         description: fragment.description!,
@@ -155,6 +181,62 @@ export default function GamePage({
     setSummaryText("");
   };
 
+  // Death screen handlers
+  const handleResurrect = async () => {
+    setError(null);
+    clearError();
+    try {
+      await resurrectCharacter();
+      setShowDeathScreen(false);
+      setLifeSummary(null);
+    } catch (err) {
+      console.error("Error resurrecting character:", err);
+      setError("Failed to resurrect character. Please try again.");
+    }
+  };
+
+  const handleAcceptDeath = () => {
+    // Redirect to dashboard
+    router.push("/dashboard");
+  };
+
+  // Check if character has resurrection ability
+  const hasResurrectionAbility = () => {
+    if (!currentGame) return false;
+
+    // Check for resurrection items
+    const resurrectionItemNames = [
+      "luân hồi",
+      "trọng sinh",
+      "hồi sinh",
+      "phục sinh",
+      "tái sinh",
+      "bất tử",
+      "bất diệt",
+      "hồi nguyên đan",
+      "tái sinh đan",
+    ];
+
+    const hasResurrectionItem = currentGame.inventoryItems?.some(
+      (item) =>
+        resurrectionItemNames.some((name) =>
+          item.name.toLowerCase().includes(name.toLowerCase())
+        ) && item.quantity > 0
+    );
+
+    // Check for resurrection skills
+    const hasResurrectionSkill = currentGame.characterSkills?.some((skill) =>
+      resurrectionItemNames.some(
+        (name) =>
+          skill.name.toLowerCase().includes(name.toLowerCase()) ||
+          (skill.description &&
+            skill.description.toLowerCase().includes(name.toLowerCase()))
+      )
+    );
+
+    return hasResurrectionItem || hasResurrectionSkill;
+  };
+
   // Combine errors
   const displayError = error || gameError;
 
@@ -212,6 +294,17 @@ export default function GamePage({
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header />
+
+      {/* Death Screen */}
+      {showDeathScreen && lifeSummary && (
+        <DeathScreen
+          lifeSummary={lifeSummary}
+          hasResurrectionAbility={hasResurrectionAbility()}
+          onResurrect={handleResurrect}
+          onAcceptDeath={handleAcceptDeath}
+          isLoading={gameLoading}
+        />
+      )}
 
       {/* Summary Modal */}
       {showSummaryModal && (

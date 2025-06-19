@@ -74,9 +74,33 @@ __decorate([
     __metadata("design:type", Object)
 ], Game.prototype, "currentObjective", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'npcs_met', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "npcsMet", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'items_used', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "itemsUsed", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'important_events', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "importantEvents", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'achievements', nullable: true }),
+    __metadata("design:type", Array)
+], Game.prototype, "achievements", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], Game.prototype, "active", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'death_date', nullable: true }),
+    __metadata("design:type", Object)
+], Game.prototype, "deathDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', name: 'death_cause', nullable: true }),
+    __metadata("design:type", Object)
+], Game.prototype, "deathCause", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

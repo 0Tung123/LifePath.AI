@@ -21,6 +21,46 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
     return Math.min((currentExp / maxExp) * 100, 100);
   };
 
+  // Calculate Health bar percentage
+  const getHealthPercentage = () => {
+    const healthKeys = ["Health", "Máu", "Sinh Lực", "HP", "Sức Khỏe"];
+
+    for (const key of healthKeys) {
+      if (characterStats[key]) {
+        const healthValue = String(characterStats[key]);
+        if (healthValue.includes("/")) {
+          const [current, max] = healthValue.split("/").map(Number);
+          return Math.min((current / max) * 100, 100);
+        }
+      }
+    }
+    return 100; // Default to full health if no health stat found
+  };
+
+  // Get health display info
+  const getHealthInfo = () => {
+    const healthKeys = ["Health", "Máu", "Sinh Lực", "HP", "Sức Khỏe"];
+
+    for (const key of healthKeys) {
+      if (characterStats[key]) {
+        return {
+          key,
+          value: characterStats[key],
+          current: characterStats[key].toString().includes("/")
+            ? Number(characterStats[key].toString().split("/")[0])
+            : Number(characterStats[key]),
+          max: characterStats[key].toString().includes("/")
+            ? Number(characterStats[key].toString().split("/")[1])
+            : Number(characterStats[key]),
+        };
+      }
+    }
+    return null;
+  };
+
+  const healthInfo = getHealthInfo();
+  const healthPercentage = getHealthPercentage();
+
   return (
     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
       <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center">
@@ -41,14 +81,48 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
       </h3>
 
       <div className="space-y-3">
+        {/* Health Bar */}
+        {healthInfo && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-300 text-sm">{healthInfo.key}:</span>
+              <span className="text-white text-sm">
+                {healthInfo.current} / {healthInfo.max}
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all duration-300 ${
+                  healthPercentage > 60
+                    ? "bg-gradient-to-r from-green-500 to-green-400"
+                    : healthPercentage > 30
+                    ? "bg-gradient-to-r from-yellow-500 to-orange-400"
+                    : "bg-gradient-to-r from-red-500 to-red-400"
+                }`}
+                style={{ width: `${healthPercentage}%` }}
+              ></div>
+            </div>
+            {healthPercentage <= 0 && (
+              <div className="text-red-400 text-xs mt-1 font-medium">
+                💀 Nhân vật đã chết!
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Character Stats */}
         {Object.entries(characterStats).map(([key, value]) => {
-          // Skip EXP related fields as they're handled separately
+          // Skip EXP and Health related fields as they're handled separately
           if (
             key === "KinhNghiem" ||
             key === "KinhNghiemCanLenCap" ||
             key === "Experience" ||
-            key === "MaxExperience"
+            key === "MaxExperience" ||
+            key === "Health" ||
+            key === "Máu" ||
+            key === "Sinh Lực" ||
+            key === "HP" ||
+            key === "Sức Khỏe"
           ) {
             return null;
           }

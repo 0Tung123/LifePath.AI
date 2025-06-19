@@ -15,4 +15,10 @@ export declare class GamesService {
     private buildActionPrompt;
     private buildInitialPrompt;
     private parseAiResponse;
+    private checkIfCharacterIsDead;
+    private checkForResurrectionItems;
+    private extractDeathCause;
+    private handleResurrection;
+    generateLifeSummary(gameId: string): Promise<any>;
+    resurrectCharacter(gameId: string, userId: string): Promise<Game>;
 }

@@ -11,6 +11,7 @@ import gameService, {
   Game,
   CreateGameDto,
   GameSettings,
+  CharacterLifeSummary,
 } from "../services/game.service";
 
 interface GameContextType {
@@ -24,6 +25,8 @@ interface GameContextType {
   performThinking: (think: string) => Promise<void>;
   performCommunication: (communication: string) => Promise<void>;
   getSummary: () => Promise<string>;
+  getLifeSummary: () => Promise<CharacterLifeSummary>;
+  resurrectCharacter: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -173,7 +176,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         );
         setCurrentGame(updatedGame);
       } catch (err) {
-        const errorMessage = "Failed to process communication. Please try again.";
+        const errorMessage =
+          "Failed to process communication. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
@@ -204,6 +208,49 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, [currentGame]);
 
+  const getLifeSummary =
+    useCallback(async (): Promise<CharacterLifeSummary> => {
+      if (!currentGame) {
+        setError("No active game found");
+        throw new Error("No active game found");
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const lifeSummary = await gameService.getLifeSummary(currentGame.id);
+        return lifeSummary;
+      } catch (err) {
+        const errorMessage = "Failed to get life summary. Please try again.";
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    }, [currentGame]);
+
+  const resurrectCharacter = useCallback(async (): Promise<void> => {
+    if (!currentGame) {
+      setError("No active game found");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const updatedGame = await gameService.resurrectCharacter(currentGame.id);
+      setCurrentGame(updatedGame);
+    } catch (err) {
+      const errorMessage = "Failed to resurrect character. Please try again.";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentGame]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -219,6 +266,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     performThinking,
     performCommunication,
     getSummary,
+    getLifeSummary,
+    resurrectCharacter,
     clearError,
   };
 

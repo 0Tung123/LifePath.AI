@@ -49,6 +49,14 @@ let GamesController = class GamesController {
         const { choiceNumber, action, think, communication } = actionDto;
         return this.gamesService.processAction(id, userId, choiceNumber, action, think, communication);
     }
+    async getLifeSummary(id, req) {
+        const userId = req.user.userId;
+        return this.gamesService.generateLifeSummary(id);
+    }
+    async resurrectCharacter(id, req) {
+        const userId = req.user.userId;
+        return this.gamesService.resurrectCharacter(id, userId);
+    }
 };
 exports.GamesController = GamesController;
 __decorate([
@@ -154,7 +162,10 @@ __decorate([
         description: 'Action processed successfully',
         type: game_entity_1.Game,
     }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request - Invalid input or game not found' }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Bad request - Invalid input or game not found',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 401,
         description: 'Unauthorized - Invalid or missing JWT token',
@@ -167,6 +178,52 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, game_action_dto_1.GameActionDto]),
     __metadata("design:returntype", Promise)
 ], GamesController.prototype, "processAction", null);
+__decorate([
+    (0, common_1.Get)(':id/life-summary'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get character life summary (for death screen)' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Game ID', type: 'string' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Life summary retrieved successfully',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request - Game not found' }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GamesController.prototype, "getLifeSummary", null);
+__decorate([
+    (0, common_1.Post)(':id/resurrect'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Resurrect character with penalties' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Game ID', type: 'string' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Character resurrected successfully',
+        type: game_entity_1.Game,
+    }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Bad request - Cannot resurrect' }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Unauthorized - Invalid or missing JWT token',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], GamesController.prototype, "resurrectCharacter", null);
 exports.GamesController = GamesController = __decorate([
     (0, swagger_1.ApiTags)('games'),
     (0, common_1.Controller)('games'),

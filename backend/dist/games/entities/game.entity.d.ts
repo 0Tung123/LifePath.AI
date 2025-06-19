@@ -21,7 +21,32 @@ export declare class Game {
     chatHistoryForGemini: any[];
     knowledgeBase: any[];
     currentObjective: string | null;
+    npcsMet: {
+        name: string;
+        description: string;
+        firstMet: Date;
+        interactions: number;
+    }[];
+    itemsUsed: {
+        name: string;
+        description: string;
+        usedAt: Date;
+        quantity: number;
+    }[];
+    importantEvents: {
+        title: string;
+        description: string;
+        timestamp: Date;
+        type: string;
+    }[];
+    achievements: {
+        name: string;
+        description: string;
+        unlockedAt: Date;
+    }[];
     active: boolean;
+    deathDate: Date | null;
+    deathCause: string | null;
     createdAt: Date;
     updatedAt: Date;
 }
