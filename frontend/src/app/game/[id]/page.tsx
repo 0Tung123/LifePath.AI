@@ -68,6 +68,21 @@ export default function GamePage({
     setError(null);
   }, [clearError]);
 
+  // Convert loreFragments to knowledgeBase
+  const createKnowledgeBase = (): KnowledgeBaseItem[] => {
+    if (!currentGame?.loreFragments) return [];
+    
+    return currentGame.loreFragments
+      .filter(fragment => fragment.name && fragment.description)
+      .map(fragment => ({
+        type: fragment.type,
+        name: fragment.name!,
+        description: fragment.description!,
+        title: fragment.title,
+        content: fragment.content,
+      }));
+  };
+
   // Action handlers
   const handleMakeChoice = async (choiceNumber: number) => {
     setError(null);
@@ -323,7 +338,7 @@ export default function GamePage({
           <div className="lg:col-span-2">
             <StoryHistoryPanel
               storyHistory={currentGame?.storyHistory || []}
-              knowledgeBase={currentGame?.knowledgeBase || []}
+              knowledgeBase={createKnowledgeBase()}
               onLoreClick={handleLoreClick}
               isLoading={gameLoading}
             />
@@ -333,7 +348,7 @@ export default function GamePage({
           <div className="lg:col-span-1 space-y-6 overflow-y-auto">
             <LorePanel
               loreFragments={currentGame?.loreFragments || []}
-              knowledgeBase={currentGame?.knowledgeBase || []}
+              knowledgeBase={createKnowledgeBase()}
               selectedLoreItem={selectedLoreItem}
               onCloseLoreDetail={handleCloseLoreDetail}
             />

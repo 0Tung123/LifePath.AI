@@ -2,7 +2,8 @@ import { User } from '../../user/entities/user.entity';
 import { GameSettingsDto } from '../dto/create-game.dto';
 import { GameStats, InventoryItem, Skill, LoreFragment, Choice } from '../interfaces/game-content.interface';
 interface StorySegment {
-    text: string;
+    type: 'story' | 'user_choice' | 'user_custom_action' | 'user_thinking' | 'user_communication' | 'system';
+    content: string;
     timestamp: Date;
 }
 export declare class Game {

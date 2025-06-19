@@ -468,7 +468,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                 segments.push({
                     type: "dialogue",
                     content: dialogue,
-                    speaker: undefined
+                    speaker: "Không rõ"
                 });
                 continue;
             }
@@ -576,16 +576,51 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
         }
         return colors[Math.abs(hash) % colors.length];
     };
+    // Function to highlight items in brackets [item] with yellow color
+    const highlightBracketItems = (text)=>{
+        const parts = [];
+        const bracketRegex = /\[([^\]]+)\]/g;
+        let lastIndex = 0;
+        let match;
+        while((match = bracketRegex.exec(text)) !== null){
+            // Add text before the match
+            if (match.index > lastIndex) {
+                parts.push(text.slice(lastIndex, match.index));
+            }
+            // Add the highlighted bracket item
+            const itemName = match[1];
+            parts.push(/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                className: "text-yellow-400 font-medium bg-yellow-400/10 px-1 rounded",
+                children: [
+                    "[",
+                    itemName,
+                    "]"
+                ]
+            }, `bracket-${match.index}`, true, {
+                fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+                lineNumber: 233,
+                columnNumber: 9
+            }, this));
+            lastIndex = match.index + match[0].length;
+        }
+        // Add remaining text
+        if (lastIndex < text.length) {
+            parts.push(text.slice(lastIndex));
+        }
+        return parts.length > 1 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+            children: parts
+        }, void 0, false) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+            children: text
+        }, void 0, false, {
+            fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+            lineNumber: 249,
+            columnNumber: 46
+        }, this);
+    };
     // Function to highlight lore items in text
     const highlightLoreItems = (text)=>{
         if (!knowledgeBase || knowledgeBase.length === 0) {
-            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                children: text
-            }, void 0, false, {
-                fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                lineNumber: 220,
-                columnNumber: 14
-            }, this);
+            return highlightBracketItems(text);
         }
         // const highlightedText = text;
         const loreItems = [];
@@ -641,7 +676,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                 children: matchText
             }, `lore-${index}`, false, {
                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                lineNumber: 277,
+                lineNumber: 312,
                 columnNumber: 9
             }, this));
             lastIndex = match.end;
@@ -672,7 +707,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 319,
+                                lineNumber: 354,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -684,13 +719,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 323,
+                                lineNumber: 358,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, index, true, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 317,
+                        lineNumber: 352,
                         columnNumber: 13
                     }, this);
                 case "monologue":
@@ -702,7 +737,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                 children: "*"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 334,
+                                lineNumber: 369,
                                 columnNumber: 15
                             }, this),
                             highlightLoreItems(segment.content),
@@ -711,13 +746,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                 children: "*"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 336,
+                                lineNumber: 371,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, index, true, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 333,
+                        lineNumber: 368,
                         columnNumber: 13
                     }, this);
                 case "action":
@@ -726,7 +761,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         children: highlightLoreItems(segment.content)
                     }, index, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 342,
+                        lineNumber: 377,
                         columnNumber: 13
                     }, this);
                 case "system":
@@ -743,12 +778,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                            lineNumber: 376,
+                            lineNumber: 411,
                             columnNumber: 15
                         }, this)
                     }, index, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 364,
+                        lineNumber: 399,
                         columnNumber: 13
                     }, this);
                 case "item":
@@ -768,12 +803,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                             children: highlightLoreItems(segment.content)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                            lineNumber: 393,
+                            lineNumber: 428,
                             columnNumber: 15
                         }, this)
                     }, index, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 392,
+                        lineNumber: 427,
                         columnNumber: 13
                     }, this);
                 case "description":
@@ -783,7 +818,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         children: highlightLoreItems(segment.content)
                     }, index, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 413,
+                        lineNumber: 448,
                         columnNumber: 13
                     }, this);
             }
@@ -797,6 +832,10 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                 return "bg-blue-900/30 border-blue-400/40 backdrop-blur-sm";
             case "user_custom_action":
                 return "bg-purple-900/30 border-purple-400/40 backdrop-blur-sm";
+            case "user_thinking":
+                return "bg-indigo-900/30 border-indigo-400/40 backdrop-blur-sm";
+            case "user_communication":
+                return "bg-green-900/30 border-green-400/40 backdrop-blur-sm";
             case "system":
                 return "bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm";
             default:
@@ -818,12 +857,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 449,
+                        lineNumber: 488,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                    lineNumber: 443,
+                    lineNumber: 482,
                     columnNumber: 11
                 }, this);
             case "user_choice":
@@ -839,12 +878,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 465,
+                        lineNumber: 504,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                    lineNumber: 459,
+                    lineNumber: 498,
                     columnNumber: 11
                 }, this);
             case "user_custom_action":
@@ -860,12 +899,54 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         d: "M13 10V3L4 14h7v7l9-11h-7z"
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 481,
+                        lineNumber: 520,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                    lineNumber: 475,
+                    lineNumber: 514,
+                    columnNumber: 11
+                }, this);
+            case "user_thinking":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                    className: "w-4 h-4",
+                    fill: "none",
+                    stroke: "currentColor",
+                    viewBox: "0 0 24 24",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: 2,
+                        d: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+                        lineNumber: 536,
+                        columnNumber: 13
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+                    lineNumber: 530,
+                    columnNumber: 11
+                }, this);
+            case "user_communication":
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                    className: "w-4 h-4",
+                    fill: "none",
+                    stroke: "currentColor",
+                    viewBox: "0 0 24 24",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        strokeWidth: 2,
+                        d: "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+                        lineNumber: 552,
+                        columnNumber: 13
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
+                    lineNumber: 546,
                     columnNumber: 11
                 }, this);
             case "system":
@@ -881,12 +962,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 497,
+                        lineNumber: 568,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                    lineNumber: 491,
+                    lineNumber: 562,
                     columnNumber: 11
                 }, this);
             default:
@@ -915,13 +996,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                         className: "absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 530,
+                        lineNumber: 601,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                lineNumber: 522,
+                lineNumber: 593,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -944,12 +1025,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                         d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 544,
+                                        lineNumber: 615,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 538,
+                                    lineNumber: 609,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -957,7 +1038,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                     children: "Mặc Ảnh Thư Hương"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 551,
+                                    lineNumber: 622,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -965,18 +1046,18 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                     children: "• Lịch Sử Câu Chuyện"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 554,
+                                    lineNumber: 625,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                            lineNumber: 537,
+                            lineNumber: 608,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 536,
+                        lineNumber: 607,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1000,20 +1081,20 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 className: "w-16 h-16 border-4 border-amber-400/20 rounded-full"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 575,
+                                                lineNumber: 646,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                 className: "absolute top-0 left-0 w-16 h-16 border-4 border-amber-400 rounded-full border-t-transparent animate-spin"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 576,
+                                                lineNumber: 647,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 574,
+                                        lineNumber: 645,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1023,7 +1104,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 className: "w-2 h-2 bg-amber-400 rounded-full animate-bounce"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 579,
+                                                lineNumber: 650,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1033,7 +1114,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 580,
+                                                lineNumber: 651,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1043,13 +1124,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 584,
+                                                lineNumber: 655,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 578,
+                                        lineNumber: 649,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1057,7 +1138,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                         children: "Mực đang thấm vào giấy..."
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 589,
+                                        lineNumber: 660,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1065,18 +1146,18 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                         children: "Đang tải câu chuyện của bạn"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 592,
+                                        lineNumber: 663,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 573,
+                                lineNumber: 644,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                            lineNumber: 572,
+                            lineNumber: 643,
                             columnNumber: 13
                         }, this) : !storyHistory || storyHistory.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "text-center text-gray-400 py-12",
@@ -1096,12 +1177,12 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 606,
+                                                lineNumber: 677,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                            lineNumber: 600,
+                                            lineNumber: 671,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1110,18 +1191,18 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 className: "w-8 h-8 bg-gradient-to-r from-amber-400/20 to-purple-400/20 rounded-full animate-pulse"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 614,
+                                                lineNumber: 685,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                            lineNumber: 613,
+                                            lineNumber: 684,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 599,
+                                    lineNumber: 670,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1129,7 +1210,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                     children: "Trang giấy còn trắng..."
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 617,
+                                    lineNumber: 688,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1137,13 +1218,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                     children: "Câu chuyện của bạn sẽ được viết nên từ đây"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                    lineNumber: 620,
+                                    lineNumber: 691,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                            lineNumber: 598,
+                            lineNumber: 669,
                             columnNumber: 13
                         }, this) : storyHistory.map((item, index)=>{
                             // Handle both old format (StorySegment) and new format (StoryHistoryItem)
@@ -1160,28 +1241,28 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                         className: "absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 648,
+                                        lineNumber: 719,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 649,
+                                        lineNumber: 720,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 650,
+                                        lineNumber: 721,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 651,
+                                        lineNumber: 722,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1195,7 +1276,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                         children: getItemIcon(type)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                        lineNumber: 656,
+                                                        lineNumber: 727,
                                                         columnNumber: 23
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1210,7 +1291,7 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                                lineNumber: 660,
+                                                                lineNumber: 731,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1218,19 +1299,19 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                                 children: formatTimestamp(timestamp)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                                lineNumber: 666,
+                                                                lineNumber: 737,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                        lineNumber: 659,
+                                                        lineNumber: 730,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 655,
+                                                lineNumber: 726,
                                                 columnNumber: 21
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1241,13 +1322,13 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                                lineNumber: 673,
+                                                lineNumber: 744,
                                                 columnNumber: 21
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 654,
+                                        lineNumber: 725,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1255,38 +1336,38 @@ const StoryHistoryPanel = ({ storyHistory, knowledgeBase, onLoreClick, isLoading
                                         children: renderContentSegments(contentSegments)
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 689,
+                                        lineNumber: 760,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                        lineNumber: 694,
+                                        lineNumber: 765,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, index, true, {
                                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                                lineNumber: 641,
+                                lineNumber: 712,
                                 columnNumber: 17
                             }, this);
                         })
                     }, void 0, false, {
                         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                        lineNumber: 561,
+                        lineNumber: 632,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-                lineNumber: 534,
+                lineNumber: 605,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/GameplayScreen/StoryHistoryPanel.tsx",
-        lineNumber: 519,
+        lineNumber: 590,
         columnNumber: 5
     }, this);
 };
@@ -2930,6 +3011,17 @@ function GamePage({ params }) {
     }, [
         clearError
     ]);
+    // Convert loreFragments to knowledgeBase
+    const createKnowledgeBase = ()=>{
+        if (!currentGame?.loreFragments) return [];
+        return currentGame.loreFragments.filter((fragment)=>fragment.name && fragment.description).map((fragment)=>({
+                type: fragment.type,
+                name: fragment.name,
+                description: fragment.description,
+                title: fragment.title,
+                content: fragment.content
+            }));
+    };
     // Action handlers
     const handleMakeChoice = async (choiceNumber)=>{
         setError(null);
@@ -3012,7 +3104,7 @@ function GamePage({ params }) {
                                         className: "w-3 h-3 bg-amber-400 rounded-full animate-bounce"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 152,
+                                        lineNumber: 167,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3022,7 +3114,7 @@ function GamePage({ params }) {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 153,
+                                        lineNumber: 168,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3032,13 +3124,13 @@ function GamePage({ params }) {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 157,
+                                        lineNumber: 172,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 151,
+                                lineNumber: 166,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3046,13 +3138,13 @@ function GamePage({ params }) {
                                 children: "Loading your adventure..."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 162,
+                                lineNumber: 177,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 150,
+                        lineNumber: 165,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3060,18 +3152,18 @@ function GamePage({ params }) {
                         children: "Preparing the threads of fate..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 166,
+                        lineNumber: 181,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                lineNumber: 149,
+                lineNumber: 164,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/game/[id]/page.tsx",
-            lineNumber: 148,
+            lineNumber: 163,
             columnNumber: 7
         }, this);
     }
@@ -3081,7 +3173,7 @@ function GamePage({ params }) {
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Header$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                    lineNumber: 175,
+                    lineNumber: 190,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3094,7 +3186,7 @@ function GamePage({ params }) {
                                 children: "Adventure Not Found"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 178,
+                                lineNumber: 193,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3102,7 +3194,7 @@ function GamePage({ params }) {
                                 children: "The adventure you're looking for doesn't exist or you don't have access to it."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 181,
+                                lineNumber: 196,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3111,24 +3203,24 @@ function GamePage({ params }) {
                                 children: "Return to Dashboard"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 185,
+                                lineNumber: 200,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 177,
+                        lineNumber: 192,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                    lineNumber: 176,
+                    lineNumber: 191,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/game/[id]/page.tsx",
-            lineNumber: 174,
+            lineNumber: 189,
             columnNumber: 7
         }, this);
     }
@@ -3137,7 +3229,7 @@ function GamePage({ params }) {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Header$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                lineNumber: 199,
+                lineNumber: 214,
                 columnNumber: 7
             }, this),
             showSummaryModal && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3163,19 +3255,19 @@ function GamePage({ params }) {
                                                 d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                                lineNumber: 213,
+                                                lineNumber: 228,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 207,
+                                            lineNumber: 222,
                                             columnNumber: 17
                                         }, this),
                                         "Tóm Tắt Câu Chuyện AI"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 206,
+                                    lineNumber: 221,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -3193,23 +3285,23 @@ function GamePage({ params }) {
                                             d: "M6 18L18 6M6 6l12 12"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 232,
+                                            lineNumber: 247,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 226,
+                                        lineNumber: 241,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 222,
+                                    lineNumber: 237,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 205,
+                            lineNumber: 220,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3219,23 +3311,23 @@ function GamePage({ params }) {
                                 children: summaryText
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 242,
+                                lineNumber: 257,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 241,
+                            lineNumber: 256,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                    lineNumber: 204,
+                    lineNumber: 219,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                lineNumber: 203,
+                lineNumber: 218,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3256,7 +3348,7 @@ function GamePage({ params }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 255,
+                                            lineNumber: 270,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3269,13 +3361,13 @@ function GamePage({ params }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 259,
+                                            lineNumber: 274,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 254,
+                                    lineNumber: 269,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3289,7 +3381,7 @@ function GamePage({ params }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 265,
+                                            lineNumber: 280,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3301,24 +3393,24 @@ function GamePage({ params }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                                            lineNumber: 268,
+                                            lineNumber: 283,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 264,
+                                    lineNumber: 279,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 253,
+                            lineNumber: 268,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 252,
+                        lineNumber: 267,
                         columnNumber: 9
                     }, this),
                     displayError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3338,30 +3430,30 @@ function GamePage({ params }) {
                                         d: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 288,
+                                        lineNumber: 303,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 282,
+                                    lineNumber: 297,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                     children: displayError
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 295,
+                                    lineNumber: 310,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 281,
+                            lineNumber: 296,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 280,
+                        lineNumber: 295,
                         columnNumber: 11
                     }, this),
                     currentGame?.currentObjective && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3370,12 +3462,12 @@ function GamePage({ params }) {
                             currentObjective: currentGame.currentObjective
                         }, void 0, false, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 303,
+                            lineNumber: 318,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 302,
+                        lineNumber: 317,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3388,67 +3480,67 @@ function GamePage({ params }) {
                                         characterStats: currentGame?.characterStats || {}
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 313,
+                                        lineNumber: 328,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$GameplayScreen$2f$InventoryPanel$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                                         inventoryItems: currentGame?.inventoryItems || []
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 316,
+                                        lineNumber: 331,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$GameplayScreen$2f$SkillsPanel$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                                         characterSkills: currentGame?.characterSkills || []
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                                        lineNumber: 319,
+                                        lineNumber: 334,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 312,
+                                lineNumber: 327,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "lg:col-span-2",
                                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$GameplayScreen$2f$StoryHistoryPanel$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                                     storyHistory: currentGame?.storyHistory || [],
-                                    knowledgeBase: currentGame?.knowledgeBase || [],
+                                    knowledgeBase: createKnowledgeBase(),
                                     onLoreClick: handleLoreClick,
                                     isLoading: gameLoading
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 324,
+                                    lineNumber: 339,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 323,
+                                lineNumber: 338,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "lg:col-span-1 space-y-6 overflow-y-auto",
                                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$GameplayScreen$2f$LorePanel$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                                     loreFragments: currentGame?.loreFragments || [],
-                                    knowledgeBase: currentGame?.knowledgeBase || [],
+                                    knowledgeBase: createKnowledgeBase(),
                                     selectedLoreItem: selectedLoreItem,
                                     onCloseLoreDetail: handleCloseLoreDetail
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/game/[id]/page.tsx",
-                                    lineNumber: 334,
+                                    lineNumber: 349,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                                lineNumber: 333,
+                                lineNumber: 348,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 310,
+                        lineNumber: 325,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3463,24 +3555,24 @@ function GamePage({ params }) {
                             onGetSummary: handleGetSummary
                         }, void 0, false, {
                             fileName: "[project]/src/app/game/[id]/page.tsx",
-                            lineNumber: 345,
+                            lineNumber: 360,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/game/[id]/page.tsx",
-                        lineNumber: 344,
+                        lineNumber: 359,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/game/[id]/page.tsx",
-                lineNumber: 250,
+                lineNumber: 265,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/game/[id]/page.tsx",
-        lineNumber: 198,
+        lineNumber: 213,
         columnNumber: 5
     }, this);
 }

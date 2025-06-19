@@ -54,7 +54,11 @@ export class GamesService {
         userId,
         settings: gameSettings,
         storyHistory: [
-          { text: parsedContent.storyText, timestamp: new Date() },
+          {
+            type: 'story',
+            content: parsedContent.storyText,
+            timestamp: new Date(),
+          },
         ],
         characterStats: parsedContent.stats,
         inventoryItems: parsedContent.inventory,
@@ -202,9 +206,43 @@ export class GamesService {
       const parsedContent = this.parseAiResponse(aiResponse);
 
       // 6. Update game state
-      // Add new story segment
+      // First, add user action to history
+      const now = new Date();
+      if (choiceNumber) {
+        const selectedChoice = game.currentChoices.find(
+          (c) => c.number === choiceNumber,
+        );
+        if (selectedChoice) {
+          game.storyHistory.push({
+            type: 'user_choice',
+            content: selectedChoice.text,
+            timestamp: now,
+          });
+        }
+      } else if (action) {
+        game.storyHistory.push({
+          type: 'user_custom_action',
+          content: action,
+          timestamp: now,
+        });
+      } else if (think) {
+        game.storyHistory.push({
+          type: 'user_thinking',
+          content: think,
+          timestamp: now,
+        });
+      } else if (communication) {
+        game.storyHistory.push({
+          type: 'user_communication',
+          content: communication,
+          timestamp: now,
+        });
+      }
+
+      // Then add AI response
       game.storyHistory.push({
-        text: parsedContent.storyText,
+        type: 'story',
+        content: parsedContent.storyText,
         timestamp: new Date(),
       });
 
@@ -388,7 +426,7 @@ Backstory: ${game.settings.characterBackstory}
         // Get the last 1-2 story segments for context
         const recentHistory = game.storyHistory.slice(-2);
         recentHistory.forEach((segment) => {
-          prompt += segment.text + '\n\n';
+          prompt += segment.content + '\n\n';
         });
       }
 
@@ -560,6 +598,23 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
         throw new Error('AI response is empty or undefined');
       }
 
+      // Debug logging
+      this.logger.log('=== AI Response Debug ===');
+      this.logger.log(`Response length: ${response.length}`);
+      this.logger.log(`Response preview: ${response.substring(0, 500)}...`);
+
+      // Check for tags
+      const hasStatsTag = response.includes('[STATS:');
+      const hasInventoryTag =
+        response.includes('[INVENTORY_ADD:') ||
+        response.includes('[INVENTORY_INIT:');
+      const hasSkillTag =
+        response.includes('[SKILL:') || response.includes('[SKILLS:');
+
+      this.logger.log(
+        `Tags found - STATS: ${hasStatsTag}, INVENTORY: ${hasInventoryTag}, SKILL: ${hasSkillTag}`,
+      );
+
       // Extract story text (everything before the first tag)
       let storyText = response;
       const firstTagMatch = response.match(
@@ -612,6 +667,10 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
       ];
       const inventory: InventoryItem[] = [];
 
+      this.logger.log(
+        `Found ${inventoryAddMatches.length} INVENTORY_ADD matches`,
+      );
+
       inventoryAddMatches.forEach((match) => {
         const itemString = match[1];
         const itemProps: InventoryItem = {
@@ -652,6 +711,8 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
       // Extract skills
       const skillMatches = [...response.matchAll(/\[SKILL:\s*(.*?)\]/g)];
       const skills: Skill[] = [];
+
+      this.logger.log(`Found ${skillMatches.length} SKILL matches`);
 
       skillMatches.forEach((match) => {
         const skillString = match[1];

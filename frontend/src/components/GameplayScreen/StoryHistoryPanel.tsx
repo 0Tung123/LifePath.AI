@@ -87,7 +87,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         segments.push({
           type: "dialogue",
           content: dialogue,
-          speaker: undefined,
+          speaker: "Không rõ", // Default speaker for unknown dialogue
         });
         continue;
       }
@@ -214,10 +214,45 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return colors[Math.abs(hash) % colors.length];
   };
 
+  // Function to highlight items in brackets [item] with yellow color
+  const highlightBracketItems = (text: string) => {
+    const parts: (string | React.ReactElement)[] = [];
+    const bracketRegex = /\[([^\]]+)\]/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = bracketRegex.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+
+      // Add the highlighted bracket item
+      const itemName = match[1];
+      parts.push(
+        <span
+          key={`bracket-${match.index}`}
+          className="text-yellow-400 font-medium bg-yellow-400/10 px-1 rounded"
+        >
+          [{itemName}]
+        </span>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts.length > 1 ? <>{parts}</> : <span>{text}</span>;
+  };
+
   // Function to highlight lore items in text
   const highlightLoreItems = (text: string) => {
     if (!knowledgeBase || knowledgeBase.length === 0) {
-      return <span>{text}</span>;
+      return highlightBracketItems(text);
     }
 
     // const highlightedText = text;
@@ -429,6 +464,10 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         return "bg-blue-900/30 border-blue-400/40 backdrop-blur-sm";
       case "user_custom_action":
         return "bg-purple-900/30 border-purple-400/40 backdrop-blur-sm";
+      case "user_thinking":
+        return "bg-indigo-900/30 border-indigo-400/40 backdrop-blur-sm";
+      case "user_communication":
+        return "bg-green-900/30 border-green-400/40 backdrop-blur-sm";
       case "system":
         return "bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm";
       default:
@@ -483,6 +522,38 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
               strokeLinejoin="round"
               strokeWidth={2}
               d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
+          </svg>
+        );
+      case "user_thinking":
+        return (
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+            />
+          </svg>
+        );
+      case "user_communication":
+        return (
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
         );

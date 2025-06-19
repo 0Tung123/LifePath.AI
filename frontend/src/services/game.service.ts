@@ -37,18 +37,24 @@ export interface StorySegment {
 }
 
 export interface StoryHistoryItem {
-  type: 'story' | 'user_choice' | 'user_custom_action' | 'system';
+  type:
+    | "story"
+    | "user_choice"
+    | "user_custom_action"
+    | "user_thinking"
+    | "user_communication"
+    | "system";
   content: string;
   timestamp: string;
 }
 
 export interface ChatHistoryItem {
-  role: 'user' | 'model';
+  role: "user" | "model";
   content: string;
 }
 
 export interface KnowledgeBaseItem {
-  type: 'npc' | 'item' | 'location';
+  type: "npc" | "item" | "location" | "general";
   name: string;
   description: string;
   [key: string]: any;
@@ -165,7 +171,9 @@ class GameService {
    * Get story summary from AI
    */
   async getSummary(gameId: string): Promise<string> {
-    const response = await api.post<{ summary: string }>(`/games/${gameId}/summary`);
+    const response = await api.post<{ summary: string }>(
+      `/games/${gameId}/summary`
+    );
     return response.data.summary;
   }
 

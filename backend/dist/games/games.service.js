@@ -38,7 +38,11 @@ let GamesService = GamesService_1 = class GamesService {
                 userId,
                 settings: gameSettings,
                 storyHistory: [
-                    { text: parsedContent.storyText, timestamp: new Date() },
+                    {
+                        type: 'story',
+                        content: parsedContent.storyText,
+                        timestamp: new Date(),
+                    },
                 ],
                 characterStats: parsedContent.stats,
                 inventoryItems: parsedContent.inventory,
@@ -127,8 +131,41 @@ let GamesService = GamesService_1 = class GamesService {
             const prompt = this.buildActionPrompt(game, choiceNumber, action, think, communication);
             const aiResponse = await this.geminiService.generateGameContent(prompt);
             const parsedContent = this.parseAiResponse(aiResponse);
+            const now = new Date();
+            if (choiceNumber) {
+                const selectedChoice = game.currentChoices.find((c) => c.number === choiceNumber);
+                if (selectedChoice) {
+                    game.storyHistory.push({
+                        type: 'user_choice',
+                        content: selectedChoice.text,
+                        timestamp: now,
+                    });
+                }
+            }
+            else if (action) {
+                game.storyHistory.push({
+                    type: 'user_custom_action',
+                    content: action,
+                    timestamp: now,
+                });
+            }
+            else if (think) {
+                game.storyHistory.push({
+                    type: 'user_thinking',
+                    content: think,
+                    timestamp: now,
+                });
+            }
+            else if (communication) {
+                game.storyHistory.push({
+                    type: 'user_communication',
+                    content: communication,
+                    timestamp: now,
+                });
+            }
             game.storyHistory.push({
-                text: parsedContent.storyText,
+                type: 'story',
+                content: parsedContent.storyText,
                 timestamp: new Date(),
             });
             game.currentPrompt = parsedContent.storyText;
@@ -274,7 +311,7 @@ Backstory: ${game.settings.characterBackstory}
             if (game.storyHistory.length > 0) {
                 const recentHistory = game.storyHistory.slice(-2);
                 recentHistory.forEach((segment) => {
-                    prompt += segment.text + '\n\n';
+                    prompt += segment.content + '\n\n';
                 });
             }
             if (game.currentChoices && game.currentChoices.length > 0) {
@@ -434,6 +471,14 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
             if (!response) {
                 throw new Error('AI response is empty or undefined');
             }
+            this.logger.log('=== AI Response Debug ===');
+            this.logger.log(`Response length: ${response.length}`);
+            this.logger.log(`Response preview: ${response.substring(0, 500)}...`);
+            const hasStatsTag = response.includes('[STATS:');
+            const hasInventoryTag = response.includes('[INVENTORY_ADD:') ||
+                response.includes('[INVENTORY_INIT:');
+            const hasSkillTag = response.includes('[SKILL:') || response.includes('[SKILLS:');
+            this.logger.log(`Tags found - STATS: ${hasStatsTag}, INVENTORY: ${hasInventoryTag}, SKILL: ${hasSkillTag}`);
             let storyText = response;
             const firstTagMatch = response.match(/\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION):/);
             if (firstTagMatch && firstTagMatch.index !== undefined) {
@@ -470,6 +515,7 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
                 ...response.matchAll(/\[INVENTORY_ADD:\s*(.*?)\]/g),
             ];
             const inventory = [];
+            this.logger.log(`Found ${inventoryAddMatches.length} INVENTORY_ADD matches`);
             inventoryAddMatches.forEach((match) => {
                 const itemString = match[1];
                 const itemProps = {
@@ -505,6 +551,7 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
             }
             const skillMatches = [...response.matchAll(/\[SKILL:\s*(.*?)\]/g)];
             const skills = [];
+            this.logger.log(`Found ${skillMatches.length} SKILL matches`);
             skillMatches.forEach((match) => {
                 const skillString = match[1];
                 const skillProps = { name: '' };

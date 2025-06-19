@@ -179,6 +179,7 @@
     --color-green-600: oklch(62.7% .194 149.214);
     --color-green-700: oklch(52.7% .154 150.069);
     --color-green-800: oklch(44.8% .119 151.328);
+    --color-green-900: oklch(39.3% .095 152.535);
     --color-emerald-400: oklch(76.5% .177 163.223);
     --color-emerald-500: oklch(69.6% .17 162.48);
     --color-teal-300: oklch(85.5% .138 181.071);
@@ -194,6 +195,7 @@
     --color-blue-800: oklch(42.4% .199 265.638);
     --color-blue-900: oklch(37.9% .146 265.522);
     --color-indigo-400: oklch(67.3% .182 276.935);
+    --color-indigo-900: oklch(35.9% .144 278.697);
     --color-violet-400: oklch(70.2% .183 293.541);
     --color-purple-200: oklch(90.2% .063 306.703);
     --color-purple-300: oklch(82.7% .119 306.383);
@@ -1152,8 +1154,28 @@
     border-color: var(--color-green-400);
   }
 
+  .border-green-400\/40 {
+    border-color: #05df7266;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-green-400\/40 {
+      border-color: color-mix(in oklab, var(--color-green-400) 40%, transparent);
+    }
+  }
+
   .border-green-500 {
     border-color: var(--color-green-500);
+  }
+
+  .border-indigo-400\/40 {
+    border-color: #7d87ff66;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-indigo-400\/40 {
+      border-color: color-mix(in oklab, var(--color-indigo-400) 40%, transparent);
+    }
   }
 
   .border-purple-400\/40 {
@@ -1376,6 +1398,26 @@
     background-color: var(--color-green-600);
   }
 
+  .bg-green-900\/30 {
+    background-color: #0d542b4d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-green-900\/30 {
+      background-color: color-mix(in oklab, var(--color-green-900) 30%, transparent);
+    }
+  }
+
+  .bg-indigo-900\/30 {
+    background-color: #312c854d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-indigo-900\/30 {
+      background-color: color-mix(in oklab, var(--color-indigo-900) 30%, transparent);
+    }
+  }
+
   .bg-purple-600 {
     background-color: var(--color-purple-600);
   }
@@ -1424,6 +1466,16 @@
 
   .bg-yellow-100 {
     background-color: var(--color-yellow-100);
+  }
+
+  .bg-yellow-400\/10 {
+    background-color: #fac8001a;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-yellow-400\/10 {
+      background-color: color-mix(in oklab, var(--color-yellow-400) 10%, transparent);
+    }
   }
 
   .bg-yellow-900\/20 {
@@ -1668,6 +1720,10 @@
 
   .p-24 {
     padding: calc(var(--spacing) * 24);
+  }
+
+  .px-1 {
+    padding-inline: calc(var(--spacing) * 1);
   }
 
   .px-2 {

@@ -18,7 +18,8 @@ import {
 } from '../interfaces/game-content.interface';
 
 interface StorySegment {
-  text: string;
+  type: 'story' | 'user_choice' | 'user_custom_action' | 'user_thinking' | 'user_communication' | 'system';
+  content: string;
   timestamp: Date;
 }
 
