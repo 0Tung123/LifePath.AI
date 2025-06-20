@@ -80,9 +80,24 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         continue;
       }
 
-      // Pattern for character speaking without quotes: "Character nói: content"
+      // Pattern 2: "Speaker: dialogue" (without quotes)
+      const speakerNoQuotesMatch = trimmedLine.match(
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*"([^"]+)"$/
+      );
+      if (speakerNoQuotesMatch) {
+        const speaker = speakerNoQuotesMatch[1]?.trim();
+        const dialogue = speakerNoQuotesMatch[2];
+        segments.push({
+          type: "dialogue",
+          content: dialogue,
+          speaker: speaker,
+        });
+        continue;
+      }
+
+      // Pattern 3: Character speaking with action verbs: "Character nói: content"
       const characterSpeakingMatch = trimmedLine.match(
-        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*)\s+(nói|hét|thì thầm|chửi|gào|la|kêu|thốt|thở dài|cười|khẽ nói):\s*(.+)$/i
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*)\s+(nói|hét|thì thầm|chửi|gào|la|kêu|thốt|thở dài|cười|khẽ nói|trả lời|hỏi|thốt lên):\s*(.+)$/i
       );
       if (characterSpeakingMatch) {
         const speaker = characterSpeakingMatch[1]?.trim();
@@ -95,6 +110,35 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           speaker: speaker,
         });
         continue;
+      }
+
+      // Pattern 4: Simple format "Name: content" (most common)
+      const simpleDialogueMatch = trimmedLine.match(
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*(.+)$/
+      );
+      if (
+        simpleDialogueMatch &&
+        !trimmedLine.includes("=") &&
+        !trimmedLine.includes("[")
+      ) {
+        const speaker = simpleDialogueMatch[1]?.trim();
+        const dialogue = simpleDialogueMatch[2]
+          ?.trim()
+          .replace(/^["']|["']$/g, "");
+        // Make sure it's not a system message or stat
+        if (
+          speaker.length > 1 &&
+          speaker.length < 50 &&
+          !speaker.includes("STATS") &&
+          !speaker.includes("INVENTORY")
+        ) {
+          segments.push({
+            type: "dialogue",
+            content: dialogue,
+            speaker: speaker,
+          });
+          continue;
+        }
       }
 
       // Pattern 2: Just quoted text ""dialogue"" or 'dialogue'
@@ -392,18 +436,29 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           const borderColor = speakerColor
             .replace("text-", "border-")
             .replace("-400", "-400/30");
+          const bgColor = speakerColor
+            .replace("text-", "bg-")
+            .replace("-400", "-400/5");
 
           return (
-            <div key={index} className="mb-3">
+            <div
+              key={index}
+              className={`mb-4 p-3 rounded-lg ${bgColor} border-l-4 ${borderColor.replace(
+                "/30",
+                "/50"
+              )}`}
+            >
               {segment.speaker && (
-                <div className={`font-bold ${speakerColor} mb-1`}>
-                  {segment.speaker}:
+                <div
+                  className={`font-bold ${speakerColor} mb-2 text-sm uppercase tracking-wide`}
+                >
+                  {segment.speaker}
                 </div>
               )}
-              <div
-                className={`text-gray-200 font-sans pl-4 border-l-2 ${borderColor}`}
-              >
-                &ldquo;{highlightLoreItems(segment.content)}&rdquo;
+              <div className="text-gray-100 font-sans text-base leading-relaxed">
+                <span className="text-gray-400 mr-1">&ldquo;</span>
+                {highlightLoreItems(segment.content)}
+                <span className="text-gray-400 ml-1">&rdquo;</span>
               </div>
             </div>
           );

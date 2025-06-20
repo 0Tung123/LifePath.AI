@@ -19,6 +19,7 @@ import SkillsPanel from "@/components/GameplayScreen/SkillsPanel";
 import LorePanel from "@/components/GameplayScreen/LorePanel";
 import ActionInputPanel from "@/components/GameplayScreen/ActionInputPanel";
 import DeathScreen from "@/components/GameplayScreen/DeathScreen";
+import KarmaReputationPanel from "@/components/GameplayScreen/KarmaReputationPanel";
 
 export default function GamePage({
   params,
@@ -420,6 +421,10 @@ export default function GamePage({
           <div className="lg:col-span-1 space-y-6 overflow-y-auto">
             <CharacterStatsPanel
               characterStats={currentGame?.characterStats || {}}
+            />
+            <KarmaReputationPanel
+              karmaScore={currentGame?.karmaScore || 0}
+              reputation={currentGame?.reputation}
             />
             <InventoryPanel
               inventoryItems={currentGame?.inventoryItems || []}

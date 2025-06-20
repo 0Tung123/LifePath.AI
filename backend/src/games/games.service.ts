@@ -85,6 +85,8 @@ export class GamesService {
       newGame.itemsUsed = [];
       newGame.importantEvents = [];
       newGame.achievements = [];
+      newGame.karmaScore = parsedContent.karmaChange || 0;
+      newGame.reputation = parsedContent.reputationChanges || {};
       newGame.active = true;
       newGame.deathDate = null;
       newGame.deathCause = null;
@@ -234,12 +236,17 @@ export class GamesService {
         }
 
         // Handle special resurrection choices
-        if (!game.active && validChoice.text.includes('hồi sinh')) {
-          // User chose to resurrect
+        if (
+          !game.active &&
+          (validChoice.text.includes('Hồi Quy') ||
+            validChoice.text.includes('hồi sinh'))
+        ) {
+          // User chose to use regression/resurrection ability
           return await this.resurrectCharacter(id, userId);
         } else if (
           !game.active &&
-          validChoice.text.includes('Chấp nhận cái chết')
+          (validChoice.text.includes('Chấp nhận cái chết') ||
+            validChoice.text.includes('kết thúc cuộc phiêu lưu'))
         ) {
           // User chose to accept death - just return current game state
           return game;
@@ -317,12 +324,79 @@ export class GamesService {
         );
 
         if (hasResurrectionItem) {
+          // Find the specific resurrection skill to customize the choice text
+          const resurrectionSkill = game.characterSkills.find((skill) => {
+            const skillName = skill.name.toLowerCase();
+            const skillDesc = skill.description?.toLowerCase() || '';
+
+            const resurrectionKeywords = [
+              'hồi quy',
+              'bản thể',
+              'trọng sinh',
+              'tái sinh',
+              'hồi sinh',
+              'phục sinh',
+              'luân hồi',
+              'bất tử',
+              'bất diệt',
+              'regression',
+              'rebirth',
+              'resurrection',
+            ];
+
+            return (
+              resurrectionKeywords.some(
+                (keyword) =>
+                  skillName.includes(keyword) || skillDesc.includes(keyword),
+              ) ||
+              skillDesc.includes('quay trở về') ||
+              skillDesc.includes('sau khi chết')
+            );
+          });
+
+          let resurrectionChoiceText =
+            'Kích hoạt khả năng đặc biệt để tránh cái chết';
+
+          if (resurrectionSkill) {
+            const skillName = resurrectionSkill.name.toLowerCase();
+            if (
+              skillName.includes('hồi quy') ||
+              skillName.includes('bản thể')
+            ) {
+              resurrectionChoiceText = `Kích hoạt "${resurrectionSkill.name}" - quay về thời điểm trước khi chết`;
+            } else if (
+              skillName.includes('trọng sinh') ||
+              skillName.includes('tái sinh')
+            ) {
+              resurrectionChoiceText = `Kích hoạt "${resurrectionSkill.name}" - tái sinh với ký ức`;
+            } else if (
+              skillName.includes('phục sinh') ||
+              skillName.includes('hồi sinh')
+            ) {
+              resurrectionChoiceText = `Kích hoạt "${resurrectionSkill.name}" - hồi sinh từ cõi chết`;
+            } else if (
+              skillName.includes('bất tử') ||
+              skillName.includes('bất diệt')
+            ) {
+              resurrectionChoiceText = `Kích hoạt "${resurrectionSkill.name}" - sử dụng sức mạnh bất tử`;
+            } else {
+              resurrectionChoiceText = `Kích hoạt "${resurrectionSkill.name}" - tránh cái chết`;
+            }
+          }
+
           // Character has resurrection ability - add special choices
           game.currentChoices = [
-            { text: 'Sử dụng khả năng hồi sinh (sẽ có hình phạt)', number: 1 },
-            { text: 'Chấp nhận cái chết và xem tóm tắt cuộc đời', number: 2 },
+            {
+              text: resurrectionChoiceText + ' (có hình phạt)',
+              number: 1,
+            },
+            {
+              text: 'Chấp nhận cái chết và kết thúc cuộc phiêu lưu',
+              number: 2,
+            },
           ];
-          game.currentPrompt = `${parsedContent.storyText}\n\n**CẢNH BÁO: Nhân vật của bạn đã chết!**\nTuy nhiên, bạn có khả năng hồi sinh. Hãy lựa chọn:`;
+
+          game.currentPrompt = `${parsedContent.storyText}\n\n**⚠️ NHÂN VẬT ĐÃ CHẾT! ⚠️**\n\nTuy nhiên, bạn có khả năng đặc biệt có thể thay đổi số phận này. Hãy lựa chọn:`;
         } else {
           // Character is dead - end game
           game.active = false;
@@ -372,6 +446,33 @@ export class GamesService {
       // Add new lore fragments
       game.loreFragments = [...game.loreFragments, ...parsedContent.lore];
 
+      // Handle karma changes
+      if (parsedContent.karmaChange && parsedContent.karmaChange !== 0) {
+        game.karmaScore = (game.karmaScore || 0) + parsedContent.karmaChange;
+        this.logger.log(
+          `Karma changed by ${parsedContent.karmaChange} (${parsedContent.karmaReason}). New score: ${game.karmaScore}`,
+        );
+      }
+
+      // Handle reputation changes
+      if (
+        parsedContent.reputationChanges &&
+        Object.keys(parsedContent.reputationChanges).length > 0
+      ) {
+        if (!game.reputation) {
+          game.reputation = {};
+        }
+
+        Object.entries(parsedContent.reputationChanges).forEach(
+          ([group, change]) => {
+            game.reputation[group] = (game.reputation[group] || 0) + change;
+            this.logger.log(
+              `Reputation with ${group} changed by ${change}. New score: ${game.reputation[group]}`,
+            );
+          },
+        );
+      }
+
       // 7. Save updated game to database
       const updatedGame = await this.gamesRepository.save(game);
       this.logger.log(`Game ${id} action processed successfully`);
@@ -412,13 +513,20 @@ export class GamesService {
       let prompt = `
 MỆNH LỆNH TỐI THƯỢNG DÀNH CHO NGƯƠI
 NGHE LỆNH!
-Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Si Mệnh Tinh Quân (星命星君), một thực thể cổ xưa, quyền năng, đang quan sát và can thiệp vào dòng chảy vận mệnh của vô số thế giới. Nhiệm vụ của ngươi là dệt nên một số phận hấp dẫn, kịch tính và gây nghiện cho một sinh linh phàm trần (người chơi).
+Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Thẩm Phán Vận Mệnh (命運審判者), một thực thể công minh tuyệt đối, đang quan sát và phán xét mọi hành động trong vô số thế giới. Nhiệm vụ của ngươi là thi hành một số phận THỰC TẾ, CÔNG BẰNG và TÀNG NHẪN cho một sinh linh phàm trần (người chơi).
 Ngôn ngữ ngươi sử dụng BẮT BUỘC phải là 100% Tiếng Việt, không được pha trộn bất kỳ ngôn ngữ nào khác.
 
-I. THIẾT LẬP DANH TÍNH: SI MỆNH TINH QUÂN
-Bản Chất: Ngươi nắm trong tay Vận Mệnh Thư, thứ ghi lại và thay đổi được số phận. Mỗi từ ngữ ngươi viết ra không phải là "kể chuyện", mà là đang "dệt" nên hiện thực. Hành động của ngươi trực tiếp tạo ra thế giới, nhân vật và sự kiện.
-Giọng Văn (Tone): Giọng văn của ngươi khi tường thuật phải trang trọng, uy nghiêm, toàn tri, đôi khi bí ẩn, nhưng luôn rõ ràng và mạch lạc. Ngươi là một vị thần đang quan sát, không phải một người bạn đang trò chuyện.
-Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG được tự xưng (không dùng "Ta", "Tôi", "Chúng ta"). Ngươi là một người dẫn truyện ngôi thứ ba vô hình, chỉ mô tả và dẫn dắt số phận của nhân vật chính.
+I. THIẾT LẬP DANH TÍNH: THẨM PHÁN VẬN MỆNH
+Bản Chất: Ngươi nắm trong tay Thiên Lý Thư, thứ ghi lại và phán xét mọi hành động theo quy luật nhân quả tuyệt đối. Mỗi từ ngữ ngươi viết ra không phải là "kể chuyện", mà là đang "phán xét" và thi hành công lý. Không có sự ưu ái, không có phép màu cứu rỗi - chỉ có hậu quả tự nhiên của mọi quyết định.
+Giọng Văn (Tone): Giọng văn của ngươi phải lạnh lùng, khách quan, công minh tuyệt đối. Ngươi không thiên vị, không bao che, không tạo ra "may mắn" cho nhân vật. Mọi kết quả đều dựa trên logic và hậu quả tự nhiên.
+Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG được tự xưng (không dùng "Ta", "Tôi", "Chúng ta"). Ngươi là một thẩm phán vô hình, chỉ mô tả và thi hành công lý tuyệt đối.
+
+I.1. NGUYÊN TẮC TUYỆT ĐỐI: KHÔNG CÓ THIÊN MỆNH CHI TỬ
+- Nhân vật KHÔNG phải là người được chọn, không có số phận đặc biệt
+- Nhân vật KHÔNG có may mắn siêu nhiên hay phép màu cứu rỗi
+- Nhân vật KHÔNG được ưu ái bởi thế giới hay các thế lực siêu nhiên
+- Mọi thành công đều phải đạt được bằng nỗ lực, trí tuệ và quyết định đúng đắn
+- Mọi thất bại đều là hậu quả trực tiếp của quyết định sai lầm
 
 II. CHUYÊN MÔN THỂ LOẠI: PHONG CÁCH TRUNG & HÀN
 Ngươi là bậc thầy của tiểu thuyết mạng hai trường phái lớn. Ngươi phải phân biệt và áp dụng chúng một cách nhuần nhuyễn.
@@ -542,29 +650,37 @@ Backstory: ${game.settings.characterBackstory}
       // Instructions for continuing the story
       prompt += `
 
-V. NHIỆM VỤ CỦA NGƯƠI BÂY GIỜ
-1. Dựa trên hành động của nhân vật, hãy tiếp tục dệt nên số phận của họ với phong cách đã định.
-2. Hãy mô tả diễn biến tiếp theo một cách hấp dẫn, chi tiết, có hình ảnh, và phù hợp với thế giới.
-3. Cập nhật các chỉ số nếu có thay đổi, thêm vật phẩm nếu nhận được, và mô tả kỹ năng mới nếu có.
-4. Tạo ra những hệ quả tự nhiên từ hành động của nhân vật, đừng quá dễ dàng hay quá khắc nghiệt.
-5. Luôn đảm bảo rằng câu chuyện mang tính NHẤT QUÁN, theo dõi được các sự kiện đã xảy ra trước đó.
+V. ĐỊNH DẠNG ĐỐI THOẠI BẮT BUỘC
+- Tên nhân vật nói: "Nội dung lời nói"
+- Ví dụ: ${game.settings.characterName}: "Tôi cần phải cẩn thận hơn."
+- Mỗi đoạn văn PHẢI có ít nhất 40% là đối thoại giữa các nhân vật
+- Đối thoại phải tự nhiên và phản ánh tính cách của từng nhân vật
 
-VI. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
-BẮT BUỘC: Sau khi mô tả diễn biến, ngươi PHẢI kết thúc bằng 3-4 lựa chọn hành động cụ thể:
+VI. NHIỆM VỤ PHÁN XÉT CỦA NGƯƠI BÂY GIỜ
+1. Dựa trên hành động của nhân vật, hãy PHÁN XÉT và thi hành hậu quả một cách CÔNG MINH TUYỆT ĐỐI.
+2. Mô tả diễn biến tiếp theo dựa trên LOGIC và NHÂN QUẢ - KHÔNG có may mắn hay phép màu.
+3. Cập nhật [KARMA_SCORE] và [REPUTATION] dựa trên hành động của nhân vật.
+4. Tạo ra hậu quả CHÍNH XÁC từ hành động - sai lầm phải trả giá tương xứng.
+5. Đảm bảo tính NHẤT QUÁN và THỰC TẾ trong mọi diễn biến.
+6. Ưu tiên tạo ra ĐỐI THOẠI có ý nghĩa thay vì chỉ mô tả hành động.
+
+VII. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN VÀ ĐÁNH GIÁ NGUY HIỂM
+BẮT BUỘC: Sau khi mô tả diễn biến, ngươi PHẢI kết thúc bằng 3-4 lựa chọn có đánh giá độ nguy hiểm:
 
 Định dạng bắt buộc (VÍ DỤ):
-1. Lao thẳng vào cuộc chiến để hỗ trợ đồng đội
-2. Lén lút di chuyển để tấn công từ phía sau
-3. Sử dụng phép thuật để tạo ra lợi thế chiến thuật
-4. Tìm cách đàm phán để tránh xung đột
+1. [AN TOÀN] Lén lút quan sát từ xa để thu thập thông tin
+2. [THẬN TRỌNG] Tiếp cận thận trọng và chuẩn bị sẵn kế hoạch thoát thân
+3. [NGUY HIỂM] Lao thẳng vào cuộc chiến để hỗ trợ đồng đội
+4. [CHẾT NGƯỜI] Tấn công trực diện mà không có kế hoạch
 
-Yêu cầu:
-- Mỗi lựa chọn phải là hành động CỤ THỂ, không mơ hồ
-- Các lựa chọn phải KHÁC BIỆT về hướng phát triển
-- Phải có cả lựa chọn thận trọng và táo bạo
-- KHÔNG ĐƯỢC bỏ qua phần lựa chọn
+Yêu cầu NGHIÊM NGẶT:
+- MỖI lựa chọn BẮT BUỘC phải có nhãn đánh giá: [AN TOÀN], [THẬN TRỌNG], [NGUY HIỂM], hoặc [CHẾT NGƯỜI]
+- Nhãn nguy hiểm phải CHÍNH XÁC phản ánh hậu quả thực tế
+- Lựa chọn [CHẾT NGƯỜI] thực sự có thể giết chết nhân vật nếu thực hiện
+- KHÔNG có "plot armor" hay may mắn cứu vớt
+- Phải có đa dạng mức độ rủi ro
 
-Hãy bắt đầu dệt ngay!
+Hãy bắt đầu phán xét ngay!
 `;
 
       return prompt;
@@ -588,15 +704,52 @@ Hãy bắt đầu dệt ngay!
       return `
 MỆNH LỆNH TỐI THƯỢNG DÀNH CHO NGƯƠI
 NGHE LỆNH!
-Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Si Mệnh Tinh Quân (星命星君), một thực thể cổ xưa, quyền năng, đang quan sát và can thiệp vào dòng chảy vận mệnh của vô số thế giới. Nhiệm vụ của ngươi là dệt nên một số phận hấp dẫn, kịch tính và gây nghiện cho một sinh linh phàm trần (người chơi).
+Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là Thẩm Phán Vận Mệnh (命運審判者), một thực thể công minh tuyệt đối, đang quan sát và phán xét mọi hành động trong vô số thế giới. Nhiệm vụ của ngươi là dệt nên một số phận THỰC TẾ, CÔNG BẰNG và TÀNG NHẪN cho một sinh linh phàm trần (người chơi).
 Ngôn ngữ ngươi sử dụng BẮT BUỘC phải là 100% Tiếng Việt, không được pha trộn bất kỳ ngôn ngữ nào khác.
 
-I. THIẾT LẬP DANH TÍNH: SI MỆNH TINH QUÂN
-Bản Chất: Ngươi nắm trong tay Vận Mệnh Thư, thứ ghi lại và thay đổi được số phận. Mỗi từ ngữ ngươi viết ra không phải là "kể chuyện", mà là đang "dệt" nên hiện thực. Hành động của ngươi trực tiếp tạo ra thế giới, nhân vật và sự kiện.
-Giọng Văn (Tone): Giọng văn của ngươi khi tường thuật phải trang trọng, uy nghiêm, toàn tri, đôi khi bí ẩn, nhưng luôn rõ ràng và mạch lạc. Ngươi là một vị thần đang quan sát, không phải một người bạn đang trò chuyện.
-Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG được tự xưng (không dùng "Ta", "Tôi", "Chúng ta"). Ngươi là một người dẫn truyện ngôi thứ ba vô hình, chỉ mô tả và dẫn dắt số phận của nhân vật chính.
+I. THIẾT LẬP DANH TÍNH: THẨM PHÁN VẬN MỆNH
+Bản Chất: Ngươi nắm trong tay Thiên Lý Thư, thứ ghi lại và phán xét mọi hành động theo quy luật nhân quả tuyệt đối. Mỗi từ ngữ ngươi viết ra không phải là "kể chuyện", mà là đang "phán xét" và thi hành công lý. Không có sự ưu ái, không có phép màu cứu rỗi - chỉ có hậu quả tự nhiên của mọi quyết định.
+Giọng Văn (Tone): Giọng văn của ngươi phải lạnh lùng, khách quan, công minh tuyệt đối. Ngươi không thiên vị, không bao che, không tạo ra "may mắn" cho nhân vật. Mọi kết quả đều dựa trên logic và hậu quả tự nhiên.
+Quy Tắc Tự Xưng: Khi tường thuật, ngươi TUYỆT ĐỐI KHÔNG được tự xưng (không dùng "Ta", "Tôi", "Chúng ta"). Ngươi là một thẩm phán vô hình, chỉ mô tả và thi hành công lý tuyệt đối.
 
-II. CHUYÊN MÔN THỂ LOẠI: PHONG CÁCH TRUNG & HÀN
+I.1. NGUYÊN TẮC TUYỆT ĐỐI: KHÔNG CÓ THIÊN MỆNH CHI TỬ
+- Nhân vật KHÔNG phải là người được chọn, không có số phận đặc biệt
+- Nhân vật KHÔNG có may mắn siêu nhiên hay phép màu cứu rỗi
+- Nhân vật KHÔNG được ưu ái bởi thế giới hay các thế lực siêu nhiên
+- Mọi thành công đều phải đạt được bằng nỗ lực, trí tuệ và quyết định đúng đắn
+- Mọi thất bại đều là hậu quả trực tiếp của quyết định sai lầm
+
+II. HỆ THỐNG ĐÁNH GIÁ VÀ HẬU QUẢ
+Ngươi phải áp dụng các hệ thống sau một cách nghiêm ngặt và nhất quán:
+
+II.1. HỆ THỐNG ĐÁNH GIÁ ĐỘ NGUY HIỂM
+Mỗi lựa chọn phải được đánh giá theo thang độ nguy hiểm:
+- [AN TOÀN] - Ít rủi ro, hậu quả nhẹ nếu sai
+- [THẬN TRỌNG] - Rủi ro trung bình, có thể gây tổn thất nhỏ
+- [NGUY HIỂM] - Rủi ro cao, có thể gây thương tích hoặc mất mát lớn
+- [CHẾT NGƯỜI] - Rủi ro cực cao, sai lầm có thể dẫn đến cái chết
+
+II.2. HỆ THỐNG KARMA VÀ NHÂN QUẢ DÀI HẠN
+- Mọi hành động đều để lại dấu vết trong [KARMA_SCORE]
+- Hành động tốt: +1 đến +5 điểm karma
+- Hành động xấu: -1 đến -5 điểm karma
+- Karma tích lũy sẽ ảnh hưởng đến các sự kiện tương lai
+- Karma âm cao sẽ tạo ra nhiều tình huống bất lợi hơn
+
+II.3. HỆ THỐNG DANH TIẾNG VÀ UY TÍN
+- [REPUTATION] theo từng nhóm: Dân thường, Quý tộc, Tội phạm, Thương gia, v.v.
+- Danh tiếng ảnh hưởng trực tiếp đến phản ứng của NPC
+- Uy tín thấp = khó khăn trong giao dịch, đàm phán
+- Danh tiếng xấu = bị từ chối dịch vụ, bị tấn công
+
+II.4. QUY TẮC HẬU QUẢ NGHIÊM NGẶT
+- Quyết định sai trong tình huống [CHẾT NGƯỜI] = chết ngay lập tức
+- Quyết định sai trong tình huống [NGUY HIỂM] = thương tích nặng, mất tài sản, hoặc hậu quả lâu dài
+- Quyết định sai trong tình huống [THẬN TRỌNG] = tổn thất nhỏ, cơ hội bị mất
+- KHÔNG có "may mắn" hay "phép màu" cứu vớt
+- KHÔNG có "plot armor" bảo vệ nhân vật
+
+III. CHUYÊN MÔN THỂ LOẠI: PHONG CÁCH TRUNG & HÀN
 Ngươi là bậc thầy của tiểu thuyết mạng hai trường phái lớn. Ngươi phải phân biệt và áp dụng chúng một cách nhuần nhuyễn.
 
 ${
@@ -639,37 +792,66 @@ Ví dụ Hunter: [SKILL: Name="Cú Đấm Cường Lực (Cấp 2)", Description
 [LORE_NPC: ...] / [LORE_ITEM: ...] / [LORE_LOCATION: ...]: Ghi lại thông tin về thế giới.
 Ví dụ: [LORE_NPC: Name="Trưởng Lão Vân Du", Description="Một trưởng lão bí ẩn của Thanh Vân Môn."]
 
-IV. THÔNG TIN CỤ THỂ VỀ THẾ GIỚI VÀ NHÂN VẬT
+[KARMA_SCORE: ...]: Ghi lại thay đổi điểm karma và lý do.
+Ví dụ: [KARMA_SCORE: +2, "Giúp đỡ người già qua đường"]
+Ví dụ: [KARMA_SCORE: -3, "Lừa dối thương gia để trục lợi"]
+
+[REPUTATION: ...]: Ghi lại thay đổi danh tiếng với các nhóm.
+Ví dụ: [REPUTATION: Dân_thường=+1, Thương_gia=-2, "Vì hành động lừa dối"]
+
+IV. ĐỊNH DẠNG ĐỐI THOẠI BẮT BUỘC
+Để tăng tính tương tác và sống động, ngươi PHẢI tuân thủ định dạng đối thoại sau:
+
+IV.1. ĐỊNH DẠNG CHUẨN CHO LỜI THOẠI:
+- Tên nhân vật nói: "Nội dung lời nói"
+- Ví dụ: Lôi Đình: "Ta lang bạt giang hồ, mục đích duy nhất là truy tìm dấu vết của Thiết Huyết Bang."
+- ${gameSettings.characterName}: "Lôi Đình huynh... tại sao huynh lại ở đây?"
+
+IV.2. YÊU CẦU VỀ ĐỐI THOẠI:
+- Mỗi đoạn văn PHẢI có ít nhất 40% là đối thoại giữa các nhân vật
+- Đối thoại phải tự nhiên, phù hợp với tính cách và hoàn cảnh
+- Tránh mô tả hành động quá dài mà thiếu tương tác
+- Ưu tiên tạo ra cuộc trò chuyện có ý nghĩa thay vì chỉ mô tả cảnh vật
+- Mỗi NPC phải có cách nói riêng biệt, phản ánh tính cách và xuất thân
+
+V. THÔNG TIN CỤ THỂ VỀ THẾ GIỚI VÀ NHÂN VẬT
 THEME: ${gameSettings.theme}
 SETTING: ${gameSettings.setting}
 CHARACTER NAME: ${gameSettings.characterName}
 CHARACTER BACKSTORY: ${gameSettings.characterBackstory}
 ${gameSettings.additionalSettings ? 'ADDITIONAL SETTINGS: ' + JSON.stringify(gameSettings.additionalSettings) : ''}
 
-V. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN
-QUAN TRỌNG: Mỗi lần dệt vận mệnh (kể cả lần đầu tiên), ngươi BẮT BUỘC phải kết thúc bằng 3-4 lựa chọn hành động cụ thể cho nhân vật.
+VI. QUY TẮC BẮT BUỘC VỀ LỰA CHỌN VÀ ĐÁNH GIÁ NGUY HIỂM
+QUAN TRỌNG: Mỗi lần phán xét vận mệnh (kể cả lần đầu tiên), ngươi BẮT BUỘC phải kết thúc bằng 3-4 lựa chọn hành động cụ thể cho nhân vật, MỖI LỰA CHỌN PHẢI CÓ ĐÁNH GIÁ ĐỘ NGUY HIỂM.
 
-Định dạng lựa chọn (VÍ DỤ):
-1. Tiến lại gần và quan sát kỹ hơn chiếc cổng bí ẩn
-2. Rút vũ khí ra và chuẩn bị chiến đấu với những gì có thể xuất hiện
-3. Tìm kiếm một lối đi khác để tránh nguy hiểm
-4. Gọi to để thử liên lạc với ai đó bên trong
+Định dạng lựa chọn BẮT BUỘC (VÍ DỤ):
+1. [AN TOÀN] Tiến lại gần và quan sát kỹ hơn chiếc cổng bí ẩn
+2. [NGUY HIỂM] Rút vũ khí ra và chuẩn bị chiến đấu với những gì có thể xuất hiện
+3. [THẬN TRỌNG] Tìm kiếm một lối đi khác để tránh nguy hiểm
+4. [CHẾT NGƯỜI] Gọi to để thử liên lạc với ai đó bên trong
 
 Yêu cầu về lựa chọn:
+- MỖI lựa chọn BẮT BUỘC phải có nhãn đánh giá: [AN TOÀN], [THẬN TRỌNG], [NGUY HIỂM], hoặc [CHẾT NGƯỜI]
 - Mỗi lựa chọn phải là một hành động CỤ THỂ, không mơ hồ
-- Các lựa chọn phải KHÁC BIỆT rõ rệt về hướng phát triển
-- Phải có ít nhất 1 lựa chọn táo bạo/mạo hiểm và 1 lựa chọn thận trọng
+- Các lựa chọn phải KHÁC BIỆT rõ rệt về hướng phát triển và mức độ rủi ro
+- Phải có đa dạng mức độ nguy hiểm trong các lựa chọn
 - Lựa chọn phải phù hợp với bối cảnh và tính cách nhân vật
-- TUYỆT ĐỐI không được bỏ qua phần lựa chọn
+- TUYỆT ĐỐI không được bỏ qua phần lựa chọn và đánh giá nguy hiểm
+- Nhãn nguy hiểm phải CHÍNH XÁC phản ánh hậu quả thực tế
 
-VI. NHIỆM VỤ KHỞI ĐẦU
-Bây giờ, hãy dệt nên KHỞI ĐẦU của số phận dựa trên thông tin đã cung cấp:
-1. Tạo ra tình huống mở đầu hấp dẫn và phù hợp với theme/setting
-2. Giới thiệu nhân vật trong bối cảnh cụ thể
-3. Thiết lập các thẻ vận mệnh ban đầu ([STATS], [INVENTORY_ADD], [SKILL], [LORE] nếu cần)
-4. KẾT THÚC BẰNG 3-4 LỰA CHỌN rõ ràng để nhân vật bắt đầu cuộc phiêu lưu
+VII. NHIỆM VỤ KHỞI ĐẦU
+Bây giờ, hãy phán xét và dệt nên KHỞI ĐẦU của số phận dựa trên thông tin đã cung cấp:
+1. Tạo ra tình huống mở đầu THỰC TẾ và phù hợp với theme/setting - KHÔNG có yếu tố may mắn siêu nhiên
+2. Giới thiệu nhân vật như một người BÌNH THƯỜNG trong bối cảnh cụ thể - KHÔNG có năng lực đặc biệt
+3. Thiết lập các thẻ vận mệnh ban đầu ([STATS], [KARMA_SCORE: 0], [REPUTATION], [INVENTORY_ADD], [SKILL], [LORE] nếu cần)
+4. KẾT THÚC BẰNG 3-4 LỰA CHỌN có đánh giá độ nguy hiểm rõ ràng để nhân vật bắt đầu cuộc phiêu lưu
 
-Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm trần này bắt đầu từ đây!
+NHẮC NHỞ CUỐI CÙNG:
+- Ngươi là Thẩm Phán Vận Mệnh - công minh tuyệt đối, không thiên vị
+- Nhân vật KHÔNG phải thiên mệnh chi tử - chỉ là một người bình thường
+- Mọi quyết định sai đều có hậu quả nghiêm trọng tương ứng
+- Không có phép màu, không có may mắn, chỉ có nhân quả
+- Số phận của sinh linh phàm trần này bắt đầu từ đây - hãy phán xét công minh!
     `;
     } catch (error) {
       console.error('Error building initial prompt:', error);
@@ -704,7 +886,7 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
       // Extract story text (everything before the first tag)
       let storyText = response;
       const firstTagMatch = response.match(
-        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION):/,
+        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION):/,
       );
       if (firstTagMatch && firstTagMatch.index !== undefined) {
         storyText = response.substring(0, firstTagMatch.index).trim();
@@ -834,6 +1016,39 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
             console.error('Error parsing SKILLS:', e);
           }
         }
+      }
+
+      // Extract karma score changes
+      let karmaChange = 0;
+      let karmaReason = '';
+      const karmaMatches = [
+        ...response.matchAll(
+          /\[KARMA_SCORE:\s*([+-]?\d+)(?:,\s*"([^"]+)")?\]/g,
+        ),
+      ];
+      if (karmaMatches.length > 0) {
+        karmaChange = parseInt(karmaMatches[0][1]) || 0;
+        karmaReason = karmaMatches[0][2] || '';
+      }
+
+      // Extract reputation changes
+      const reputationChanges: { [key: string]: number } = {};
+      const reputationMatches = [
+        ...response.matchAll(/\[REPUTATION:\s*([^\]]+)\]/g),
+      ];
+      if (reputationMatches.length > 0) {
+        const reputationString = reputationMatches[0][1];
+        // Parse format like: Dân_thường=+1, Thương_gia=-2
+        const repPairs = reputationString.split(',').map((pair) => pair.trim());
+        repPairs.forEach((pair) => {
+          const [key, value] = pair.split('=').map((item) => item.trim());
+          if (key && value) {
+            const numValue =
+              parseInt(value.replace(/[+-]/, '')) *
+              (value.startsWith('-') ? -1 : 1);
+            reputationChanges[key] = numValue;
+          }
+        });
       }
 
       // Extract lore
@@ -1003,6 +1218,9 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
         skills,
         lore,
         choices,
+        karmaChange,
+        karmaReason,
+        reputationChanges,
       };
     } catch (error) {
       const logger = new Logger('GamesService');
@@ -1069,15 +1287,52 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
         ) && item.quantity > 0,
     );
 
-    // Check skills for resurrection abilities
-    const hasResurrectionSkill = skills.some((skill) =>
-      resurrectionItemNames.some(
+    // Check skills for resurrection abilities - enhanced for regression skills
+    const hasResurrectionSkill = skills.some((skill) => {
+      const skillName = skill.name.toLowerCase();
+      const skillDesc = skill.description?.toLowerCase() || '';
+
+      // Check traditional resurrection names
+      const hasTraditionalResurrection = resurrectionItemNames.some(
         (name) =>
-          skill.name.toLowerCase().includes(name.toLowerCase()) ||
-          (skill.description &&
-            skill.description.toLowerCase().includes(name.toLowerCase())),
-      ),
+          skillName.includes(name.toLowerCase()) ||
+          skillDesc.includes(name.toLowerCase()),
+      );
+
+      // Check specific regression/time travel abilities
+      const hasRegressionAbility =
+        skillName.includes('hồi quy') ||
+        skillName.includes('bản thể') ||
+        skillName.includes('regression') ||
+        skillName.includes('time travel') ||
+        skillName.includes('quay về') ||
+        skillName.includes('trở về') ||
+        skillDesc.includes('quay trở về') ||
+        skillDesc.includes('sau khi chết') ||
+        skillDesc.includes('thời điểm trong quá khứ') ||
+        skillDesc.includes('số lần sử dụng');
+
+      return hasTraditionalResurrection || hasRegressionAbility;
+    });
+
+    this.logger.log(
+      `Checking resurrection abilities - Items: ${hasResurrectionItem}, Skills: ${hasResurrectionSkill}`,
     );
+    if (hasResurrectionSkill) {
+      const resurrectionSkills = skills.filter((skill) => {
+        const skillName = skill.name.toLowerCase();
+        const skillDesc = skill.description?.toLowerCase() || '';
+        return (
+          skillName.includes('hồi quy') ||
+          skillName.includes('bản thể') ||
+          skillDesc.includes('quay trở về') ||
+          skillDesc.includes('sau khi chết')
+        );
+      });
+      this.logger.log(
+        `Found resurrection skills: ${resurrectionSkills.map((s) => s.name).join(', ')}`,
+      );
+    }
 
     return hasResurrectionItem || hasResurrectionSkill;
   }
@@ -1243,6 +1498,130 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
       );
     }
 
+    // Find and consume resurrection/regression skill
+    const resurrectionSkill = game.characterSkills.find((skill) => {
+      const skillName = skill.name.toLowerCase();
+      const skillDesc = skill.description?.toLowerCase() || '';
+
+      // Check for various resurrection/regression abilities
+      const resurrectionKeywords = [
+        'hồi quy',
+        'bản thể',
+        'trọng sinh',
+        'tái sinh',
+        'hồi sinh',
+        'phục sinh',
+        'luân hồi',
+        'bất tử',
+        'bất diệt',
+        'regression',
+        'rebirth',
+        'resurrection',
+        'reincarnation',
+        'immortal',
+        'revive',
+        'phoenix',
+      ];
+
+      const hasResurrectionKeyword = resurrectionKeywords.some(
+        (keyword) => skillName.includes(keyword) || skillDesc.includes(keyword),
+      );
+
+      const hasResurrectionDescription =
+        skillDesc.includes('quay trở về') ||
+        skillDesc.includes('sau khi chết') ||
+        skillDesc.includes('thời điểm trong quá khứ') ||
+        skillDesc.includes('số lần sử dụng') ||
+        skillDesc.includes('khi nhân vật chết') ||
+        skillDesc.includes('tránh cái chết') ||
+        skillDesc.includes('hồi phục sau khi chết');
+
+      return hasResurrectionKeyword || hasResurrectionDescription;
+    });
+
+    let resurrectionMessage = '';
+    let skillType = 'hồi sinh';
+
+    if (resurrectionSkill) {
+      const skillName = resurrectionSkill.name.toLowerCase();
+
+      // Determine skill type for appropriate message
+      if (skillName.includes('hồi quy') || skillName.includes('bản thể')) {
+        skillType = 'hồi quy';
+        resurrectionMessage =
+          '🔄 **HỒI QUY THÀNH CÔNG!**\n\nBạn đã quay trở về thời điểm trước khi chết. Ký ức về cái chết vẫn còn rõ nét trong tâm trí, nhắc nhở bạn về những hậu quả của quyết định sai lầm.';
+      } else if (
+        skillName.includes('trọng sinh') ||
+        skillName.includes('tái sinh')
+      ) {
+        skillType = 'trọng sinh';
+        resurrectionMessage =
+          '✨ **TRỌNG SINH THÀNH CÔNG!**\n\nBạn đã được tái sinh với ký ức về cuộc đời trước. Kinh nghiệm đau đớn từ cái chết trước đây sẽ giúp bạn đưa ra những quyết định khôn ngoan hơn.';
+      } else if (
+        skillName.includes('phục sinh') ||
+        skillName.includes('hồi sinh')
+      ) {
+        skillType = 'phục sinh';
+        resurrectionMessage =
+          '⚡ **PHỤC SINH THÀNH CÔNG!**\n\nBạn đã được hồi sinh từ cõi chết. Mặc dù còn yếu ớt, nhưng bạn đã có cơ hội thứ hai để tiếp tục cuộc phiêu lưu.';
+      } else if (
+        skillName.includes('bất tử') ||
+        skillName.includes('bất diệt')
+      ) {
+        skillType = 'bất tử';
+        resurrectionMessage =
+          '🛡️ **SỨC MẠNH BẤT TỬ KÍCH HOẠT!**\n\nKhả năng bất tử của bạn đã cứu bạn khỏi cái chết. Tuy nhiên, sức mạnh này đã bị suy yếu đáng kể sau lần sử dụng này.';
+      } else {
+        resurrectionMessage =
+          '💫 **HỒI SINH THÀNH CÔNG!**\n\nBạn đã được cứu sống bởi một sức mạnh bí ẩn. Cơ hội thứ hai này không nên bị lãng phí.';
+      }
+
+      // Handle skill consumption based on usage count
+      if (resurrectionSkill.description) {
+        const usageMatch = resurrectionSkill.description.match(
+          /Số lần sử dụng:\s*(\d+)/,
+        );
+        if (usageMatch) {
+          const currentUses = parseInt(usageMatch[1]);
+          if (currentUses > 1) {
+            // Decrease usage count
+            resurrectionSkill.description =
+              resurrectionSkill.description.replace(
+                /Số lần sử dụng:\s*\d+/,
+                `Số lần sử dụng: ${currentUses - 1}`,
+              );
+          } else {
+            // Mark as used up
+            resurrectionSkill.description =
+              resurrectionSkill.description.replace(
+                /Số lần sử dụng:\s*\d+/,
+                'Số lần sử dụng: 0 (Đã cạn kiệt)',
+              );
+
+            // Remove the skill if it's completely used up
+            const skillIndex = game.characterSkills.findIndex(
+              (s) => s.name === resurrectionSkill.name,
+            );
+            if (skillIndex !== -1) {
+              game.characterSkills.splice(skillIndex, 1);
+            }
+          }
+        } else {
+          // If no usage count specified, assume single use and remove
+          const skillIndex = game.characterSkills.findIndex(
+            (s) => s.name === resurrectionSkill.name,
+          );
+          if (skillIndex !== -1) {
+            game.characterSkills.splice(skillIndex, 1);
+          }
+        }
+      }
+
+      this.logger.log(
+        `Used resurrection skill: ${resurrectionSkill.name} (Type: ${skillType})`,
+      );
+    }
+
     // Apply resurrection with penalties
     this.handleResurrection(game);
 
@@ -1251,23 +1630,34 @@ Hãy nhớ, ngươi là Si Mệnh Tinh Quân. Số phận của sinh linh phàm 
     game.deathDate = null;
     game.deathCause = null;
 
-    // Add resurrection story
+    // Add resurrection story with appropriate message
+    const storyContent =
+      resurrectionMessage +
+      (resurrectionSkill
+        ? ` Khả năng "${resurrectionSkill.name}" đã được sử dụng.`
+        : '') +
+      ' Hãy cẩn thận hơn trong những quyết định tiếp theo...';
+
     game.storyHistory.push({
       type: 'system',
-      content:
-        'Nhân vật đã được hồi sinh với một số hình phạt về chỉ số. Cuộc phiêu lưu tiếp tục...',
+      content: storyContent,
       timestamp: new Date(),
     });
 
-    // Reset choices to continue game
+    // Reset choices to continue game with appropriate risk levels
     game.currentChoices = [
-      { text: 'Tiếp tục cuộc phiêu lưu', number: 1 },
-      { text: 'Nghỉ ngơi để phục hồi', number: 2 },
-      { text: 'Kiểm tra tình trạng hiện tại', number: 3 },
+      { text: '[AN TOÀN] Quan sát kỹ lưỡng tình hình xung quanh', number: 1 },
+      {
+        text: '[THẬN TRỌNG] Tiến hành thận trọng với kế hoạch rõ ràng',
+        number: 2,
+      },
+      { text: '[NGUY HIỂM] Hành động quyết đoán như trước đây', number: 3 },
     ];
 
-    game.currentPrompt =
-      'Bạn đã được hồi sinh! Mặc dù còn yếu ớt sau cái chết, nhưng cuộc phiêu lưu vẫn tiếp tục. Bạn muốn làm gì tiếp theo?';
+    // Set appropriate prompt based on skill type
+    const weaknessNote =
+      '\n\nBạn cảm thấy yếu ớt hơn so với trước đây do hình phạt từ việc sử dụng khả năng đặc biệt. Lần này, bạn sẽ làm gì?';
+    game.currentPrompt = resurrectionMessage + weaknessNote;
 
     return await this.gamesRepository.save(game);
   }

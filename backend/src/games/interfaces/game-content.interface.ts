@@ -62,6 +62,9 @@ export interface ParsedGameContent {
   skills: Skill[];
   lore: LoreFragment[];
   choices: Choice[];
+  karmaChange?: number;
+  karmaReason?: string;
+  reputationChanges?: { [key: string]: number };
   npcsMet?: NpcMet[];
   itemsUsed?: ItemUsed[];
   importantEvents?: ImportantEvent[];

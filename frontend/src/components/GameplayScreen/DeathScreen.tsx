@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CharacterLifeSummary } from "@/services/game.service";
 
 interface DeathScreenProps {
@@ -18,7 +18,7 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
   onAcceptDeath,
   isLoading,
 }) => {
-  const [showFullSummary, setShowFullSummary] = useState(false);
+  // const [showFullSummary, setShowFullSummary] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -82,6 +82,107 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Karma & Reputation Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Karma */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-yellow-400 mb-3">
+                Karma Cuối Cùng
+              </h3>
+              <div className="text-center">
+                <div
+                  className={`text-3xl font-bold mb-2 ${
+                    lifeSummary.karmaScore >= 50
+                      ? "text-green-400"
+                      : lifeSummary.karmaScore >= 0
+                      ? "text-blue-400"
+                      : lifeSummary.karmaScore >= -50
+                      ? "text-orange-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {lifeSummary.karmaScore}
+                </div>
+                <div
+                  className={`text-sm ${
+                    lifeSummary.karmaScore >= 100
+                      ? "text-yellow-400"
+                      : lifeSummary.karmaScore >= 50
+                      ? "text-green-400"
+                      : lifeSummary.karmaScore >= 0
+                      ? "text-blue-400"
+                      : lifeSummary.karmaScore >= -50
+                      ? "text-orange-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {lifeSummary.karmaScore >= 100
+                    ? "Thánh Nhân"
+                    : lifeSummary.karmaScore >= 50
+                    ? "Thiện Lương"
+                    : lifeSummary.karmaScore >= 0
+                    ? "Trung Lập+"
+                    : lifeSummary.karmaScore >= -50
+                    ? "Trung Lập-"
+                    : "Tà Ác"}
+                </div>
+              </div>
+            </div>
+
+            {/* Reputation */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-cyan-400 mb-3">
+                Danh Tiếng
+              </h3>
+              {lifeSummary.reputation &&
+              Object.keys(lifeSummary.reputation).length > 0 ? (
+                <div className="space-y-2 text-sm">
+                  {Object.entries(lifeSummary.reputation).map(
+                    ([faction, score]) => (
+                      <div key={faction} className="flex justify-between">
+                        <span className="text-gray-400 capitalize">
+                          {faction.replace(/([A-Z])/g, " $1").trim()}:
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            score >= 60
+                              ? "text-green-400"
+                              : score >= 20
+                              ? "text-blue-400"
+                              : score >= 0
+                              ? "text-gray-400"
+                              : score >= -20
+                              ? "text-orange-400"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {score >= 80
+                            ? "Tôn Kính"
+                            : score >= 60
+                            ? "Danh Dự"
+                            : score >= 40
+                            ? "Thân Thiện"
+                            : score >= 20
+                            ? "Trung Lập"
+                            : score >= 0
+                            ? "Không Thân"
+                            : score >= -20
+                            ? "Thù Địch"
+                            : "Căm Ghét"}{" "}
+                          ({score})
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm italic text-center">
+                  Chưa thiết lập mối quan hệ với phe phái nào
+                </div>
+              )}
             </div>
           </div>
 

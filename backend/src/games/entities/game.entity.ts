@@ -101,6 +101,12 @@ export class Game {
   @Column({ type: 'jsonb', name: 'achievements', nullable: true })
   achievements: { name: string; description: string; unlockedAt: Date }[];
 
+  @Column({ type: 'integer', name: 'karma_score', default: 0 })
+  karmaScore: number;
+
+  @Column({ type: 'jsonb', name: 'reputation', nullable: true })
+  reputation: { [key: string]: number };
+
   @Column({ default: true })
   active: boolean;
 
