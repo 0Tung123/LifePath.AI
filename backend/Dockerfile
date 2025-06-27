@@ -1,20 +1,23 @@
-# Sử dụng image Node.js phiên bản 24-slim
-FROM node:24-slim
+# Use Node.js 18 as the base image
+FROM node:18-alpine
 
-# Thiết lập thư mục làm việc trong container
+# Set working directory
 WORKDIR /app
 
-# Sao chép package.json và package-lock.json
-COPY package*.json .
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# Cài đặt phụ thuộc
-RUN npm install
+# Install dependencies
+RUN npm ci
 
-# Sao chép toàn bộ mã nguồn
+# Copy source code
 COPY . .
 
-# Biên dịch mã TypeScript
+# Build the application
 RUN npm run build
 
-# Chạy ứng dụng ở chế độ development
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Command to run the application
 CMD ["npm", "run", "start:dev"]

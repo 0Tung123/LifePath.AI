@@ -1,46 +1,67 @@
 
+
+
 services:
   db:
-    image: postgres
+    image: postgres:14
     restart: always
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    container_name: postgres-ai
+      - POSTGRES_DB=lifepath
+    container_name: lifepath_postgres
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+  
   app:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: nest-app
+    container_name: lifepath_backend
     environment:
       - PORT=3000
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
-      - DB_NAME=postgres
-      - JWT_SECRET=Tunglkce170271
+      - DB_NAME=lifepath
+      - JWT_SECRET=your_jwt_secret_key_here
       - JWT_EXPIRES_IN=1d
       - JWT_REFRESH_EXPIRES_IN=7d
+      - FRONTEND_URL=http://localhost:3002
     ports:
-      - "3001:3000"
+      - "3000:3000"
     depends_on:
       - db
     volumes:
       - ./backend/src:/app/src
+  
   pgadmin:
     image: dpage/pgadmin4
     restart: always
-    container_name: nest-pgadmin4
+    container_name: lifepath_pgadmin
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-      - PGADMIN_DEFAULT_PASSWORD=pgadmin4
+      - PGADMIN_DEFAULT_EMAIL=admin@lifepath.ai
+      - PGADMIN_DEFAULT_PASSWORD=admin
     ports:
       - "5050:80"
     depends_on:
       - db
+      
+  # Uncomment to run frontend in Docker
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: lifepath_frontend
+  #   restart: always
+  #   ports:
+  #     - "3002:3002"
+  #   environment:
+  #     - NEXT_PUBLIC_API_URL=http://localhost:3000
+  #     - PORT=3002
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules

@@ -6,9 +6,9 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS with specific origin for frontend on port 3002
+  // Enable CORS with specific origin for frontend
   app.enableCors({
-    origin: 'http://localhost:3002',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3002',
     credentials: true,
   });
 
@@ -45,8 +45,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // Fixed port to 3000
-  await app.listen(3000);
+  // Use port from environment variable or default to 3000
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
 
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(

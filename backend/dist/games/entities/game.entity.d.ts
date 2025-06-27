@@ -44,6 +44,10 @@ export declare class Game {
         description: string;
         unlockedAt: Date;
     }[];
+    karmaScore: number;
+    reputation: {
+        [key: string]: number;
+    };
     active: boolean;
     deathDate: Date | null;
     deathCause: string | null;

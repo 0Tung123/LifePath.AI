@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
-// Base API URL with fixed port 3000 for backend
-const API_URL = "http://localhost:3000";
+// Base API URL from environment variable or default
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // Create axios instance with default config
 const api = axios.create({

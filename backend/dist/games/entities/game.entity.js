@@ -90,6 +90,14 @@ __decorate([
     __metadata("design:type", Array)
 ], Game.prototype, "achievements", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'integer', name: 'karma_score', default: 0 }),
+    __metadata("design:type", Number)
+], Game.prototype, "karmaScore", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', name: 'reputation', nullable: true }),
+    __metadata("design:type", Object)
+], Game.prototype, "reputation", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], Game.prototype, "active", void 0);
