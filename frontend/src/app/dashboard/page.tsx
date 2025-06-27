@@ -125,7 +125,7 @@ export default function Dashboard() {
               <div className="bg-white p-8 rounded-lg shadow text-center">
                 <h2 className="text-xl font-semibold mb-4">No Games Found</h2>
                 <p className="text-gray-600 mb-6">
-                  You haven't created any games yet. Start your adventure by
+                  You haven&apos;t created any games yet. Start your adventure by
                   creating a new game!
                 </p>
                 <button

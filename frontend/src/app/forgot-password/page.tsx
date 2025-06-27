@@ -19,9 +19,11 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword({ email });
       setIsSuccess(true);
       setMessage('Password reset link has been sent to your email address. Please check your inbox and follow the instructions.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       setIsSuccess(false);
-      if (error.response?.status === 404) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && typeof error.response === 'object' && 'status' in error.response && 
+          error.response.status === 404) {
         setMessage('No account found with this email address.');
       } else {
         setMessage('Failed to send password reset email. Please try again.');

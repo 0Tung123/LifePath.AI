@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 
 // Base API URL from environment variable or default
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";

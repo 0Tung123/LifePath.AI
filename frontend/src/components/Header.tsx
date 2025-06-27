@@ -2,12 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
-  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
   const toggleMenu = () => {
@@ -32,10 +31,12 @@ export default function Header() {
               >
                 <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
                   {user?.profilePicture ? (
-                    <img
+                    <Image
                       src={user.profilePicture}
                       alt={`${user.firstName || "User"}'s avatar`}
                       className="w-8 h-8 rounded-full"
+                      width={32}
+                      height={32}
                     />
                   ) : (
                     <span className="text-sm font-medium">

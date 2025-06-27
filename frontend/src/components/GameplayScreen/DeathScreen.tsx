@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { CharacterLifeSummary } from "@/services/game.service";
 
 interface DeathScreenProps {

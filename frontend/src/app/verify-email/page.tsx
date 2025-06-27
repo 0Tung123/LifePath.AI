@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import authService from '@/services/auth.service';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState<string>('');
   const [resendLoading, setResendLoading] = useState<boolean>(false);
@@ -28,9 +28,11 @@ export default function VerifyEmailPage() {
         await authService.verifyEmail(token);
         setStatus('success');
         setMessage('Your email has been verified successfully! You can now log in to your account.');
-      } catch (error: any) {
+      } catch (error: unknown) {
         setStatus('error');
-        if (error.response?.status === 400) {
+        if (error && typeof error === 'object' && 'response' in error && 
+            error.response && typeof error.response === 'object' && 'status' in error.response && 
+            error.response.status === 400) {
           setMessage('Invalid or expired verification token. Please request a new verification email.');
         } else {
           setMessage('Failed to verify email. Please try again or contact support.');
@@ -54,8 +56,10 @@ export default function VerifyEmailPage() {
     try {
       await authService.resendVerification({ email });
       setResendMessage('Verification email sent successfully! Please check your inbox.');
-    } catch (error: any) {
-      if (error.response?.status === 400) {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          error.response && typeof error.response === 'object' && 'status' in error.response && 
+          error.response.status === 400) {
         setResendMessage('Email is already verified or user not found.');
       } else {
         setResendMessage('Failed to send verification email. Please try again.');
@@ -191,5 +195,20 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

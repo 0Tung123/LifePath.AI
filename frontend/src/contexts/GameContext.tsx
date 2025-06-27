@@ -51,7 +51,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         const game = await gameService.createGame(createGameDto);
         setCurrentGame(game);
         return game;
-      } catch (err) {
+      } catch {
         const errorMessage = "Failed to create game. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -69,7 +69,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     try {
       const game = await gameService.getGameById(gameId);
       setCurrentGame(game);
-    } catch (err) {
+    } catch {
       const errorMessage = "Failed to load game. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -94,7 +94,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           choiceNumber
         );
         setCurrentGame(updatedGame);
-      } catch (err) {
+      } catch {
         const errorMessage = "Failed to process choice. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -121,7 +121,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           action
         );
         setCurrentGame(updatedGame);
-      } catch (err) {
+      } catch {
         const errorMessage = "Failed to process action. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -148,7 +148,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           think
         );
         setCurrentGame(updatedGame);
-      } catch (err) {
+      } catch {
         const errorMessage = "Failed to process thinking. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -175,7 +175,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           communication
         );
         setCurrentGame(updatedGame);
-      } catch (err) {
+      } catch {
         const errorMessage =
           "Failed to process communication. Please try again.";
         setError(errorMessage);
@@ -199,7 +199,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     try {
       const summary = await gameService.getSummary(currentGame.id);
       return summary;
-    } catch (err) {
+    } catch {
       const errorMessage = "Failed to get summary. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -221,7 +221,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const lifeSummary = await gameService.getLifeSummary(currentGame.id);
         return lifeSummary;
-      } catch (err) {
+      } catch{
         const errorMessage = "Failed to get life summary. Please try again.";
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -242,7 +242,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     try {
       const updatedGame = await gameService.resurrectCharacter(currentGame.id);
       setCurrentGame(updatedGame);
-    } catch (err) {
+    } catch {
       const errorMessage = "Failed to resurrect character. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);

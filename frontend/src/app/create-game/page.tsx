@@ -73,7 +73,7 @@ export default function CreateGame() {
     try {
       const game = await createGame(formData);
       router.push(`/game/${game.id}`);
-    } catch (err) {
+    } catch{
       setError("Failed to create game. Please try again.");
     }
   };

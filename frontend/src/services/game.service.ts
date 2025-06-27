@@ -57,7 +57,7 @@ export interface KnowledgeBaseItem {
   type: "npc" | "item" | "location" | "general";
   name: string;
   description: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | object | undefined;
 }
 
 export interface Game {

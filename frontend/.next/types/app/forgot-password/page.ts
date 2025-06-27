@@ -1,4 +1,4 @@
-// File: d:\my-fullstack-app\frontend\src\app\forgot-password\page.tsx
+// File: D:\AI\LifePath.AI\frontend\src\app\forgot-password\page.tsx
 import * as entry from '../../../../src/app/forgot-password/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

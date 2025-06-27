@@ -66,7 +66,7 @@ export default function ProfilePage() {
         type: "success",
       });
       setIsEditing(false);
-    } catch (error) {
+    } catch{
       setMessage({
         text:
           "Failed to update profile. Please try again.",

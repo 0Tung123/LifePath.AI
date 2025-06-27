@@ -1,4 +1,4 @@
-// File: d:\my-fullstack-app\frontend\src\app\auth\google-callback\page.tsx
+// File: D:\AI\LifePath.AI\frontend\src\app\auth\google-callback\page.tsx
 import * as entry from '../../../../../src/app/auth/google-callback/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -44,8 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userProfile = await authService.getProfile();
           setUser(userProfile);
         }
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
         authService.logout();
       } finally {
         setIsLoading(false);
@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Fetch user profile
       const userProfile = await authService.getProfile();
       setUser(userProfile);
-    } catch (err) {
+    } catch {
       const errorMessage = "Failed to login. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       await authService.register(data);
-    } catch (err) {
+    } catch {
       const errorMessage = "Failed to register. Please try again.";
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -107,8 +107,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const userProfile = await authService.getProfile();
       setUser(userProfile);
-    } catch (err) {
-      console.error("Failed to refresh user profile:", err);
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error);
     }
   };
 
