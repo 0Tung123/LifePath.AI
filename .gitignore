@@ -1,14 +1,23 @@
-# Node.js (cho Next.js và Nest.js)
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 .pnpm-store/
+.yarn/
+.pnp.*
 
 # Build outputs
-dist/  # Nest.js build output
-.next/ # Next.js build output
-build/ # Build chung
-out/   # Next.js static export (nếu dùng)
+dist/
+.next/
+build/
+out/
+*.tsbuildinfo
+.nuxt/
+.output/
+.vercel/
+.netlify/
 
 # Environment variables
 .env
@@ -16,28 +25,189 @@ out/   # Next.js static export (nếu dùng)
 .env.*.local
 .env.development
 .env.production
+.env.test
 
-# Docker
-.pgdata/             # PostgreSQL data volume
-docker-compose.*.yml # File Docker Compose tạm
+# Database & Docker
+.pgdata/
+pgadmin/
+postgres-data/
+mysql-data/
+redis-data/
+docker-compose.*.yml
+*.sql.gz
+*.dump
 
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.turbo/
+.swc/
+.webpack/
+.rollup.cache/
+.vite/
+.tmp/
+.temp/
 
 # IDE và editor
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+*.swp
+*.swo
+*~
 
 # System files
-.DS_Store # macOS
-Thumbs.db # Windows
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# Test coverage
-coverage/
+# Optional npm cache directory
+.npm/
 
-# Cache
+# Optional eslint cache
 .eslintcache
-.turbo/ # Nếu dùng Turborepo
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.backup
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test/
+
+# Temporary folders
+tmp/
+temp/
+
+# Lock files (optional - uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac crap
+.DS_Store
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Rush temporary files
+common/deploy/
+common/temp/
+common/autoinstallers/*/.npmrc
+**/.rush/temp/
+
+# Scratchpads
+scratch.*
+*.scratch.*
