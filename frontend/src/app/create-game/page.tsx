@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGame } from "@/contexts/GameContext";
 import { GameSettings } from "@/services/game.service";
 import Header from "@/components/Header";
+import BackstoryGuide from "@/components/BackstoryGuide";
 
 export default function CreateGame() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -92,12 +93,12 @@ export default function CreateGame() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Create New Adventure</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Tạo cuộc phiêu lưu mới</h1>
             <button
               onClick={() => router.push("/dashboard")}
               className="text-blue-600 hover:text-blue-800"
             >
-              Back to Dashboard
+              Quay lại Dashboard
             </button>
           </div>
 
@@ -116,7 +117,7 @@ export default function CreateGame() {
                       htmlFor="theme"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Theme
+                      Thể loại
                     </label>
                     <select
                       id="theme"
@@ -126,13 +127,13 @@ export default function CreateGame() {
                       onChange={handleChange}
                       className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="">Select a theme</option>
-                      <option value="Fantasy">Fantasy</option>
-                      <option value="Sci-Fi">Sci-Fi</option>
-                      <option value="Post-Apocalyptic">Post-Apocalyptic</option>
-                      <option value="Historical">Historical</option>
-                      <option value="Modern">Modern</option>
-                      <option value="Horror">Horror</option>
+                      <option value="">Chọn thể loại</option>
+                      <option value="Fantasy">Giả tưởng (Fantasy)</option>
+                      <option value="Sci-Fi">Khoa học viễn tưởng (Sci-Fi)</option>
+                      <option value="Post-Apocalyptic">Hậu tận thế</option>
+                      <option value="Historical">Lịch sử</option>
+                      <option value="Modern">Hiện đại</option>
+                      <option value="Horror">Kinh dị</option>
                     </select>
                   </div>
 
@@ -141,14 +142,17 @@ export default function CreateGame() {
                       htmlFor="setting"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Setting
+                      Bối cảnh thế giới
                     </label>
+                    <p className="text-xs text-gray-500 mb-1">
+                      Mô tả môi trường, thời đại, địa điểm mà cuộc phiêu lưu sẽ diễn ra
+                    </p>
                     <input
                       type="text"
                       name="setting"
                       id="setting"
                       required
-                      placeholder="e.g., Medieval Kingdom, Space Station, Zombie Wasteland"
+                      placeholder="VD: Vương quốc thời trung cổ, Trạm vũ trụ, Thế giới zombie hậu tận thế"
                       value={formData.setting}
                       onChange={handleChange}
                       className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -160,7 +164,7 @@ export default function CreateGame() {
                       htmlFor="characterName"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Character Name
+                      Tên nhân vật
                     </label>
                     <input
                       type="text"
@@ -178,7 +182,7 @@ export default function CreateGame() {
                       htmlFor="additionalSettings.style"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Storytelling Style
+                      Phong cách kể chuyện
                     </label>
                     <select
                       id="additionalSettings.style"
@@ -201,7 +205,7 @@ export default function CreateGame() {
                       htmlFor="additionalSettings.difficulty"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Difficulty
+                      Độ khó
                     </label>
                     <select
                       id="additionalSettings.difficulty"
@@ -210,30 +214,16 @@ export default function CreateGame() {
                       onChange={handleChange}
                       className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
+                      <option value="easy">Dễ</option>
+                      <option value="medium">Trung bình</option>
+                      <option value="hard">Khó</option>
                     </select>
                   </div>
 
-                  <div className="col-span-1 md:col-span-2">
-                    <label
-                      htmlFor="characterBackstory"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Character Backstory
-                    </label>
-                    <textarea
-                      id="characterBackstory"
-                      name="characterBackstory"
-                      rows={4}
-                      required
-                      placeholder="Describe your character's background, motivations, and goals..."
-                      value={formData.characterBackstory}
-                      onChange={handleChange}
-                      className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
+                  <BackstoryGuide
+                    value={formData.characterBackstory}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 <div>
@@ -242,7 +232,7 @@ export default function CreateGame() {
                     disabled={gameLoading}
                     className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    {gameLoading ? "Creating Adventure..." : "Start New Adventure"}
+                    {gameLoading ? "Đang tạo cuộc phiêu lưu..." : "Bắt đầu cuộc phiêu lưu mới"}
                   </button>
                 </div>
               </form>

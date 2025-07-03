@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGame } from "@/contexts/GameContext";
@@ -20,6 +20,7 @@ import LorePanel from "@/components/GameplayScreen/LorePanel";
 import ActionInputPanel from "@/components/GameplayScreen/ActionInputPanel";
 import DeathScreen from "@/components/GameplayScreen/DeathScreen";
 import KarmaReputationPanel from "@/components/GameplayScreen/KarmaReputationPanel";
+import BackstoryPanel from "@/components/GameplayScreen/BackstoryPanel";
 
 export default function GamePage({
   params,
@@ -55,6 +56,19 @@ export default function GamePage({
   const [lifeSummary, setLifeSummary] = useState<CharacterLifeSummary | null>(
     null
   );
+
+  // Ref for ActionInputPanel to scroll to it after loading
+  const actionPanelRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to choices panel
+  const scrollToChoices = () => {
+    if (actionPanelRef.current) {
+      actionPanelRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -406,6 +420,14 @@ export default function GamePage({
           </div>
         )}
 
+        {/* Backstory Panel */}
+        {currentGame?.settings?.characterBackstory && (
+          <BackstoryPanel
+            characterName={currentGame.settings.characterName}
+            backstory={currentGame.settings.characterBackstory}
+          />
+        )}
+
         {/* Current Objective Panel */}
         {currentGame?.currentObjective && (
           <div className="mb-6">
@@ -439,6 +461,7 @@ export default function GamePage({
               knowledgeBase={createKnowledgeBase()}
               onLoreClick={handleLoreClick}
               isLoading={gameLoading}
+              onScrollToChoices={scrollToChoices}
             />
           </div>
 
@@ -456,6 +479,7 @@ export default function GamePage({
         {/* Bottom Action Panel */}
         <div className="mt-6">
           <ActionInputPanel
+            ref={actionPanelRef}
             currentChoices={currentGame?.currentChoices || []}
             isLoading={gameLoading}
             onMakeChoice={handleMakeChoice}

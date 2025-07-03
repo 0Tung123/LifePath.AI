@@ -17,30 +17,30 @@ export interface AdditionalSettings {
 }
 
 export class GameSettingsDto {
-  @ApiProperty({ description: 'Theme of the game', example: 'Fantasy' })
+  @ApiProperty({ description: 'Thể loại của trò chơi', example: 'Fantasy' })
   @IsString()
   @IsNotEmpty()
   theme: string;
 
   @ApiProperty({
-    description: 'Setting of the game',
-    example: 'Medieval Kingdom',
+    description: 'Bối cảnh thế giới của trò chơi',
+    example: 'Vương quốc thời trung cổ với phép thuật và rồng',
   })
   @IsString()
   @IsNotEmpty()
   setting: string;
 
   @ApiProperty({
-    description: 'Name of the main character',
-    example: 'Sir Galahad',
+    description: 'Tên của nhân vật chính',
+    example: 'Hiệp sĩ Galahad',
   })
   @IsString()
   @IsNotEmpty()
   characterName: string;
 
   @ApiProperty({
-    description: 'Backstory of the main character',
-    example: 'A knight from a fallen kingdom searching for redemption',
+    description: 'Tiểu sử và quá khứ của nhân vật chính',
+    example: 'Một hiệp sĩ từ vương quốc sụp đổ, đang tìm kiếm sự cứu rỗi cho linh hồn mình',
   })
   @IsString()
   @IsNotEmpty()

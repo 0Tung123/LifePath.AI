@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { StoryHistoryItem, KnowledgeBaseItem } from "@/services/game.service";
+import "../../styles/scrollbar.css";
 
 interface StoryHistoryPanelProps {
   storyHistory:
@@ -10,6 +11,7 @@ interface StoryHistoryPanelProps {
   knowledgeBase: KnowledgeBaseItem[];
   onLoreClick: (item: KnowledgeBaseItem) => void;
   isLoading?: boolean;
+  onScrollToChoices?: () => void;
 }
 
 interface TooltipState {
@@ -31,6 +33,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   knowledgeBase,
   onLoreClick,
   isLoading = false,
+  onScrollToChoices,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -39,13 +42,63 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     x: 0,
     y: 0,
   });
+  const [previousStoryLength, setPreviousStoryLength] = useState(0);
+  const [wasLoading, setWasLoading] = useState(false);
+  const [newStoryRef, setNewStoryRef] = useState<HTMLDivElement | null>(null);
+  const loadingStoryRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom when new content is added
+
+
+  // Track story length changes and loading state
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const currentLength = storyHistory?.length || 0;
+    
+    // If loading just started, scroll to loading indicator for story
+    if (!wasLoading && isLoading && currentLength > 0) {
+      setTimeout(() => {
+        if (loadingStoryRef.current) {
+          loadingStoryRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
+      }, 200);
     }
-  }, [storyHistory]);
+    
+    // If loading just finished and we have new story content
+    if (wasLoading && !isLoading && currentLength > previousStoryLength) {
+      // Check if we have new story items (not just user choices)
+      const newItems = storyHistory?.slice(previousStoryLength) || [];
+      const hasNewStory = newItems.some(item => {
+        const type = "type" in item ? item.type : "story";
+        return type === "story";
+      });
+      
+      if (hasNewStory) {
+        // Wait a bit for the content to render, then scroll to the new story
+        setTimeout(() => {
+          if (newStoryRef) {
+            newStoryRef.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+            
+            // After scrolling to story, scroll to choices
+            setTimeout(() => {
+              if (onScrollToChoices) {
+                onScrollToChoices();
+              }
+            }, 1000);
+          }
+        }, 600);
+      }
+    }
+    
+    setPreviousStoryLength(currentLength);
+    setWasLoading(isLoading);
+  }, [storyHistory, isLoading, wasLoading, previousStoryLength, onScrollToChoices, newStoryRef]);
 
   // Content type detection functions
   const detectContentType = (text: string): ContentSegment[] => {
@@ -561,7 +614,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       case "story":
         return "bg-gray-900/80 border-gray-600/50 backdrop-blur-sm";
       case "user_choice":
-        return "bg-blue-900/30 border-blue-400/40 backdrop-blur-sm";
+        return "bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-blue-400/60 backdrop-blur-sm shadow-blue-500/20";
       case "user_custom_action":
         return "bg-purple-900/30 border-purple-400/40 backdrop-blur-sm";
       case "user_thinking":
@@ -731,7 +784,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         {/* Content Area với thiết kế giấy cổ */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-6 space-y-6 max-h-96 bg-gradient-to-b from-gray-800/50 to-gray-900/50"
+          className="flex-1 overflow-y-auto p-6 space-y-6 max-h-96 bg-gradient-to-b from-gray-800/50 to-gray-900/50 custom-scrollbar"
           style={{
             backgroundImage: `
               radial-gradient(circle at 25% 25%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
@@ -739,7 +792,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             `,
           }}
         >
-          {isLoading ? (
+          {isLoading && (!storyHistory || storyHistory.length === 0) ? (
             <div className="text-center text-amber-400 py-12">
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
@@ -793,7 +846,8 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
               </p>
             </div>
           ) : (
-            storyHistory.map((item, index) => {
+            <>
+              {storyHistory.map((item, index) => {
               // Handle both old format (StorySegment) and new format (StoryHistoryItem)
               const isOldFormat =
                 "text" in item && item.text && !("content" in item);
@@ -805,34 +859,69 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                 : (item as StoryHistoryItem).type;
               const timestamp = item.timestamp;
 
+              // Check if this is the first new story item (for scroll reference)
+              const isFirstNewStoryItem = index >= previousStoryLength && type === "story" && 
+                storyHistory.slice(previousStoryLength, index + 1).filter(item => {
+                  const itemType = "type" in item ? item.type : "story";
+                  return itemType === "story";
+                }).length === 1;
+
+              // Check if this is a new item (for animation)
+              const isNewItem = index >= previousStoryLength;
+
               // Detect content segments for advanced styling
               const contentSegments = detectContentType(content);
 
               return (
                 <div
                   key={index}
+                  ref={isFirstNewStoryItem ? setNewStoryRef : null}
                   className={`relative p-5 rounded-xl border ${getItemStyle(
                     type
-                  )} shadow-lg hover:shadow-xl transition-all duration-300 group`}
+                  )} shadow-lg hover:shadow-xl transition-all duration-300 group ${
+                    isNewItem ? 'animate-in fade-in slide-in-from-bottom-4 duration-500' : ''
+                  }`}
                 >
                   {/* Decorative corner elements */}
-                  <div className="absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 border-amber-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className={`absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
+                  }`}></div>
+                  <div className={`absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
+                  }`}></div>
+                  <div className={`absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
+                  }`}></div>
+                  <div className={`absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
+                  }`}></div>
 
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-600/30">
+                  <div className={`flex items-center justify-between mb-4 pb-2 ${
+                    type === "user_choice" 
+                      ? "border-b border-blue-400/30" 
+                      : "border-b border-gray-600/30"
+                  }`}>
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 rounded-lg bg-gray-800/50">
+                      <div className={`p-2 rounded-lg ${
+                        type === "user_choice" 
+                          ? "bg-blue-800/50 ring-1 ring-blue-400/30" 
+                          : "bg-gray-800/50"
+                      }`}>
                         {getItemIcon(type)}
                       </div>
                       <div>
-                        <span className="text-sm font-medium text-gray-300 capitalize font-sans">
+                        <span className={`text-sm font-medium capitalize font-sans ${
+                          type === "user_choice" 
+                            ? "text-blue-200" 
+                            : "text-gray-300"
+                        }`}>
                           {type === "user_choice" && "Lựa Chọn Của Bạn"}
                           {type === "user_custom_action" && "Hành Động Tự Do"}
                           {type === "story" && "Câu Chuyện"}
                           {type === "system" && "Thông Báo Hệ Thống"}
+                          {type === "user_thinking" && "Suy Nghĩ"}
+                          {type === "user_communication" && "Giao Tiếp"}
                         </span>
                         <div className="text-xs text-gray-500 mt-1">
                           {formatTimestamp(timestamp)}
@@ -842,30 +931,125 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
                     {/* Type indicator */}
                     <div
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
                         type === "story"
                           ? "bg-gray-700/50 text-gray-300"
                           : type === "user_choice"
-                          ? "bg-blue-900/50 text-blue-300"
+                          ? "bg-blue-900/60 text-blue-200 ring-1 ring-blue-400/30"
                           : type === "user_custom_action"
                           ? "bg-purple-900/50 text-purple-300"
+                          : type === "user_thinking"
+                          ? "bg-indigo-900/50 text-indigo-300"
+                          : type === "user_communication"
+                          ? "bg-green-900/50 text-green-300"
                           : "bg-yellow-900/50 text-yellow-300"
                       }`}
                     >
-                      {contentSegments.length} đoạn
+                      {type === "user_choice" ? "Đã chọn" : `${contentSegments.length} đoạn`}
                     </div>
                   </div>
 
                   {/* Content with advanced styling */}
                   <div className="space-y-3">
-                    {renderContentSegments(contentSegments)}
+                    {type === "user_choice" ? (
+                      // Special layout for user choices
+                      <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-400/20">
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm font-bold rounded-full flex items-center justify-center">
+                            ✓
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-blue-200 leading-relaxed">
+                              {content}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular content for other types
+                      renderContentSegments(contentSegments)
+                    )}
                   </div>
 
                   {/* Subtle bottom decoration */}
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent"></div>
+                  <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent to-transparent ${
+                    type === "user_choice" ? "via-blue-400/30" : "via-amber-400/20"
+                  }`}></div>
                 </div>
               );
-            })
+              })}
+              
+              {/* Loading indicator for new story content - only show when loading and we have existing content */}
+              {isLoading && storyHistory && storyHistory.length > 0 && (
+                <div 
+                  ref={loadingStoryRef}
+                  className="relative p-5 rounded-xl border bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-amber-500/30 shadow-lg"
+                >
+                  {/* Animated border */}
+                  <div className="absolute inset-0 rounded-xl border-2 border-amber-400/50 animate-pulse"></div>
+                  
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-amber-600/30">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-amber-800/50">
+                        <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-amber-300 font-sans">
+                          Câu Chuyện
+                        </span>
+                        <div className="text-xs text-amber-500 mt-1">
+                          Kiến Trúc Sư Vũ Trụ đang dệt nên diễn biến tiếp theo...
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="px-2 py-1 rounded-full text-xs font-medium bg-amber-900/50 text-amber-300">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce"></div>
+                        <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                        <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 text-amber-200">
+                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      <span className="text-sm">
+                        Mực đang thấm vào giấy, tạo nên những dòng chữ mới...
+                      </span>
+                    </div>
+                    
+                    {/* Animated writing effect */}
+                    <div className="bg-amber-900/20 rounded-lg p-3 border border-amber-500/20">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          {[...Array(3)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-2 h-4 bg-amber-400/60 rounded animate-pulse"
+                              style={{ animationDelay: `${i * 0.2}s` }}
+                            ></div>
+                          ))}
+                        </div>
+                        <span className="text-xs text-amber-300/80">
+                          Đang soạn thảo...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom decoration */}
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent"></div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

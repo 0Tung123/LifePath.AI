@@ -34,7 +34,7 @@ export class GamesService {
       const { gameSettings } = createGameDto;
 
       // Generate initial prompt for Gemini
-      const initialPrompt = this.buildInitialPrompt(gameSettings);
+      const initialPrompt = await this.buildInitialPrompt(gameSettings);
 
       // Get response from Gemini API
       this.logger.log('Generating initial game content with Gemini...');
@@ -254,7 +254,7 @@ export class GamesService {
       }
 
       // 3. Build prompt for Gemini based on the action
-      const prompt = this.buildActionPrompt(
+      const prompt = await this.buildActionPrompt(
         game,
         choiceNumber,
         action,
@@ -490,16 +490,16 @@ export class GamesService {
   /**
    * Build a prompt for the AI based on player action
    */
-  private buildActionPrompt(
+  private async buildActionPrompt(
     game: Game,
     choiceNumber?: number,
     action?: string,
     think?: string,
     communication?: string,
-  ): string {
+  ): Promise<string> {
     try {
       // Import the enhanced action prompt
-      const { buildEnhancedActionPrompt } = require('./prompts/enhanced-world-building.prompt');
+      const { buildEnhancedActionPrompt } = await import('./prompts/enhanced-world-building.prompt.backup');
       return buildEnhancedActionPrompt(game, choiceNumber, action, think, communication);
     } catch (error) {
       this.logger.error('Error building action prompt:', error);
@@ -507,10 +507,10 @@ export class GamesService {
     }
   }
 
-  private buildInitialPrompt(gameSettings: GameSettingsDto): string {
+  private async buildInitialPrompt(gameSettings: GameSettingsDto): Promise<string> {
     try {
       // Import the enhanced world-building prompt
-      const { buildEnhancedWorldPrompt } = require('./prompts/enhanced-world-building.prompt');
+      const { buildEnhancedWorldPrompt } = await import('./prompts/enhanced-world-building.prompt.backup');
       return buildEnhancedWorldPrompt(gameSettings);
     } catch (error) {
       console.error('Error building initial prompt:', error);

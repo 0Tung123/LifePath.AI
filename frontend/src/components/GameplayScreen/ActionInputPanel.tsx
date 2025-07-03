@@ -13,7 +13,7 @@ interface ActionInputPanelProps {
   onGetSummary: () => Promise<void>;
 }
 
-const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
+const ActionInputPanel = React.forwardRef<HTMLDivElement, ActionInputPanelProps>(({
   currentChoices,
   isLoading,
   onMakeChoice,
@@ -21,12 +21,13 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
   onPerformThinking,
   onPerformCommunication,
   onGetSummary,
-}) => {
+}, ref) => {
   const [activeTab, setActiveTab] = useState<"choices" | "action" | "think" | "communicate">("choices");
   const [actionText, setActionText] = useState("");
   const [thinkText, setThinkText] = useState("");
   const [communicateText, setCommunicateText] = useState("");
   const [processingChoice, setProcessingChoice] = useState<number | null>(null);
+  const [wasLoading, setWasLoading] = useState(false);
 
   const actionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const thinkTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,6 +50,20 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
   useEffect(() => {
     if (communicateTextareaRef.current) autoResize(communicateTextareaRef.current);
   }, [communicateText]);
+
+  // Track loading state changes to scroll to choices when loading finishes
+  useEffect(() => {
+    if (wasLoading && !isLoading) {
+      // Loading just finished, scroll to this component
+      if (ref && 'current' in ref && ref.current) {
+        ref.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }
+    setWasLoading(isLoading);
+  }, [isLoading, wasLoading, ref]);
 
   const handleChoiceClick = async (choiceNumber: number) => {
     if (isLoading) return;
@@ -98,7 +113,7 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700">
+    <div ref={ref} className="bg-gray-800 rounded-lg border border-gray-700">
       {/* Header with Summary Button */}
       <div className="p-4 border-b border-gray-700 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-amber-400 flex items-center">
@@ -170,14 +185,43 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
       <div className="p-4 pt-0">
         {activeTab === "choices" && (
           <div className="space-y-3">
-            {currentChoices.length === 0 ? (
+            {/* Loading indicator when processing */}
+            {isLoading && (
+              <div className="text-center text-amber-400 py-8">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 border-4 border-amber-400/20 rounded-full"></div>
+                    <div className="absolute top-0 left-0 w-12 h-12 border-4 border-amber-400 rounded-full border-t-transparent animate-spin"></div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
+                    <div
+                      className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
+                  </div>
+                  <span className="text-lg font-medium">
+                    Đang viết câu chuyện...
+                  </span>
+                  <span className="text-sm text-gray-400">
+                    AI đang tạo ra diễn biến tiếp theo
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {!isLoading && currentChoices.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
                 <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p>Không có lựa chọn nào</p>
               </div>
-            ) : (
+            ) : !isLoading ? (
               currentChoices.map((choice) => (
                 <button
                   key={choice.number}
@@ -204,7 +248,7 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
                   </div>
                 </button>
               ))
-            )}
+            ) : null}
           </div>
         )}
 
@@ -333,6 +377,8 @@ const ActionInputPanel: React.FC<ActionInputPanelProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ActionInputPanel.displayName = 'ActionInputPanel';
 
 export default ActionInputPanel;
