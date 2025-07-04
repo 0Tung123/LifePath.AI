@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -33,7 +33,7 @@ export default function Header() {
                   {user?.profilePicture ? (
                     <Image
                       src={user.profilePicture}
-                      alt={`${user.firstName || "User"}'s avatar`}
+                      alt={`${user.firstName || 'User'}'s avatar`}
                       className="w-8 h-8 rounded-full"
                       width={32}
                       height={32}
@@ -42,12 +42,12 @@ export default function Header() {
                     <span className="text-sm font-medium">
                       {user?.firstName?.[0]?.toUpperCase() ||
                         user?.email?.[0]?.toUpperCase() ||
-                        "U"}
+                        'U'}
                     </span>
                   )}
                 </div>
                 <span className="hidden md:inline">
-                  {user?.firstName || user?.email?.split("@")[0] || "User"}
+                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
                 </span>
               </button>
 

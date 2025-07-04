@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, {
   createContext,
@@ -6,13 +6,13 @@ import React, {
   useState,
   ReactNode,
   useCallback,
-} from "react";
+} from 'react';
 import gameService, {
   Game,
   CreateGameDto,
   GameSettings,
   CharacterLifeSummary,
-} from "../services/game.service";
+} from '../services/game.service';
 
 interface GameContextType {
   currentGame: Game | null;
@@ -52,14 +52,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         setCurrentGame(game);
         return game;
       } catch {
-        const errorMessage = "Failed to create game. Please try again.";
+        const errorMessage = 'Failed to create game. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   const loadGame = useCallback(async (gameId: string): Promise<void> => {
@@ -70,7 +70,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       const game = await gameService.getGameById(gameId);
       setCurrentGame(game);
     } catch {
-      const errorMessage = "Failed to load game. Please try again.";
+      const errorMessage = 'Failed to load game. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -81,7 +81,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const makeChoice = useCallback(
     async (choiceNumber: number): Promise<void> => {
       if (!currentGame) {
-        setError("No active game found");
+        setError('No active game found');
         return;
       }
 
@@ -91,24 +91,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const updatedGame = await gameService.makeChoice(
           currentGame.id,
-          choiceNumber
+          choiceNumber,
         );
         setCurrentGame(updatedGame);
       } catch {
-        const errorMessage = "Failed to process choice. Please try again.";
+        const errorMessage = 'Failed to process choice. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     },
-    [currentGame]
+    [currentGame],
   );
 
   const performAction = useCallback(
     async (action: string): Promise<void> => {
       if (!currentGame) {
-        setError("No active game found");
+        setError('No active game found');
         return;
       }
 
@@ -118,24 +118,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const updatedGame = await gameService.performAction(
           currentGame.id,
-          action
+          action,
         );
         setCurrentGame(updatedGame);
       } catch {
-        const errorMessage = "Failed to process action. Please try again.";
+        const errorMessage = 'Failed to process action. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     },
-    [currentGame]
+    [currentGame],
   );
 
   const performThinking = useCallback(
     async (think: string): Promise<void> => {
       if (!currentGame) {
-        setError("No active game found");
+        setError('No active game found');
         return;
       }
 
@@ -145,24 +145,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const updatedGame = await gameService.performThinking(
           currentGame.id,
-          think
+          think,
         );
         setCurrentGame(updatedGame);
       } catch {
-        const errorMessage = "Failed to process thinking. Please try again.";
+        const errorMessage = 'Failed to process thinking. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     },
-    [currentGame]
+    [currentGame],
   );
 
   const performCommunication = useCallback(
     async (communication: string): Promise<void> => {
       if (!currentGame) {
-        setError("No active game found");
+        setError('No active game found');
         return;
       }
 
@@ -172,25 +172,25 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const updatedGame = await gameService.performCommunication(
           currentGame.id,
-          communication
+          communication,
         );
         setCurrentGame(updatedGame);
       } catch {
         const errorMessage =
-          "Failed to process communication. Please try again.";
+          'Failed to process communication. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }
     },
-    [currentGame]
+    [currentGame],
   );
 
   const getSummary = useCallback(async (): Promise<string> => {
     if (!currentGame) {
-      setError("No active game found");
-      throw new Error("No active game found");
+      setError('No active game found');
+      throw new Error('No active game found');
     }
 
     setIsLoading(true);
@@ -200,7 +200,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       const summary = await gameService.getSummary(currentGame.id);
       return summary;
     } catch {
-      const errorMessage = "Failed to get summary. Please try again.";
+      const errorMessage = 'Failed to get summary. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -211,8 +211,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const getLifeSummary =
     useCallback(async (): Promise<CharacterLifeSummary> => {
       if (!currentGame) {
-        setError("No active game found");
-        throw new Error("No active game found");
+        setError('No active game found');
+        throw new Error('No active game found');
       }
 
       setIsLoading(true);
@@ -221,8 +221,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       try {
         const lifeSummary = await gameService.getLifeSummary(currentGame.id);
         return lifeSummary;
-      } catch{
-        const errorMessage = "Failed to get life summary. Please try again.";
+      } catch {
+        const errorMessage = 'Failed to get life summary. Please try again.';
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {
@@ -232,7 +232,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const resurrectCharacter = useCallback(async (): Promise<void> => {
     if (!currentGame) {
-      setError("No active game found");
+      setError('No active game found');
       return;
     }
 
@@ -243,7 +243,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       const updatedGame = await gameService.resurrectCharacter(currentGame.id);
       setCurrentGame(updatedGame);
     } catch {
-      const errorMessage = "Failed to resurrect character. Please try again.";
+      const errorMessage = 'Failed to resurrect character. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -277,7 +277,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 export const useGame = (): GameContextType => {
   const context = useContext(GameContext);
   if (context === undefined) {
-    throw new Error("useGame must be used within a GameProvider");
+    throw new Error('useGame must be used within a GameProvider');
   }
   return context;
 };

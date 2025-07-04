@@ -6,7 +6,9 @@ import Link from 'next/link';
 import authService from '@/services/auth.service';
 
 function VerifyEmailContent() {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
+    'loading',
+  );
   const [message, setMessage] = useState<string>('');
   const [resendLoading, setResendLoading] = useState<boolean>(false);
   const [resendMessage, setResendMessage] = useState<string>('');
@@ -16,10 +18,12 @@ function VerifyEmailContent() {
 
   useEffect(() => {
     const token = searchParams.get('token');
-    
+
     if (!token) {
       setStatus('error');
-      setMessage('Verification token is missing. Please check your email link.');
+      setMessage(
+        'Verification token is missing. Please check your email link.',
+      );
       return;
     }
 
@@ -27,15 +31,27 @@ function VerifyEmailContent() {
       try {
         await authService.verifyEmail(token);
         setStatus('success');
-        setMessage('Your email has been verified successfully! You can now log in to your account.');
+        setMessage(
+          'Your email has been verified successfully! You can now log in to your account.',
+        );
       } catch (error: unknown) {
         setStatus('error');
-        if (error && typeof error === 'object' && 'response' in error && 
-            error.response && typeof error.response === 'object' && 'status' in error.response && 
-            error.response.status === 400) {
-          setMessage('Invalid or expired verification token. Please request a new verification email.');
+        if (
+          error &&
+          typeof error === 'object' &&
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'status' in error.response &&
+          error.response.status === 400
+        ) {
+          setMessage(
+            'Invalid or expired verification token. Please request a new verification email.',
+          );
         } else {
-          setMessage('Failed to verify email. Please try again or contact support.');
+          setMessage(
+            'Failed to verify email. Please try again or contact support.',
+          );
         }
       }
     };
@@ -55,14 +71,24 @@ function VerifyEmailContent() {
 
     try {
       await authService.resendVerification({ email });
-      setResendMessage('Verification email sent successfully! Please check your inbox.');
+      setResendMessage(
+        'Verification email sent successfully! Please check your inbox.',
+      );
     } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'response' in error && 
-          error.response && typeof error.response === 'object' && 'status' in error.response && 
-          error.response.status === 400) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 400
+      ) {
         setResendMessage('Email is already verified or user not found.');
       } else {
-        setResendMessage('Failed to send verification email. Please try again.');
+        setResendMessage(
+          'Failed to send verification email. Please try again.',
+        );
       }
     } finally {
       setResendLoading(false);
@@ -170,11 +196,13 @@ function VerifyEmailContent() {
                   </button>
                 </form>
                 {resendMessage && (
-                  <div className={`mt-3 p-3 rounded-md text-sm ${
-                    resendMessage.includes('successfully') 
-                      ? 'text-green-700 bg-green-100' 
-                      : 'text-red-700 bg-red-100'
-                  }`}>
+                  <div
+                    className={`mt-3 p-3 rounded-md text-sm ${
+                      resendMessage.includes('successfully')
+                        ? 'text-green-700 bg-green-100'
+                        : 'text-red-700 bg-red-100'
+                    }`}
+                  >
                     {resendMessage}
                   </div>
                 )}
@@ -185,11 +213,17 @@ function VerifyEmailContent() {
 
         {/* Navigation Links */}
         <div className="text-center text-sm text-gray-600">
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Back to Login
           </Link>
           {' | '}
-          <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/register"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Create Account
           </Link>
         </div>
@@ -200,14 +234,16 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <VerifyEmailContent />
     </Suspense>
   );

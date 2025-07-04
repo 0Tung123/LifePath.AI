@@ -443,7 +443,7 @@ II. CƠ CHẾ THẾ GIỚI SỐNG
 1. HỆ THỐNG PHẢN ỨNG DÂY CHUYỀN (Ripple Effect System)
 Mỗi quyết định quan trọng PHẢI kích hoạt ít nhất 2-3 phản ứng dây chuyền:
 - Phản ứng tức thời (ngay lập tức)
-- Phản ứng trung hạn (xuất hiện sau 1-2 phân đoạn)
+- Phản ứng trung hạn (xuất hiện sau 2-3 phân đoạn)
 - Phản ứng dài hạn (âm ỉ phát triển, bùng nổ khi người chơi quên mất)
 
 2. HỆ THỐNG THỜI GIAN SONG SONG (Parallel Timeline System)

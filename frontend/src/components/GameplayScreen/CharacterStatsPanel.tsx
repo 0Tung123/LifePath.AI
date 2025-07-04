@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import { GameStats } from "@/services/game.service";
+import React from 'react';
+import { GameStats } from '@/services/game.service';
 
 interface CharacterStatsPanelProps {
   characterStats: GameStats;
@@ -13,23 +13,23 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
   // Calculate EXP bar percentage
   const getExpPercentage = () => {
     const currentExp = Number(
-      characterStats.KinhNghiem || characterStats.Experience || 0
+      characterStats.KinhNghiem || characterStats.Experience || 0,
     );
     const maxExp = Number(
-      characterStats.KinhNghiemCanLenCap || characterStats.MaxExperience || 100
+      characterStats.KinhNghiemCanLenCap || characterStats.MaxExperience || 100,
     );
     return Math.min((currentExp / maxExp) * 100, 100);
   };
 
   // Calculate Health bar percentage
   const getHealthPercentage = () => {
-    const healthKeys = ["Health", "Máu", "Sinh Lực", "HP", "Sức Khỏe"];
+    const healthKeys = ['Health', 'Máu', 'Sinh Lực', 'HP', 'Sức Khỏe'];
 
     for (const key of healthKeys) {
       if (characterStats[key]) {
         const healthValue = String(characterStats[key]);
-        if (healthValue.includes("/")) {
-          const [current, max] = healthValue.split("/").map(Number);
+        if (healthValue.includes('/')) {
+          const [current, max] = healthValue.split('/').map(Number);
           return Math.min((current / max) * 100, 100);
         }
       }
@@ -39,18 +39,18 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
 
   // Get health display info
   const getHealthInfo = () => {
-    const healthKeys = ["Health", "Máu", "Sinh Lực", "HP", "Sức Khỏe"];
+    const healthKeys = ['Health', 'Máu', 'Sinh Lực', 'HP', 'Sức Khỏe'];
 
     for (const key of healthKeys) {
       if (characterStats[key]) {
         return {
           key,
           value: characterStats[key],
-          current: characterStats[key].toString().includes("/")
-            ? Number(characterStats[key].toString().split("/")[0])
+          current: characterStats[key].toString().includes('/')
+            ? Number(characterStats[key].toString().split('/')[0])
             : Number(characterStats[key]),
-          max: characterStats[key].toString().includes("/")
-            ? Number(characterStats[key].toString().split("/")[1])
+          max: characterStats[key].toString().includes('/')
+            ? Number(characterStats[key].toString().split('/')[1])
             : Number(characterStats[key]),
         };
       }
@@ -94,10 +94,10 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
               <div
                 className={`h-3 rounded-full transition-all duration-300 ${
                   healthPercentage > 60
-                    ? "bg-gradient-to-r from-green-500 to-green-400"
+                    ? 'bg-gradient-to-r from-green-500 to-green-400'
                     : healthPercentage > 30
-                    ? "bg-gradient-to-r from-yellow-500 to-orange-400"
-                    : "bg-gradient-to-r from-red-500 to-red-400"
+                      ? 'bg-gradient-to-r from-yellow-500 to-orange-400'
+                      : 'bg-gradient-to-r from-red-500 to-red-400'
                 }`}
                 style={{ width: `${healthPercentage}%` }}
               ></div>
@@ -114,15 +114,15 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
         {Object.entries(characterStats).map(([key, value]) => {
           // Skip EXP and Health related fields as they're handled separately
           if (
-            key === "KinhNghiem" ||
-            key === "KinhNghiemCanLenCap" ||
-            key === "Experience" ||
-            key === "MaxExperience" ||
-            key === "Health" ||
-            key === "Máu" ||
-            key === "Sinh Lực" ||
-            key === "HP" ||
-            key === "Sức Khỏe"
+            key === 'KinhNghiem' ||
+            key === 'KinhNghiemCanLenCap' ||
+            key === 'Experience' ||
+            key === 'MaxExperience' ||
+            key === 'Health' ||
+            key === 'Máu' ||
+            key === 'Sinh Lực' ||
+            key === 'HP' ||
+            key === 'Sức Khỏe'
           ) {
             return null;
           }
@@ -141,7 +141,7 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-300 text-sm">Kinh Nghiệm:</span>
               <span className="text-white text-sm">
-                {characterStats.KinhNghiem || characterStats.Experience} /{" "}
+                {characterStats.KinhNghiem || characterStats.Experience} /{' '}
                 {characterStats.KinhNghiemCanLenCap ||
                   characterStats.MaxExperience}
               </span>

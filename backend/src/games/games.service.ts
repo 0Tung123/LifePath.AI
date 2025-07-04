@@ -98,7 +98,7 @@ export class GamesService {
       this.logger.log(`Character name: ${gameSettings.characterName}`);
 
       // Save to database
-      const savedGame = (await this.gamesRepository.save(newGame)) as Game;
+      const savedGame = await this.gamesRepository.save(newGame);
 
       // Debug logging after save
       this.logger.log(
@@ -499,18 +499,30 @@ export class GamesService {
   ): Promise<string> {
     try {
       // Import the enhanced action prompt
-      const { buildEnhancedActionPrompt } = await import('./prompts/enhanced-world-building.prompt.backup');
-      return buildEnhancedActionPrompt(game, choiceNumber, action, think, communication);
+      const { buildEnhancedActionPrompt } = await import(
+        './prompts/enhanced-world-building.prompt.backup'
+      );
+      return buildEnhancedActionPrompt(
+        game,
+        choiceNumber,
+        action,
+        think,
+        communication,
+      );
     } catch (error) {
       this.logger.error('Error building action prompt:', error);
       throw new BadRequestException('Failed to build action prompt');
     }
   }
 
-  private async buildInitialPrompt(gameSettings: GameSettingsDto): Promise<string> {
+  private async buildInitialPrompt(
+    gameSettings: GameSettingsDto,
+  ): Promise<string> {
     try {
       // Import the enhanced world-building prompt
-      const { buildEnhancedWorldPrompt } = await import('./prompts/enhanced-world-building.prompt.backup');
+      const { buildEnhancedWorldPrompt } = await import(
+        './prompts/enhanced-world-building.prompt.backup'
+      );
       return buildEnhancedWorldPrompt(gameSettings);
     } catch (error) {
       console.error('Error building initial prompt:', error);

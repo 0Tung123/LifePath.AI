@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Skill } from "@/services/game.service";
+import React, { useState } from 'react';
+import { Skill } from '@/services/game.service';
 
 interface SkillsPanelProps {
   characterSkills: Skill[];
@@ -15,12 +15,12 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ characterSkills }) => {
   };
 
   const getSkillLevelColor = (level?: number) => {
-    if (!level) return "text-gray-400";
-    if (level >= 80) return "text-purple-400";
-    if (level >= 60) return "text-blue-400";
-    if (level >= 40) return "text-green-400";
-    if (level >= 20) return "text-yellow-400";
-    return "text-gray-400";
+    if (!level) return 'text-gray-400';
+    if (level >= 80) return 'text-purple-400';
+    if (level >= 60) return 'text-blue-400';
+    if (level >= 40) return 'text-green-400';
+    if (level >= 20) return 'text-yellow-400';
+    return 'text-gray-400';
   };
 
   const getSkillLevelBar = (level?: number) => {
@@ -72,14 +72,16 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ characterSkills }) => {
                 onClick={() => handleSkillClick(skill)}
                 className={`w-full p-3 rounded-lg border transition-all duration-200 text-left ${
                   selectedSkill?.name === skill.name
-                    ? "bg-purple-900/50 border-purple-500/50 text-purple-200"
-                    : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                    ? 'bg-purple-900/50 border-purple-500/50 text-purple-200'
+                    : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200'
                 }`}
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium">{skill.name}</span>
                   {skill.level !== undefined && (
-                    <span className={`font-bold ${getSkillLevelColor(skill.level)}`}>
+                    <span
+                      className={`font-bold ${getSkillLevelColor(skill.level)}`}
+                    >
                       Lv.{skill.level}
                     </span>
                   )}
@@ -91,14 +93,14 @@ const SkillsPanel: React.FC<SkillsPanelProps> = ({ characterSkills }) => {
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${
                         skill.level >= 80
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500'
                           : skill.level >= 60
-                          ? "bg-gradient-to-r from-blue-500 to-cyan-500"
-                          : skill.level >= 40
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                          : skill.level >= 20
-                          ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                          : "bg-gradient-to-r from-gray-500 to-gray-400"
+                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                            : skill.level >= 40
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                              : skill.level >= 20
+                                ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                                : 'bg-gradient-to-r from-gray-500 to-gray-400'
                       }`}
                       style={{ width: `${getSkillLevelBar(skill.level)}%` }}
                     ></div>

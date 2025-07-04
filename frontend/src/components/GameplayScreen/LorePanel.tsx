@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { LoreFragment, KnowledgeBaseItem } from "@/services/game.service";
+import React, { useState } from 'react';
+import { LoreFragment, KnowledgeBaseItem } from '@/services/game.service';
 
 interface LorePanelProps {
   loreFragments: LoreFragment[];
@@ -16,20 +16,20 @@ const LorePanel: React.FC<LorePanelProps> = ({
   selectedLoreItem,
   onCloseLoreDetail,
 }) => {
-  const [activeTab, setActiveTab] = useState<"fragments" | "knowledge">(
-    "fragments"
+  const [activeTab, setActiveTab] = useState<'fragments' | 'knowledge'>(
+    'fragments',
   );
   const [selectedFragment, setSelectedFragment] = useState<LoreFragment | null>(
-    null
+    null,
   );
 
   const handleFragmentClick = (fragment: LoreFragment) => {
     setSelectedFragment(selectedFragment === fragment ? null : fragment);
   };
 
-  const getFragmentIcon = (type: LoreFragment["type"]) => {
+  const getFragmentIcon = (type: LoreFragment['type']) => {
     switch (type) {
-      case "npc":
+      case 'npc':
         return (
           <svg
             className="w-4 h-4"
@@ -45,7 +45,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
             />
           </svg>
         );
-      case "item":
+      case 'item':
         return (
           <svg
             className="w-4 h-4"
@@ -61,7 +61,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
             />
           </svg>
         );
-      case "location":
+      case 'location':
         return (
           <svg
             className="w-4 h-4"
@@ -83,7 +83,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
             />
           </svg>
         );
-      case "general":
+      case 'general':
         return (
           <svg
             className="w-4 h-4"
@@ -104,9 +104,9 @@ const LorePanel: React.FC<LorePanelProps> = ({
     }
   };
 
-  const getKnowledgeIcon = (type: KnowledgeBaseItem["type"]) => {
+  const getKnowledgeIcon = (type: KnowledgeBaseItem['type']) => {
     switch (type) {
-      case "npc":
+      case 'npc':
         return (
           <svg
             className="w-4 h-4"
@@ -122,7 +122,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
             />
           </svg>
         );
-      case "item":
+      case 'item':
         return (
           <svg
             className="w-4 h-4"
@@ -138,7 +138,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
             />
           </svg>
         );
-      case "location":
+      case 'location':
         return (
           <svg
             className="w-4 h-4"
@@ -226,21 +226,21 @@ const LorePanel: React.FC<LorePanelProps> = ({
         {/* Tabs */}
         <div className="flex space-x-4 mt-3">
           <button
-            onClick={() => setActiveTab("fragments")}
+            onClick={() => setActiveTab('fragments')}
             className={`py-1 px-3 text-sm font-medium rounded ${
-              activeTab === "fragments"
-                ? "bg-amber-600 text-white"
-                : "text-gray-400 hover:text-white"
+              activeTab === 'fragments'
+                ? 'bg-amber-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             Mảnh Truyền Thuyết ({loreFragments?.length || 0})
           </button>
           <button
-            onClick={() => setActiveTab("knowledge")}
+            onClick={() => setActiveTab('knowledge')}
             className={`py-1 px-3 text-sm font-medium rounded ${
-              activeTab === "knowledge"
-                ? "bg-amber-600 text-white"
-                : "text-gray-400 hover:text-white"
+              activeTab === 'knowledge'
+                ? 'bg-amber-600 text-white'
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             Cơ Sở Kiến Thức ({knowledgeBase?.length || 0})
@@ -250,7 +250,7 @@ const LorePanel: React.FC<LorePanelProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "fragments" ? (
+        {activeTab === 'fragments' ? (
           <div className="space-y-2">
             {!loreFragments || loreFragments.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
@@ -276,8 +276,8 @@ const LorePanel: React.FC<LorePanelProps> = ({
                     onClick={() => handleFragmentClick(fragment)}
                     className={`w-full p-3 rounded-lg border transition-all duration-200 text-left ${
                       selectedFragment === fragment
-                        ? "bg-amber-900/50 border-amber-500/50 text-amber-200"
-                        : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                        ? 'bg-amber-900/50 border-amber-500/50 text-amber-200'
+                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200'
                     }`}
                   >
                     <div className="flex items-center space-x-2">

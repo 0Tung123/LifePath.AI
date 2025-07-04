@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useRef, useEffect, useState } from "react";
-import { StoryHistoryItem, KnowledgeBaseItem } from "@/services/game.service";
-import "../../styles/scrollbar.css";
+import React, { useRef, useEffect, useState } from 'react';
+import { StoryHistoryItem, KnowledgeBaseItem } from '@/services/game.service';
+import '../../styles/scrollbar.css';
 
 interface StoryHistoryPanelProps {
   storyHistory:
@@ -22,10 +22,10 @@ interface TooltipState {
 }
 
 interface ContentSegment {
-  type: "dialogue" | "monologue" | "action" | "description" | "system" | "item";
+  type: 'dialogue' | 'monologue' | 'action' | 'description' | 'system' | 'item';
   content: string;
   speaker?: string;
-  itemRarity?: "common" | "good" | "rare" | "epic" | "legendary";
+  itemRarity?: 'common' | 'good' | 'rare' | 'epic' | 'legendary';
 }
 
 const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
@@ -38,7 +38,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
-    content: "",
+    content: '',
     x: 0,
     y: 0,
   });
@@ -47,44 +47,42 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   const [newStoryRef, setNewStoryRef] = useState<HTMLDivElement | null>(null);
   const loadingStoryRef = useRef<HTMLDivElement>(null);
 
-
-
   // Track story length changes and loading state
   useEffect(() => {
     const currentLength = storyHistory?.length || 0;
-    
+
     // If loading just started, scroll to loading indicator for story
     if (!wasLoading && isLoading && currentLength > 0) {
       setTimeout(() => {
         if (loadingStoryRef.current) {
-          loadingStoryRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
+          loadingStoryRef.current.scrollIntoView({
+            behavior: 'smooth',
             block: 'start',
-            inline: 'nearest'
+            inline: 'nearest',
           });
         }
       }, 200);
     }
-    
+
     // If loading just finished and we have new story content
     if (wasLoading && !isLoading && currentLength > previousStoryLength) {
       // Check if we have new story items (not just user choices)
       const newItems = storyHistory?.slice(previousStoryLength) || [];
-      const hasNewStory = newItems.some(item => {
-        const type = "type" in item ? item.type : "story";
-        return type === "story";
+      const hasNewStory = newItems.some((item) => {
+        const type = 'type' in item ? item.type : 'story';
+        return type === 'story';
       });
-      
+
       if (hasNewStory) {
         // Wait a bit for the content to render, then scroll to the new story
         setTimeout(() => {
           if (newStoryRef) {
-            newStoryRef.scrollIntoView({ 
-              behavior: 'smooth', 
+            newStoryRef.scrollIntoView({
+              behavior: 'smooth',
               block: 'start',
-              inline: 'nearest'
+              inline: 'nearest',
             });
-            
+
             // After scrolling to story, scroll to choices
             setTimeout(() => {
               if (onScrollToChoices) {
@@ -95,15 +93,22 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         }, 600);
       }
     }
-    
+
     setPreviousStoryLength(currentLength);
     setWasLoading(isLoading);
-  }, [storyHistory, isLoading, wasLoading, previousStoryLength, onScrollToChoices, newStoryRef]);
+  }, [
+    storyHistory,
+    isLoading,
+    wasLoading,
+    previousStoryLength,
+    onScrollToChoices,
+    newStoryRef,
+  ]);
 
   // Content type detection functions
   const detectContentType = (text: string): ContentSegment[] => {
     const segments: ContentSegment[] = [];
-    const lines = text.split("\n").filter((line) => line.trim());
+    const lines = text.split('\n').filter((line) => line.trim());
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -111,7 +116,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       // System messages
       if (trimmedLine.match(/^\[Hệ Thống\]|^\[System\]|^✨|^📊|^🎯/)) {
         segments.push({
-          type: "system",
+          type: 'system',
           content: trimmedLine,
         });
         continue;
@@ -120,13 +125,13 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       // Dialogue detection (quotes or speaker patterns)
       // Pattern 1: "Speaker: 'dialogue'" or "Speaker: "dialogue""
       const speakerDialogueMatch = trimmedLine.match(
-        /^([^:"]+):\s*["']([^"']*)["']$/
+        /^([^:"]+):\s*["']([^"']*)["']$/,
       );
       if (speakerDialogueMatch) {
         const speaker = speakerDialogueMatch[1]?.trim();
         const dialogue = speakerDialogueMatch[2];
         segments.push({
-          type: "dialogue",
+          type: 'dialogue',
           content: dialogue,
           speaker: speaker,
         });
@@ -135,13 +140,13 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
       // Pattern 2: "Speaker: dialogue" (without quotes)
       const speakerNoQuotesMatch = trimmedLine.match(
-        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*"([^"]+)"$/
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*"([^"]+)"$/,
       );
       if (speakerNoQuotesMatch) {
         const speaker = speakerNoQuotesMatch[1]?.trim();
         const dialogue = speakerNoQuotesMatch[2];
         segments.push({
-          type: "dialogue",
+          type: 'dialogue',
           content: dialogue,
           speaker: speaker,
         });
@@ -150,15 +155,15 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
       // Pattern 3: Character speaking with action verbs: "Character nói: content"
       const characterSpeakingMatch = trimmedLine.match(
-        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*)\s+(nói|hét|thì thầm|chửi|gào|la|kêu|thốt|thở dài|cười|khẽ nói|trả lời|hỏi|thốt lên):\s*(.+)$/i
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*)\s+(nói|hét|thì thầm|chửi|gào|la|kêu|thốt|thở dài|cười|khẽ nói|trả lời|hỏi|thốt lên):\s*(.+)$/i,
       );
       if (characterSpeakingMatch) {
         const speaker = characterSpeakingMatch[1]?.trim();
         const dialogue = characterSpeakingMatch[3]
           ?.trim()
-          .replace(/^["']|["']$/g, "");
+          .replace(/^["']|["']$/g, '');
         segments.push({
-          type: "dialogue",
+          type: 'dialogue',
           content: dialogue,
           speaker: speaker,
         });
@@ -167,26 +172,26 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
       // Pattern 4: Simple format "Name: content" (most common)
       const simpleDialogueMatch = trimmedLine.match(
-        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*(.+)$/
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*(.+)$/,
       );
       if (
         simpleDialogueMatch &&
-        !trimmedLine.includes("=") &&
-        !trimmedLine.includes("[")
+        !trimmedLine.includes('=') &&
+        !trimmedLine.includes('[')
       ) {
         const speaker = simpleDialogueMatch[1]?.trim();
         const dialogue = simpleDialogueMatch[2]
           ?.trim()
-          .replace(/^["']|["']$/g, "");
+          .replace(/^["']|["']$/g, '');
         // Make sure it's not a system message or stat
         if (
           speaker.length > 1 &&
           speaker.length < 50 &&
-          !speaker.includes("STATS") &&
-          !speaker.includes("INVENTORY")
+          !speaker.includes('STATS') &&
+          !speaker.includes('INVENTORY')
         ) {
           segments.push({
-            type: "dialogue",
+            type: 'dialogue',
             content: dialogue,
             speaker: speaker,
           });
@@ -204,10 +209,10 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           /^(xoẹt|boom|bang|crash|whoosh|slash|thud|clang|rít|gầm|gừ|ầm|ào|khốn|chết|damn|shit|fuck|hell)[\s!]*$/i;
         const isShortExclamation =
           dialogue.length <= 10 &&
-          /^[!?]+$/.test(dialogue.replace(/[a-zA-ZÀ-ỹ\s]/g, ""));
+          /^[!?]+$/.test(dialogue.replace(/[a-zA-ZÀ-ỹ\s]/g, ''));
         const isSkillOrAction =
           /^(tấn công|phòng thủ|né tránh|skill|kỹ năng|magic|spell|attack|defend|dodge|cơ bản|nâng cao|đặc biệt)/i.test(
-            dialogue
+            dialogue,
           );
         const isSoundEffect =
           /^[a-zA-ZÀ-ỹ]*[!]+$/.test(dialogue) && dialogue.length <= 8;
@@ -220,14 +225,14 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         ) {
           // Treat as action/sound effect, not dialogue
           segments.push({
-            type: "action",
+            type: 'action',
             content: `"${dialogue}"`,
           });
         } else {
           // For actual dialogue, don't assign "Không rõ" unless it's clearly dialogue
           // Most quoted text in story context should be treated as description or action
           segments.push({
-            type: "description",
+            type: 'description',
             content: `"${dialogue}"`,
           });
         }
@@ -237,19 +242,19 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       // Internal monologue (italic markers or thought patterns)
       if (trimmedLine.match(/^\*.*\*$|^_.*_$|nghĩ thầm|tự nhủ|trong lòng/i)) {
         segments.push({
-          type: "monologue",
-          content: trimmedLine.replace(/^\*|\*$|^_|_$/g, "").trim(),
+          type: 'monologue',
+          content: trimmedLine.replace(/^\*|\*$|^_|_$/g, '').trim(),
         });
         continue;
       }
 
       // Item detection (brackets or item keywords)
       const itemMatch = trimmedLine.match(
-        /\[([^\]]+)\]|\b(kiếm|đao|giáp|bùa|thuốc|đan|thạch|ngọc|châu|bảo)\b/i
+        /\[([^\]]+)\]|\b(kiếm|đao|giáp|bùa|thuốc|đan|thạch|ngọc|châu|bảo)\b/i,
       );
       if (itemMatch) {
         segments.push({
-          type: "item",
+          type: 'item',
           content: trimmedLine,
           itemRarity: detectItemRarity(trimmedLine),
         });
@@ -259,11 +264,11 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       // Action detection (action verbs or movement)
       if (
         trimmedLine.match(
-          /\b(đi|chạy|nhảy|tấn công|phòng thủ|sử dụng|cầm|lấy|mở|đóng|nói|hét|thì thầm)\b/i
+          /\b(đi|chạy|nhảy|tấn công|phòng thủ|sử dụng|cầm|lấy|mở|đóng|nói|hét|thì thầm)\b/i,
         )
       ) {
         segments.push({
-          type: "action",
+          type: 'action',
           content: trimmedLine,
         });
         continue;
@@ -271,7 +276,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
       // Default to description
       segments.push({
-        type: "description",
+        type: 'description',
         content: trimmedLine,
       });
     }
@@ -279,12 +284,12 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return segments;
   };
 
-  const detectItemRarity = (text: string): ContentSegment["itemRarity"] => {
-    if (text.match(/huyền thoại|legendary|vàng kim/i)) return "legendary";
-    if (text.match(/sử thi|epic|tím|violet/i)) return "epic";
-    if (text.match(/hiếm|rare|xanh lam|blue/i)) return "rare";
-    if (text.match(/tốt|good|xanh lục|green/i)) return "good";
-    return "common";
+  const detectItemRarity = (text: string): ContentSegment['itemRarity'] => {
+    if (text.match(/huyền thoại|legendary|vàng kim/i)) return 'legendary';
+    if (text.match(/sử thi|epic|tím|violet/i)) return 'epic';
+    if (text.match(/hiếm|rare|xanh lam|blue/i)) return 'rare';
+    if (text.match(/tốt|good|xanh lục|green/i)) return 'good';
+    return 'common';
   };
 
   // Tooltip functions
@@ -307,20 +312,20 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     // Predefined colors for common character types
     const colorMap: { [key: string]: string } = {
       // Main character variations
-      bạn: "text-emerald-400",
-      tôi: "text-emerald-400",
-      ta: "text-emerald-400",
+      bạn: 'text-emerald-400',
+      tôi: 'text-emerald-400',
+      ta: 'text-emerald-400',
 
       // Elder/Master titles
-      "trưởng lão": "text-amber-400",
-      "sư phụ": "text-amber-400",
-      thầy: "text-amber-400",
-      "sư tổ": "text-amber-400",
+      'trưởng lão': 'text-amber-400',
+      'sư phụ': 'text-amber-400',
+      thầy: 'text-amber-400',
+      'sư tổ': 'text-amber-400',
 
       // System/Narrator
-      "hệ thống": "text-cyan-400",
-      "người kể": "text-gray-400",
-      narrator: "text-gray-400",
+      'hệ thống': 'text-cyan-400',
+      'người kể': 'text-gray-400',
+      narrator: 'text-gray-400',
     };
 
     // Check for predefined mappings first
@@ -333,18 +338,18 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
     // Generate consistent color based on name hash
     const colors = [
-      "text-blue-400", // Default blue
-      "text-purple-400", // Purple
-      "text-pink-400", // Pink
-      "text-rose-400", // Rose
-      "text-orange-400", // Orange
-      "text-yellow-400", // Yellow
-      "text-lime-400", // Lime
-      "text-green-400", // Green
-      "text-teal-400", // Teal (but different from lore items)
-      "text-sky-400", // Sky
-      "text-indigo-400", // Indigo
-      "text-violet-400", // Violet
+      'text-blue-400', // Default blue
+      'text-purple-400', // Purple
+      'text-pink-400', // Pink
+      'text-rose-400', // Rose
+      'text-orange-400', // Orange
+      'text-yellow-400', // Yellow
+      'text-lime-400', // Lime
+      'text-green-400', // Green
+      'text-teal-400', // Teal (but different from lore items)
+      'text-sky-400', // Sky
+      'text-indigo-400', // Indigo
+      'text-violet-400', // Violet
     ];
 
     // Simple hash function for consistent color assignment
@@ -377,7 +382,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           className="text-yellow-400 font-medium bg-yellow-400/10 px-1 rounded"
         >
           [{itemName}]
-        </span>
+        </span>,
       );
 
       lastIndex = match.index + match[0].length;
@@ -402,7 +407,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
     // Create regex patterns for each lore item
     knowledgeBase.forEach((item) => {
-      const regex = new RegExp(`\\b${item.name}\\b`, "gi");
+      const regex = new RegExp(`\\b${item.name}\\b`, 'gi');
       loreItems.push({ item, regex });
     });
 
@@ -457,14 +462,14 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           onMouseEnter={(e) =>
             showTooltip(
               match.item.description || `Chi tiết về ${match.item.name}`,
-              e
+              e,
             )
           }
           onMouseLeave={hideTooltip}
           className="text-teal-400 hover:text-teal-300 cursor-pointer font-medium transition-colors duration-200 underline decoration-teal-400/50 hover:decoration-teal-300/70"
         >
           {matchText}
-        </button>
+        </button>,
       );
 
       lastIndex = match.end;
@@ -482,23 +487,23 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   const renderContentSegments = (segments: ContentSegment[]) => {
     return segments.map((segment, index) => {
       switch (segment.type) {
-        case "dialogue":
+        case 'dialogue':
           const speakerColor = segment.speaker
             ? getCharacterColor(segment.speaker)
-            : "text-blue-400";
+            : 'text-blue-400';
           const borderColor = speakerColor
-            .replace("text-", "border-")
-            .replace("-400", "-400/30");
+            .replace('text-', 'border-')
+            .replace('-400', '-400/30');
           const bgColor = speakerColor
-            .replace("text-", "bg-")
-            .replace("-400", "-400/5");
+            .replace('text-', 'bg-')
+            .replace('-400', '-400/5');
 
           return (
             <div
               key={index}
               className={`mb-4 p-3 rounded-lg ${bgColor} border-l-4 ${borderColor.replace(
-                "/30",
-                "/50"
+                '/30',
+                '/50',
               )}`}
             >
               {segment.speaker && (
@@ -516,7 +521,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             </div>
           );
 
-        case "monologue":
+        case 'monologue':
           return (
             <div key={index} className="mb-2 italic text-purple-300 font-sans">
               <span className="opacity-60">*</span>
@@ -525,40 +530,40 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             </div>
           );
 
-        case "action":
+        case 'action':
           return (
             <div key={index} className="mb-2 font-bold text-orange-400">
               {highlightLoreItems(segment.content)}
             </div>
           );
 
-        case "system":
-          const systemIcon = segment.content.includes("✨")
-            ? "✨"
-            : segment.content.includes("📊")
-            ? "📊"
-            : segment.content.includes("🎯")
-            ? "🎯"
-            : "⚙️";
-          const systemColor = segment.content.includes("✨")
-            ? "text-yellow-400"
-            : segment.content.includes("📊")
-            ? "text-blue-400"
-            : segment.content.includes("🎯")
-            ? "text-green-400"
-            : "text-gray-400";
+        case 'system':
+          const systemIcon = segment.content.includes('✨')
+            ? '✨'
+            : segment.content.includes('📊')
+              ? '📊'
+              : segment.content.includes('🎯')
+                ? '🎯'
+                : '⚙️';
+          const systemColor = segment.content.includes('✨')
+            ? 'text-yellow-400'
+            : segment.content.includes('📊')
+              ? 'text-blue-400'
+              : segment.content.includes('🎯')
+                ? 'text-green-400'
+                : 'text-gray-400';
 
           return (
             <div
               key={index}
               className={`mb-2 p-3 rounded-lg bg-gray-800/50 border-l-4 ${
-                segment.content.includes("✨")
-                  ? "border-yellow-400"
-                  : segment.content.includes("📊")
-                  ? "border-blue-400"
-                  : segment.content.includes("🎯")
-                  ? "border-green-400"
-                  : "border-gray-400"
+                segment.content.includes('✨')
+                  ? 'border-yellow-400'
+                  : segment.content.includes('📊')
+                    ? 'border-blue-400'
+                    : segment.content.includes('🎯')
+                      ? 'border-green-400'
+                      : 'border-gray-400'
               }`}
             >
               <span className={`${systemColor} font-medium`}>
@@ -567,25 +572,25 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             </div>
           );
 
-        case "item":
+        case 'item':
           const rarityColors = {
-            common: "text-gray-400 border-gray-500",
-            good: "text-green-400 border-green-500",
-            rare: "text-blue-400 border-blue-500",
-            epic: "text-purple-400 border-purple-500",
-            legendary: "text-yellow-400 border-yellow-500",
+            common: 'text-gray-400 border-gray-500',
+            good: 'text-green-400 border-green-500',
+            rare: 'text-blue-400 border-blue-500',
+            epic: 'text-purple-400 border-purple-500',
+            legendary: 'text-yellow-400 border-yellow-500',
           };
 
           return (
             <div key={index} className="mb-2">
               <span
                 className={`inline-block px-2 py-1 rounded border ${
-                  rarityColors[segment.itemRarity || "common"]
+                  rarityColors[segment.itemRarity || 'common']
                 } bg-gray-800/30 font-medium cursor-help`}
                 onMouseEnter={(e) =>
                   showTooltip(
-                    `Vật phẩm ${segment.itemRarity || "phổ thông"}`,
-                    e
+                    `Vật phẩm ${segment.itemRarity || 'phổ thông'}`,
+                    e,
                   )
                 }
                 onMouseLeave={hideTooltip}
@@ -595,7 +600,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             </div>
           );
 
-        case "description":
+        case 'description':
         default:
           return (
             <div
@@ -609,28 +614,28 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     });
   };
 
-  const getItemStyle = (type: StoryHistoryItem["type"]) => {
+  const getItemStyle = (type: StoryHistoryItem['type']) => {
     switch (type) {
-      case "story":
-        return "bg-gray-900/80 border-gray-600/50 backdrop-blur-sm";
-      case "user_choice":
-        return "bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-blue-400/60 backdrop-blur-sm shadow-blue-500/20";
-      case "user_custom_action":
-        return "bg-purple-900/30 border-purple-400/40 backdrop-blur-sm";
-      case "user_thinking":
-        return "bg-indigo-900/30 border-indigo-400/40 backdrop-blur-sm";
-      case "user_communication":
-        return "bg-green-900/30 border-green-400/40 backdrop-blur-sm";
-      case "system":
-        return "bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm";
+      case 'story':
+        return 'bg-gray-900/80 border-gray-600/50 backdrop-blur-sm';
+      case 'user_choice':
+        return 'bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-blue-400/60 backdrop-blur-sm shadow-blue-500/20';
+      case 'user_custom_action':
+        return 'bg-purple-900/30 border-purple-400/40 backdrop-blur-sm';
+      case 'user_thinking':
+        return 'bg-indigo-900/30 border-indigo-400/40 backdrop-blur-sm';
+      case 'user_communication':
+        return 'bg-green-900/30 border-green-400/40 backdrop-blur-sm';
+      case 'system':
+        return 'bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm';
       default:
-        return "bg-gray-900/80 border-gray-600/50 backdrop-blur-sm";
+        return 'bg-gray-900/80 border-gray-600/50 backdrop-blur-sm';
     }
   };
 
-  const getItemIcon = (type: StoryHistoryItem["type"]) => {
+  const getItemIcon = (type: StoryHistoryItem['type']) => {
     switch (type) {
-      case "story":
+      case 'story':
         return (
           <svg
             className="w-4 h-4"
@@ -646,7 +651,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case "user_choice":
+      case 'user_choice':
         return (
           <svg
             className="w-4 h-4"
@@ -662,7 +667,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case "user_custom_action":
+      case 'user_custom_action':
         return (
           <svg
             className="w-4 h-4"
@@ -678,7 +683,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case "user_thinking":
+      case 'user_thinking':
         return (
           <svg
             className="w-4 h-4"
@@ -694,7 +699,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case "user_communication":
+      case 'user_communication':
         return (
           <svg
             className="w-4 h-4"
@@ -710,7 +715,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case "system":
+      case 'system':
         return (
           <svg
             className="w-4 h-4"
@@ -733,9 +738,9 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
+    return date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -803,11 +808,11 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                   <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                   <div
                     className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.1s" }}
+                    style={{ animationDelay: '0.1s' }}
                   ></div>
                   <div
                     className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
+                    style={{ animationDelay: '0.2s' }}
                   ></div>
                 </div>
                 <span className="text-lg font-sans text-amber-300">
@@ -848,152 +853,196 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
           ) : (
             <>
               {storyHistory.map((item, index) => {
-              // Handle both old format (StorySegment) and new format (StoryHistoryItem)
-              const isOldFormat =
-                "text" in item && item.text && !("content" in item);
-              const content = isOldFormat
-                ? (item as { text: string }).text
-                : (item as StoryHistoryItem).content;
-              const type = isOldFormat
-                ? "story"
-                : (item as StoryHistoryItem).type;
-              const timestamp = item.timestamp;
+                // Handle both old format (StorySegment) and new format (StoryHistoryItem)
+                const isOldFormat =
+                  'text' in item && item.text && !('content' in item);
+                const content = isOldFormat
+                  ? (item as { text: string }).text
+                  : (item as StoryHistoryItem).content;
+                const type = isOldFormat
+                  ? 'story'
+                  : (item as StoryHistoryItem).type;
+                const timestamp = item.timestamp;
 
-              // Check if this is the first new story item (for scroll reference)
-              const isFirstNewStoryItem = index >= previousStoryLength && type === "story" && 
-                storyHistory.slice(previousStoryLength, index + 1).filter(item => {
-                  const itemType = "type" in item ? item.type : "story";
-                  return itemType === "story";
-                }).length === 1;
+                // Check if this is the first new story item (for scroll reference)
+                const isFirstNewStoryItem =
+                  index >= previousStoryLength &&
+                  type === 'story' &&
+                  storyHistory
+                    .slice(previousStoryLength, index + 1)
+                    .filter((item) => {
+                      const itemType = 'type' in item ? item.type : 'story';
+                      return itemType === 'story';
+                    }).length === 1;
 
-              // Check if this is a new item (for animation)
-              const isNewItem = index >= previousStoryLength;
+                // Check if this is a new item (for animation)
+                const isNewItem = index >= previousStoryLength;
 
-              // Detect content segments for advanced styling
-              const contentSegments = detectContentType(content);
+                // Detect content segments for advanced styling
+                const contentSegments = detectContentType(content);
 
-              return (
-                <div
-                  key={index}
-                  ref={isFirstNewStoryItem ? setNewStoryRef : null}
-                  className={`relative p-5 rounded-xl border ${getItemStyle(
-                    type
-                  )} shadow-lg hover:shadow-xl transition-all duration-300 group ${
-                    isNewItem ? 'animate-in fade-in slide-in-from-bottom-4 duration-500' : ''
-                  }`}
-                >
-                  {/* Decorative corner elements */}
-                  <div className={`absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
-                  }`}></div>
-                  <div className={`absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
-                  }`}></div>
-                  <div className={`absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
-                  }`}></div>
-                  <div className={`absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    type === "user_choice" ? "border-blue-400/50" : "border-amber-400/30"
-                  }`}></div>
-
-                  {/* Header */}
-                  <div className={`flex items-center justify-between mb-4 pb-2 ${
-                    type === "user_choice" 
-                      ? "border-b border-blue-400/30" 
-                      : "border-b border-gray-600/30"
-                  }`}>
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        type === "user_choice" 
-                          ? "bg-blue-800/50 ring-1 ring-blue-400/30" 
-                          : "bg-gray-800/50"
-                      }`}>
-                        {getItemIcon(type)}
-                      </div>
-                      <div>
-                        <span className={`text-sm font-medium capitalize font-sans ${
-                          type === "user_choice" 
-                            ? "text-blue-200" 
-                            : "text-gray-300"
-                        }`}>
-                          {type === "user_choice" && "Lựa Chọn Của Bạn"}
-                          {type === "user_custom_action" && "Hành Động Tự Do"}
-                          {type === "story" && "Câu Chuyện"}
-                          {type === "system" && "Thông Báo Hệ Thống"}
-                          {type === "user_thinking" && "Suy Nghĩ"}
-                          {type === "user_communication" && "Giao Tiếp"}
-                        </span>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {formatTimestamp(timestamp)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Type indicator */}
+                return (
+                  <div
+                    key={index}
+                    ref={isFirstNewStoryItem ? setNewStoryRef : null}
+                    className={`relative p-5 rounded-xl border ${getItemStyle(
+                      type,
+                    )} shadow-lg hover:shadow-xl transition-all duration-300 group ${
+                      isNewItem
+                        ? 'animate-in fade-in slide-in-from-bottom-4 duration-500'
+                        : ''
+                    }`}
+                  >
+                    {/* Decorative corner elements */}
                     <div
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        type === "story"
-                          ? "bg-gray-700/50 text-gray-300"
-                          : type === "user_choice"
-                          ? "bg-blue-900/60 text-blue-200 ring-1 ring-blue-400/30"
-                          : type === "user_custom_action"
-                          ? "bg-purple-900/50 text-purple-300"
-                          : type === "user_thinking"
-                          ? "bg-indigo-900/50 text-indigo-300"
-                          : type === "user_communication"
-                          ? "bg-green-900/50 text-green-300"
-                          : "bg-yellow-900/50 text-yellow-300"
+                      className={`absolute top-2 left-2 w-3 h-3 border-l-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                        type === 'user_choice'
+                          ? 'border-blue-400/50'
+                          : 'border-amber-400/30'
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute top-2 right-2 w-3 h-3 border-r-2 border-t-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                        type === 'user_choice'
+                          ? 'border-blue-400/50'
+                          : 'border-amber-400/30'
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute bottom-2 left-2 w-3 h-3 border-l-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                        type === 'user_choice'
+                          ? 'border-blue-400/50'
+                          : 'border-amber-400/30'
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute bottom-2 right-2 w-3 h-3 border-r-2 border-b-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                        type === 'user_choice'
+                          ? 'border-blue-400/50'
+                          : 'border-amber-400/30'
+                      }`}
+                    ></div>
+
+                    {/* Header */}
+                    <div
+                      className={`flex items-center justify-between mb-4 pb-2 ${
+                        type === 'user_choice'
+                          ? 'border-b border-blue-400/30'
+                          : 'border-b border-gray-600/30'
                       }`}
                     >
-                      {type === "user_choice" ? "Đã chọn" : `${contentSegments.length} đoạn`}
-                    </div>
-                  </div>
-
-                  {/* Content with advanced styling */}
-                  <div className="space-y-3">
-                    {type === "user_choice" ? (
-                      // Special layout for user choices
-                      <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-400/20">
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm font-bold rounded-full flex items-center justify-center">
-                            ✓
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            type === 'user_choice'
+                              ? 'bg-blue-800/50 ring-1 ring-blue-400/30'
+                              : 'bg-gray-800/50'
+                          }`}
+                        >
+                          {getItemIcon(type)}
+                        </div>
+                        <div>
+                          <span
+                            className={`text-sm font-medium capitalize font-sans ${
+                              type === 'user_choice'
+                                ? 'text-blue-200'
+                                : 'text-gray-300'
+                            }`}
+                          >
+                            {type === 'user_choice' && 'Lựa Chọn Của Bạn'}
+                            {type === 'user_custom_action' && 'Hành Động Tự Do'}
+                            {type === 'story' && 'Câu Chuyện'}
+                            {type === 'system' && 'Thông Báo Hệ Thống'}
+                            {type === 'user_thinking' && 'Suy Nghĩ'}
+                            {type === 'user_communication' && 'Giao Tiếp'}
+                          </span>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {formatTimestamp(timestamp)}
                           </div>
-                          <div className="flex-1">
-                            <div className="text-blue-200 leading-relaxed">
-                              {content}
+                        </div>
+                      </div>
+
+                      {/* Type indicator */}
+                      <div
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          type === 'story'
+                            ? 'bg-gray-700/50 text-gray-300'
+                            : type === 'user_choice'
+                              ? 'bg-blue-900/60 text-blue-200 ring-1 ring-blue-400/30'
+                              : type === 'user_custom_action'
+                                ? 'bg-purple-900/50 text-purple-300'
+                                : type === 'user_thinking'
+                                  ? 'bg-indigo-900/50 text-indigo-300'
+                                  : type === 'user_communication'
+                                    ? 'bg-green-900/50 text-green-300'
+                                    : 'bg-yellow-900/50 text-yellow-300'
+                        }`}
+                      >
+                        {type === 'user_choice'
+                          ? 'Đã chọn'
+                          : `${contentSegments.length} đoạn`}
+                      </div>
+                    </div>
+
+                    {/* Content with advanced styling */}
+                    <div className="space-y-3">
+                      {type === 'user_choice' ? (
+                        // Special layout for user choices
+                        <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-400/20">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-sm font-bold rounded-full flex items-center justify-center">
+                              ✓
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-blue-200 leading-relaxed">
+                                {content}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      // Regular content for other types
-                      renderContentSegments(contentSegments)
-                    )}
-                  </div>
+                      ) : (
+                        // Regular content for other types
+                        renderContentSegments(contentSegments)
+                      )}
+                    </div>
 
-                  {/* Subtle bottom decoration */}
-                  <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent to-transparent ${
-                    type === "user_choice" ? "via-blue-400/30" : "via-amber-400/20"
-                  }`}></div>
-                </div>
-              );
+                    {/* Subtle bottom decoration */}
+                    <div
+                      className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-px bg-gradient-to-r from-transparent to-transparent ${
+                        type === 'user_choice'
+                          ? 'via-blue-400/30'
+                          : 'via-amber-400/20'
+                      }`}
+                    ></div>
+                  </div>
+                );
               })}
-              
+
               {/* Loading indicator for new story content - only show when loading and we have existing content */}
               {isLoading && storyHistory && storyHistory.length > 0 && (
-                <div 
+                <div
                   ref={loadingStoryRef}
                   className="relative p-5 rounded-xl border bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-amber-500/30 shadow-lg"
                 >
                   {/* Animated border */}
                   <div className="absolute inset-0 rounded-xl border-2 border-amber-400/50 animate-pulse"></div>
-                  
+
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4 pb-2 border-b border-amber-600/30">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 rounded-lg bg-amber-800/50">
-                        <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        <svg
+                          className="w-4 h-4 text-amber-400 animate-spin"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          />
                         </svg>
                       </div>
                       <div>
@@ -1001,16 +1050,23 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                           Câu Chuyện
                         </span>
                         <div className="text-xs text-amber-500 mt-1">
-                          Kiến Trúc Sư Vũ Trụ đang dệt nên diễn biến tiếp theo...
+                          Kiến Trúc Sư Vũ Trụ đang dệt nên diễn biến tiếp
+                          theo...
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="px-2 py-1 rounded-full text-xs font-medium bg-amber-900/50 text-amber-300">
                       <div className="flex items-center space-x-1">
                         <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce"></div>
-                        <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                        <div className="w-1 h-1 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                        <div
+                          className="w-1 h-1 bg-amber-400 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.1s' }}
+                        ></div>
+                        <div
+                          className="w-1 h-1 bg-amber-400 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.2s' }}
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -1018,14 +1074,24 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                   {/* Content */}
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-amber-200">
-                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      <svg
+                        className="w-5 h-5 text-amber-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
                       </svg>
                       <span className="text-sm">
                         Mực đang thấm vào giấy, tạo nên những dòng chữ mới...
                       </span>
                     </div>
-                    
+
                     {/* Animated writing effect */}
                     <div className="bg-amber-900/20 rounded-lg p-3 border border-amber-500/20">
                       <div className="flex items-center space-x-2">

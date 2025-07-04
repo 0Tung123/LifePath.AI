@@ -22,14 +22,16 @@ export default function RegisterPage() {
 
     try {
       await register({ email, password, firstName, lastName });
-      setSuccessMessage('Registration successful! Please check your email to verify your account.');
-      
+      setSuccessMessage(
+        'Registration successful! Please check your email to verify your account.',
+      );
+
       // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push('/login');
       }, 3000);
     } catch {
-      setErrorMessage( 'Failed to register. Please try again.');
+      setErrorMessage('Failed to register. Please try again.');
     }
   };
 
@@ -42,7 +44,10 @@ export default function RegisterPage() {
           </h1>
           <p className="mt-2 text-sm text-gray-600">
             Or{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link
+              href="/login"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               sign in to your existing account
             </Link>
           </p>
@@ -55,7 +60,10 @@ export default function RegisterPage() {
         )}
 
         {successMessage && (
-          <div className="p-4 text-green-700 bg-green-100 rounded-md" role="alert">
+          <div
+            className="p-4 text-green-700 bg-green-100 rounded-md"
+            role="alert"
+          >
             {successMessage}
           </div>
         )}
@@ -64,7 +72,10 @@ export default function RegisterPage() {
           <div className="space-y-4 rounded-md shadow-sm">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   First name
                 </label>
                 <input
@@ -79,7 +90,10 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Last name
                 </label>
                 <input
@@ -95,7 +109,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -111,7 +128,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input

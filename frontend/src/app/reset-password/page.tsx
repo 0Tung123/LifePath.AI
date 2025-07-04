@@ -57,13 +57,23 @@ function ResetPasswordContent() {
     try {
       await authService.resetPassword({ token, password });
       setIsSuccess(true);
-      setMessage('Your password has been reset successfully! You can now log in with your new password.');
+      setMessage(
+        'Your password has been reset successfully! You can now log in with your new password.',
+      );
     } catch (error: unknown) {
       setIsSuccess(false);
-      if (error && typeof error === 'object' && 'response' in error && 
-          error.response && typeof error.response === 'object' && 'status' in error.response && 
-          error.response.status === 400) {
-        setMessage('Invalid or expired reset token. Please request a new password reset.');
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 400
+      ) {
+        setMessage(
+          'Invalid or expired reset token. Please request a new password reset.',
+        );
       } else {
         setMessage('Failed to reset password. Please try again.');
       }
@@ -100,11 +110,14 @@ function ResetPasswordContent() {
         </div>
 
         {message && (
-          <div className={`p-4 rounded-md ${
-            isSuccess 
-              ? 'text-green-700 bg-green-100 border border-green-200' 
-              : 'text-red-700 bg-red-100 border border-red-200'
-          }`} role="alert">
+          <div
+            className={`p-4 rounded-md ${
+              isSuccess
+                ? 'text-green-700 bg-green-100 border border-green-200'
+                : 'text-red-700 bg-red-100 border border-red-200'
+            }`}
+            role="alert"
+          >
             <div className="flex items-start space-x-2">
               {isSuccess ? (
                 <svg
@@ -144,7 +157,10 @@ function ResetPasswordContent() {
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   New Password
                 </label>
                 <input
@@ -164,7 +180,10 @@ function ResetPasswordContent() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Confirm New Password
                 </label>
                 <input
@@ -240,7 +259,10 @@ function ResetPasswordContent() {
 
         <div className="text-center text-sm text-gray-600">
           Remember your password?{' '}
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Back to Login
           </Link>
         </div>
@@ -251,14 +273,16 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   );

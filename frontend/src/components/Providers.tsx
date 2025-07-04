@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { ReactNode } from "react";
-import { AuthProvider } from "../contexts/AuthContext";
-import { GameProvider } from "../contexts/GameContext";
+import React, { ReactNode } from 'react';
+import { AuthProvider } from '../contexts/AuthContext';
+import { GameProvider } from '../contexts/GameContext';
 
 interface ProvidersProps {
   children: ReactNode;

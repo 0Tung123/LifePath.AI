@@ -1,46 +1,46 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import authService from "@/services/auth.service";
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import authService from '@/services/auth.service';
 
 function GoogleCallbackContent() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
+    'loading',
   );
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState<string>('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const token = searchParams.get('token');
 
     if (!token) {
-      setStatus("error");
-      setMessage("Authentication failed. No token received from Google.");
+      setStatus('error');
+      setMessage('Authentication failed. No token received from Google.');
       return;
     }
 
     try {
       // Process the Google callback with the token
       authService.processGoogleCallback(token);
-      setStatus("success");
+      setStatus('success');
       setMessage(
-        "Successfully authenticated with Google! Redirecting to dashboard..."
+        'Successfully authenticated with Google! Redirecting to dashboard...',
       );
 
       // Redirect after a short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push('/dashboard');
       }, 2000);
-    } catch{
-      setStatus("error");
-      setMessage("Failed to process Google authentication. Please try again.");
+    } catch {
+      setStatus('error');
+      setMessage('Failed to process Google authentication. Please try again.');
     }
   }, [searchParams, router]);
 
   const handleRetry = () => {
-    window.location.href = "/login";
+    window.location.href = '/login';
   };
 
   return (
@@ -53,7 +53,7 @@ function GoogleCallbackContent() {
         </div>
 
         <div className="text-center">
-          {status === "loading" && (
+          {status === 'loading' && (
             <div className="space-y-4">
               <div className="flex justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -64,7 +64,7 @@ function GoogleCallbackContent() {
             </div>
           )}
 
-          {status === "success" && (
+          {status === 'success' && (
             <div className="space-y-4">
               <div className="flex justify-center">
                 <div className="rounded-full bg-green-100 p-3">
@@ -92,7 +92,7 @@ function GoogleCallbackContent() {
             </div>
           )}
 
-          {status === "error" && (
+          {status === 'error' && (
             <div className="space-y-4">
               <div className="flex justify-center">
                 <div className="rounded-full bg-red-100 p-3">
@@ -130,14 +130,16 @@ function GoogleCallbackContent() {
 
 export default function GoogleCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <GoogleCallbackContent />
     </Suspense>
   );

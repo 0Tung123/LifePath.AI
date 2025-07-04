@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, use, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { useGame } from "@/contexts/GameContext";
+import React, { useEffect, useState, use, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGame } from '@/contexts/GameContext';
 import {
   KnowledgeBaseItem,
   CharacterLifeSummary,
-} from "@/services/game.service";
-import Header from "@/components/Header";
+} from '@/services/game.service';
+import Header from '@/components/Header';
 
 // Import GameplayScreen components
-import CharacterStatsPanel from "@/components/GameplayScreen/CharacterStatsPanel";
-import CurrentObjectivePanel from "@/components/GameplayScreen/CurrentObjectivePanel";
-import StoryHistoryPanel from "@/components/GameplayScreen/StoryHistoryPanel";
-import InventoryPanel from "@/components/GameplayScreen/InventoryPanel";
-import SkillsPanel from "@/components/GameplayScreen/SkillsPanel";
-import LorePanel from "@/components/GameplayScreen/LorePanel";
-import ActionInputPanel from "@/components/GameplayScreen/ActionInputPanel";
-import DeathScreen from "@/components/GameplayScreen/DeathScreen";
-import KarmaReputationPanel from "@/components/GameplayScreen/KarmaReputationPanel";
-import BackstoryPanel from "@/components/GameplayScreen/BackstoryPanel";
+import CharacterStatsPanel from '@/components/GameplayScreen/CharacterStatsPanel';
+import CurrentObjectivePanel from '@/components/GameplayScreen/CurrentObjectivePanel';
+import StoryHistoryPanel from '@/components/GameplayScreen/StoryHistoryPanel';
+import InventoryPanel from '@/components/GameplayScreen/InventoryPanel';
+import SkillsPanel from '@/components/GameplayScreen/SkillsPanel';
+import LorePanel from '@/components/GameplayScreen/LorePanel';
+import ActionInputPanel from '@/components/GameplayScreen/ActionInputPanel';
+import DeathScreen from '@/components/GameplayScreen/DeathScreen';
+import KarmaReputationPanel from '@/components/GameplayScreen/KarmaReputationPanel';
+import BackstoryPanel from '@/components/GameplayScreen/BackstoryPanel';
 
 export default function GamePage({
   params,
@@ -50,11 +50,11 @@ export default function GamePage({
   const [error, setError] = useState<string | null>(null);
   const [selectedLoreItem, setSelectedLoreItem] =
     useState<KnowledgeBaseItem | null>(null);
-  const [summaryText, setSummaryText] = useState<string>("");
+  const [summaryText, setSummaryText] = useState<string>('');
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showDeathScreen, setShowDeathScreen] = useState(false);
   const [lifeSummary, setLifeSummary] = useState<CharacterLifeSummary | null>(
-    null
+    null,
   );
 
   // Ref for ActionInputPanel to scroll to it after loading
@@ -63,9 +63,9 @@ export default function GamePage({
   // Function to scroll to choices panel
   const scrollToChoices = () => {
     if (actionPanelRef.current) {
-      actionPanelRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+      actionPanelRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
       });
     }
   };
@@ -73,7 +73,7 @@ export default function GamePage({
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -81,8 +81,8 @@ export default function GamePage({
   useEffect(() => {
     if (isAuthenticated && gameId) {
       loadGame(gameId).catch((err) => {
-        console.error("Error loading game:", err);
-        setError("Failed to load game. Please try again.");
+        console.error('Error loading game:', err);
+        setError('Failed to load game. Please try again.');
       });
     }
   }, [isAuthenticated, gameId, loadGame]);
@@ -103,8 +103,8 @@ export default function GamePage({
           setShowDeathScreen(true);
         })
         .catch((err) => {
-          console.error("Error loading life summary:", err);
-          setError("Failed to load character summary.");
+          console.error('Error loading life summary:', err);
+          setError('Failed to load character summary.');
         });
     }
   }, [currentGame, showDeathScreen, getLifeSummary]);
@@ -131,8 +131,8 @@ export default function GamePage({
     try {
       await makeChoice(choiceNumber);
     } catch (err) {
-      console.error("Error making choice:", err);
-      setError("Failed to process your choice. Please try again.");
+      console.error('Error making choice:', err);
+      setError('Failed to process your choice. Please try again.');
     }
   };
 
@@ -142,8 +142,8 @@ export default function GamePage({
     try {
       await performAction(action);
     } catch (err) {
-      console.error("Error performing action:", err);
-      setError("Failed to process your action. Please try again.");
+      console.error('Error performing action:', err);
+      setError('Failed to process your action. Please try again.');
     }
   };
 
@@ -153,8 +153,8 @@ export default function GamePage({
     try {
       await performThinking(think);
     } catch (err) {
-      console.error("Error performing thinking:", err);
-      setError("Failed to process your thinking. Please try again.");
+      console.error('Error performing thinking:', err);
+      setError('Failed to process your thinking. Please try again.');
     }
   };
 
@@ -164,8 +164,8 @@ export default function GamePage({
     try {
       await performCommunication(communication);
     } catch (err) {
-      console.error("Error performing communication:", err);
-      setError("Failed to process your communication. Please try again.");
+      console.error('Error performing communication:', err);
+      setError('Failed to process your communication. Please try again.');
     }
   };
 
@@ -177,8 +177,8 @@ export default function GamePage({
       setSummaryText(summary);
       setShowSummaryModal(true);
     } catch (err) {
-      console.error("Error getting summary:", err);
-      setError("Failed to get summary. Please try again.");
+      console.error('Error getting summary:', err);
+      setError('Failed to get summary. Please try again.');
     }
   };
 
@@ -193,7 +193,7 @@ export default function GamePage({
 
   const handleCloseSummaryModal = () => {
     setShowSummaryModal(false);
-    setSummaryText("");
+    setSummaryText('');
   };
 
   // Death screen handlers
@@ -205,14 +205,14 @@ export default function GamePage({
       setShowDeathScreen(false);
       setLifeSummary(null);
     } catch (err) {
-      console.error("Error resurrecting character:", err);
-      setError("Failed to resurrect character. Please try again.");
+      console.error('Error resurrecting character:', err);
+      setError('Failed to resurrect character. Please try again.');
     }
   };
 
   const handleAcceptDeath = () => {
     // Redirect to dashboard
-    router.push("/dashboard");
+    router.push('/dashboard');
   };
 
   // Check if character has resurrection ability
@@ -221,22 +221,22 @@ export default function GamePage({
 
     // Check for resurrection items
     const resurrectionItemNames = [
-      "luân hồi",
-      "trọng sinh",
-      "hồi sinh",
-      "phục sinh",
-      "tái sinh",
-      "bất tử",
-      "bất diệt",
-      "hồi nguyên đan",
-      "tái sinh đan",
+      'luân hồi',
+      'trọng sinh',
+      'hồi sinh',
+      'phục sinh',
+      'tái sinh',
+      'bất tử',
+      'bất diệt',
+      'hồi nguyên đan',
+      'tái sinh đan',
     ];
 
     const hasResurrectionItem = currentGame.inventoryItems?.some(
       (item) =>
         resurrectionItemNames.some((name) =>
-          item.name.toLowerCase().includes(name.toLowerCase())
-        ) && item.quantity > 0
+          item.name.toLowerCase().includes(name.toLowerCase()),
+        ) && item.quantity > 0,
     );
 
     // Check for resurrection skills
@@ -245,8 +245,8 @@ export default function GamePage({
         (name) =>
           skill.name.toLowerCase().includes(name.toLowerCase()) ||
           (skill.description &&
-            skill.description.toLowerCase().includes(name.toLowerCase()))
-      )
+            skill.description.toLowerCase().includes(name.toLowerCase())),
+      ),
     );
 
     return hasResurrectionItem || hasResurrectionSkill;
@@ -264,11 +264,11 @@ export default function GamePage({
               <div className="w-3 h-3 bg-amber-400 rounded-full animate-bounce"></div>
               <div
                 className="w-3 h-3 bg-amber-400 rounded-full animate-bounce"
-                style={{ animationDelay: "0.1s" }}
+                style={{ animationDelay: '0.1s' }}
               ></div>
               <div
                 className="w-3 h-3 bg-amber-400 rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
+                style={{ animationDelay: '0.2s' }}
               ></div>
             </div>
             <span className="text-xl font-semibold">
@@ -295,7 +295,7 @@ export default function GamePage({
               don&apos;t have access to it.
             </p>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push('/dashboard')}
               className="px-6 py-2 bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 focus:outline-none"
             >
               Return to Dashboard
@@ -376,12 +376,12 @@ export default function GamePage({
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-amber-400">
-                {currentGame?.settings?.characterName || "Unknown"}&apos;s
+                {currentGame?.settings?.characterName || 'Unknown'}&apos;s
                 Adventure
               </h1>
               <div className="text-gray-400 mt-2">
-                {currentGame?.settings?.theme || "Unknown"} •{" "}
-                {currentGame?.settings?.setting || "Unknown"}
+                {currentGame?.settings?.theme || 'Unknown'} •{' '}
+                {currentGame?.settings?.setting || 'Unknown'}
               </div>
             </div>
             <div className="text-right">
@@ -389,10 +389,10 @@ export default function GamePage({
                 {currentGame?.storyHistory?.length || 0} chapters written
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                Last updated:{" "}
+                Last updated:{' '}
                 {currentGame?.updatedAt
                   ? new Date(currentGame.updatedAt).toLocaleString()
-                  : "Unknown"}
+                  : 'Unknown'}
               </div>
             </div>
           </div>

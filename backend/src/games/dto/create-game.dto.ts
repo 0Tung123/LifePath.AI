@@ -40,7 +40,8 @@ export class GameSettingsDto {
 
   @ApiProperty({
     description: 'Tiểu sử và quá khứ của nhân vật chính',
-    example: 'Một hiệp sĩ từ vương quốc sụp đổ, đang tìm kiếm sự cứu rỗi cho linh hồn mình',
+    example:
+      'Một hiệp sĩ từ vương quốc sụp đổ, đang tìm kiếm sự cứu rỗi cho linh hồn mình',
   })
   @IsString()
   @IsNotEmpty()

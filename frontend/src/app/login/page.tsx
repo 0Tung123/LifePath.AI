@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const { login, isLoading } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage("");
+    setErrorMessage('');
 
     try {
       await login({ email, password });
-      router.push("/dashboard");
+      router.push('/dashboard');
     } catch {
-      setErrorMessage("Failed to login. Please try again.");
+      setErrorMessage('Failed to login. Please try again.');
     }
   };
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
             Sign in to your account
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Or{" "}
+            Or{' '}
             <Link
               href="/register"
               className="font-medium text-blue-600 hover:text-blue-500"
@@ -106,7 +106,7 @@ export default function LoginPage() {
               disabled={isLoading}
               className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
 

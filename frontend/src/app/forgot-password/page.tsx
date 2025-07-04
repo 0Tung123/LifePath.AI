@@ -18,12 +18,20 @@ export default function ForgotPasswordPage() {
     try {
       await authService.forgotPassword({ email });
       setIsSuccess(true);
-      setMessage('Password reset link has been sent to your email address. Please check your inbox and follow the instructions.');
+      setMessage(
+        'Password reset link has been sent to your email address. Please check your inbox and follow the instructions.',
+      );
     } catch (error: unknown) {
       setIsSuccess(false);
-      if (error && typeof error === 'object' && 'response' in error && 
-          error.response && typeof error.response === 'object' && 'status' in error.response && 
-          error.response.status === 404) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 404
+      ) {
         setMessage('No account found with this email address.');
       } else {
         setMessage('Failed to send password reset email. Please try again.');
@@ -41,16 +49,20 @@ export default function ForgotPasswordPage() {
             Forgot Password
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            Enter your email address and we&apos;ll send you a link to reset your password.
+            Enter your email address and we&apos;ll send you a link to reset
+            your password.
           </p>
         </div>
 
         {message && (
-          <div className={`p-4 rounded-md ${
-            isSuccess 
-              ? 'text-green-700 bg-green-100 border border-green-200' 
-              : 'text-red-700 bg-red-100 border border-red-200'
-          }`} role="alert">
+          <div
+            className={`p-4 rounded-md ${
+              isSuccess
+                ? 'text-green-700 bg-green-100 border border-green-200'
+                : 'text-red-700 bg-red-100 border border-red-200'
+            }`}
+            role="alert"
+          >
             <div className="flex items-start space-x-2">
               {isSuccess ? (
                 <svg
@@ -89,7 +101,10 @@ export default function ForgotPasswordPage() {
         {!isSuccess ? (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -142,7 +157,8 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             <p className="text-sm text-gray-600">
-              Check your email for the password reset link. It may take a few minutes to arrive.
+              Check your email for the password reset link. It may take a few
+              minutes to arrive.
             </p>
             <button
               onClick={() => {
@@ -159,7 +175,10 @@ export default function ForgotPasswordPage() {
 
         <div className="text-center text-sm text-gray-600">
           Remember your password?{' '}
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Back to Login
           </Link>
         </div>

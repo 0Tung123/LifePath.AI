@@ -1,4 +1,4 @@
-import api from "./api";
+import api from './api';
 
 // Game types
 export interface GameStats {
@@ -19,7 +19,7 @@ export interface Skill {
 }
 
 export interface LoreFragment {
-  type: "npc" | "item" | "location" | "general";
+  type: 'npc' | 'item' | 'location' | 'general';
   name?: string;
   title?: string;
   description?: string;
@@ -38,23 +38,23 @@ export interface StorySegment {
 
 export interface StoryHistoryItem {
   type:
-    | "story"
-    | "user_choice"
-    | "user_custom_action"
-    | "user_thinking"
-    | "user_communication"
-    | "system";
+    | 'story'
+    | 'user_choice'
+    | 'user_custom_action'
+    | 'user_thinking'
+    | 'user_communication'
+    | 'system';
   content: string;
   timestamp: string;
 }
 
 export interface ChatHistoryItem {
-  role: "user" | "model";
+  role: 'user' | 'model';
   content: string;
 }
 
 export interface KnowledgeBaseItem {
-  type: "npc" | "item" | "location" | "general";
+  type: 'npc' | 'item' | 'location' | 'general';
   name: string;
   description: string;
   [key: string]: string | number | boolean | object | undefined;
@@ -146,7 +146,7 @@ class GameService {
    * Create a new game
    */
   async createGame(createGameData: CreateGameDto): Promise<Game> {
-    const response = await api.post<Game>("/games", createGameData);
+    const response = await api.post<Game>('/games', createGameData);
     return response.data;
   }
 
@@ -154,7 +154,7 @@ class GameService {
    * Get all games for the current user
    */
   async getGames(): Promise<Game[]> {
-    const response = await api.get<Game[]>("/games");
+    const response = await api.get<Game[]>('/games');
     return response.data;
   }
 
@@ -201,7 +201,7 @@ class GameService {
    */
   async performCommunication(
     gameId: string,
-    communication: string
+    communication: string,
   ): Promise<Game> {
     const response = await api.post<Game>(`/games/${gameId}/action`, {
       communication,
@@ -214,7 +214,7 @@ class GameService {
    */
   async getSummary(gameId: string): Promise<string> {
     const response = await api.post<{ summary: string }>(
-      `/games/${gameId}/summary`
+      `/games/${gameId}/summary`,
     );
     return response.data.summary;
   }
@@ -227,7 +227,7 @@ class GameService {
       await api.delete(`/games/${gameId}`);
       console.log(`Game ${gameId} deleted successfully`);
     } catch (error) {
-      console.error("Error deleting game:", error);
+      console.error('Error deleting game:', error);
       throw error; // Re-throw to allow handling in the UI
     }
   }
@@ -237,7 +237,7 @@ class GameService {
    */
   async getLifeSummary(gameId: string): Promise<CharacterLifeSummary> {
     const response = await api.get<CharacterLifeSummary>(
-      `/games/${gameId}/life-summary`
+      `/games/${gameId}/life-summary`,
     );
     return response.data;
   }

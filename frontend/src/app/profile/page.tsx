@@ -1,35 +1,35 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import authService from "@/services/auth.service";
-import Header from "@/components/Header";
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import authService from '@/services/auth.service';
+import Header from '@/components/Header';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading, refreshProfile } = useAuth();
   const router = useRouter();
 
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [message, setMessage] = useState<{
     text: string;
-    type: "success" | "error";
+    type: 'success' | 'error';
   } | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
 
   // Set form values when user data is loaded
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
     }
   }, [user]);
 
@@ -40,8 +40,8 @@ export default function ProfilePage() {
   const handleCancel = () => {
     // Reset to original values
     if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
     }
     setIsEditing(false);
     setMessage(null);
@@ -62,15 +62,14 @@ export default function ProfilePage() {
       await refreshProfile();
 
       setMessage({
-        text: "Profile updated successfully!",
-        type: "success",
+        text: 'Profile updated successfully!',
+        type: 'success',
       });
       setIsEditing(false);
-    } catch{
+    } catch {
       setMessage({
-        text:
-          "Failed to update profile. Please try again.",
-        type: "error",
+        text: 'Failed to update profile. Please try again.',
+        type: 'error',
       });
     }
   };
@@ -99,9 +98,9 @@ export default function ProfilePage() {
           {message && (
             <div
               className={`mb-6 p-4 rounded-md ${
-                message.type === "success"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
+                message.type === 'success'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
               }`}
             >
               {message.text}
@@ -193,7 +192,7 @@ export default function ProfilePage() {
                         First Name
                       </h3>
                       <p className="mt-1 text-sm text-gray-900">
-                        {user?.firstName || "-"}
+                        {user?.firstName || '-'}
                       </p>
                     </div>
                     <div>
@@ -201,7 +200,7 @@ export default function ProfilePage() {
                         Last Name
                       </h3>
                       <p className="mt-1 text-sm text-gray-900">
-                        {user?.lastName || "-"}
+                        {user?.lastName || '-'}
                       </p>
                     </div>
                     <div>
@@ -211,7 +210,7 @@ export default function ProfilePage() {
                       <p className="mt-1 text-sm text-gray-900">
                         {user?.createdAt
                           ? new Date(user.createdAt).toLocaleDateString()
-                          : "-"}
+                          : '-'}
                       </p>
                     </div>
                   </div>
@@ -232,7 +231,7 @@ export default function ProfilePage() {
 
           <div className="mt-6 flex justify-between">
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push('/dashboard')}
               className="text-sm text-blue-600 hover:text-blue-500"
             >
               Back to Dashboard

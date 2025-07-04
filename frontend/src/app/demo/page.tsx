@@ -1,4 +1,4 @@
-import StoryHistoryDemo from "@/components/StoryHistoryDemo";
+import StoryHistoryDemo from '@/components/StoryHistoryDemo';
 
 export default function DemoPage() {
   return <StoryHistoryDemo />;

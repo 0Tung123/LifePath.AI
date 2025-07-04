@@ -7,10 +7,7 @@ import { GeminiService } from './gemini.service';
 import { Game } from './entities/game.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Game]),
-    ConfigModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Game]), ConfigModule],
   controllers: [GamesController],
   providers: [GamesService, GeminiService],
   exports: [GamesService],

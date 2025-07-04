@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { InventoryItem } from "@/services/game.service";
+import React, { useState } from 'react';
+import { InventoryItem } from '@/services/game.service';
 
 interface InventoryPanelProps {
   inventoryItems: InventoryItem[];
@@ -58,8 +58,8 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
                 onClick={() => handleItemClick(item)}
                 className={`w-full p-3 rounded-lg border transition-all duration-200 text-left ${
                   selectedItem?.name === item.name
-                    ? "bg-amber-900/50 border-amber-500/50 text-amber-200"
-                    : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                    ? 'bg-amber-900/50 border-amber-500/50 text-amber-200'
+                    : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200'
                 }`}
               >
                 <div className="flex justify-between items-center">

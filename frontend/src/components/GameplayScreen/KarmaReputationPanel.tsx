@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface KarmaReputationPanelProps {
   karmaScore: number;
@@ -13,26 +13,26 @@ export default function KarmaReputationPanel({
 }: KarmaReputationPanelProps) {
   // Determine karma level and color
   const getKarmaLevel = (score: number) => {
-    if (score >= 100) return { level: "Saint", color: "text-yellow-400" };
-    if (score >= 50) return { level: "Good", color: "text-green-400" };
-    if (score >= 10) return { level: "Neutral+", color: "text-blue-400" };
-    if (score >= -10) return { level: "Neutral", color: "text-gray-400" };
-    if (score >= -50) return { level: "Neutral-", color: "text-orange-400" };
-    if (score >= -100) return { level: "Evil", color: "text-red-400" };
-    return { level: "Demon", color: "text-purple-400" };
+    if (score >= 100) return { level: 'Saint', color: 'text-yellow-400' };
+    if (score >= 50) return { level: 'Good', color: 'text-green-400' };
+    if (score >= 10) return { level: 'Neutral+', color: 'text-blue-400' };
+    if (score >= -10) return { level: 'Neutral', color: 'text-gray-400' };
+    if (score >= -50) return { level: 'Neutral-', color: 'text-orange-400' };
+    if (score >= -100) return { level: 'Evil', color: 'text-red-400' };
+    return { level: 'Demon', color: 'text-purple-400' };
   };
 
   const karmaInfo = getKarmaLevel(karmaScore);
 
   // Get reputation level description
   const getReputationLevel = (score: number) => {
-    if (score >= 80) return { level: "Revered", color: "text-yellow-400" };
-    if (score >= 60) return { level: "Honored", color: "text-green-400" };
-    if (score >= 40) return { level: "Friendly", color: "text-blue-400" };
-    if (score >= 20) return { level: "Neutral", color: "text-gray-400" };
-    if (score >= 0) return { level: "Unfriendly", color: "text-orange-400" };
-    if (score >= -20) return { level: "Hostile", color: "text-red-400" };
-    return { level: "Hated", color: "text-purple-400" };
+    if (score >= 80) return { level: 'Revered', color: 'text-yellow-400' };
+    if (score >= 60) return { level: 'Honored', color: 'text-green-400' };
+    if (score >= 40) return { level: 'Friendly', color: 'text-blue-400' };
+    if (score >= 20) return { level: 'Neutral', color: 'text-gray-400' };
+    if (score >= 0) return { level: 'Unfriendly', color: 'text-orange-400' };
+    if (score >= -20) return { level: 'Hostile', color: 'text-red-400' };
+    return { level: 'Hated', color: 'text-purple-400' };
   };
 
   return (
@@ -52,12 +52,12 @@ export default function KarmaReputationPanel({
             <span className="text-gray-400">({karmaScore})</span>
           </div>
         </div>
-        
+
         {/* Karma Bar */}
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-300 ${
-              karmaScore >= 0 ? "bg-green-500" : "bg-red-500"
+              karmaScore >= 0 ? 'bg-green-500' : 'bg-red-500'
             }`}
             style={{
               width: `${Math.min(Math.abs(karmaScore), 100)}%`,
@@ -74,9 +74,12 @@ export default function KarmaReputationPanel({
             {Object.entries(reputation).map(([faction, score]) => {
               const repInfo = getReputationLevel(score);
               return (
-                <div key={faction} className="flex justify-between items-center">
+                <div
+                  key={faction}
+                  className="flex justify-between items-center"
+                >
                   <span className="text-gray-400 text-sm capitalize">
-                    {faction.replace(/([A-Z])/g, " $1").trim()}:
+                    {faction.replace(/([A-Z])/g, ' $1').trim()}:
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className={`text-sm font-medium ${repInfo.color}`}>

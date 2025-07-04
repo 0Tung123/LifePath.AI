@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface CurrentObjectivePanelProps {
   currentObjective: string;
@@ -9,7 +9,7 @@ interface CurrentObjectivePanelProps {
 const CurrentObjectivePanel: React.FC<CurrentObjectivePanelProps> = ({
   currentObjective,
 }) => {
-  if (!currentObjective || currentObjective.trim() === "") {
+  if (!currentObjective || currentObjective.trim() === '') {
     return null;
   }
 

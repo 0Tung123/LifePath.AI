@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import gameService, { Game } from "@/services/game.service";
-import Header from "@/components/Header";
-import Link from "next/link";
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import gameService, { Game } from '@/services/game.service';
+import Header from '@/components/Header';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -19,7 +19,7 @@ export default function Dashboard() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -37,8 +37,8 @@ export default function Dashboard() {
       const fetchedGames = await gameService.getGames();
       setGames(fetchedGames);
     } catch (err) {
-      console.error("Error fetching games:", err);
-      setError("Failed to load your games. Please try again.");
+      console.error('Error fetching games:', err);
+      setError('Failed to load your games. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -61,8 +61,8 @@ export default function Dashboard() {
       setGames(games.filter((game) => game.id !== gameToDelete));
       setGameToDelete(null);
     } catch (err) {
-      console.error("Error deleting game:", err);
-      setError("Failed to delete game. Please try again.");
+      console.error('Error deleting game:', err);
+      setError('Failed to delete game. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -75,7 +75,7 @@ export default function Dashboard() {
   // Format date to a readable format
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
   if (authLoading) {
@@ -94,14 +94,14 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Welcome, {user?.firstName || "Adventurer"}!
+                Welcome, {user?.firstName || 'Adventurer'}!
               </h1>
               <p className="mt-2 text-sm text-gray-600">
                 Continue a previous adventure or create a new one.
               </p>
             </div>
             <button
-              onClick={() => router.push("/create-game")}
+              onClick={() => router.push('/create-game')}
               className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none"
             >
               New Game
@@ -125,11 +125,11 @@ export default function Dashboard() {
               <div className="bg-white p-8 rounded-lg shadow text-center">
                 <h2 className="text-xl font-semibold mb-4">No Games Found</h2>
                 <p className="text-gray-600 mb-6">
-                  You haven&apos;t created any games yet. Start your adventure by
-                  creating a new game!
+                  You haven&apos;t created any games yet. Start your adventure
+                  by creating a new game!
                 </p>
                 <button
-                  onClick={() => router.push("/create-game")}
+                  onClick={() => router.push('/create-game')}
                   className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none"
                 >
                   Create Your First Game
@@ -267,7 +267,7 @@ export default function Dashboard() {
                   onClick={() => confirmDelete()}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
                 >
-                  {isDeleting ? "Deleting..." : "Delete"}
+                  {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
                 <button
                   type="button"

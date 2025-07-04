@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import { CharacterLifeSummary } from "@/services/game.service";
+import React from 'react';
+import { CharacterLifeSummary } from '@/services/game.service';
 
 interface DeathScreenProps {
   lifeSummary: CharacterLifeSummary;
@@ -96,12 +96,12 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                 <div
                   className={`text-3xl font-bold mb-2 ${
                     lifeSummary.karmaScore >= 50
-                      ? "text-green-400"
+                      ? 'text-green-400'
                       : lifeSummary.karmaScore >= 0
-                      ? "text-blue-400"
-                      : lifeSummary.karmaScore >= -50
-                      ? "text-orange-400"
-                      : "text-red-400"
+                        ? 'text-blue-400'
+                        : lifeSummary.karmaScore >= -50
+                          ? 'text-orange-400'
+                          : 'text-red-400'
                   }`}
                 >
                   {lifeSummary.karmaScore}
@@ -109,25 +109,25 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                 <div
                   className={`text-sm ${
                     lifeSummary.karmaScore >= 100
-                      ? "text-yellow-400"
+                      ? 'text-yellow-400'
                       : lifeSummary.karmaScore >= 50
-                      ? "text-green-400"
-                      : lifeSummary.karmaScore >= 0
-                      ? "text-blue-400"
-                      : lifeSummary.karmaScore >= -50
-                      ? "text-orange-400"
-                      : "text-red-400"
+                        ? 'text-green-400'
+                        : lifeSummary.karmaScore >= 0
+                          ? 'text-blue-400'
+                          : lifeSummary.karmaScore >= -50
+                            ? 'text-orange-400'
+                            : 'text-red-400'
                   }`}
                 >
                   {lifeSummary.karmaScore >= 100
-                    ? "Thánh Nhân"
+                    ? 'Thánh Nhân'
                     : lifeSummary.karmaScore >= 50
-                    ? "Thiện Lương"
-                    : lifeSummary.karmaScore >= 0
-                    ? "Trung Lập+"
-                    : lifeSummary.karmaScore >= -50
-                    ? "Trung Lập-"
-                    : "Tà Ác"}
+                      ? 'Thiện Lương'
+                      : lifeSummary.karmaScore >= 0
+                        ? 'Trung Lập+'
+                        : lifeSummary.karmaScore >= -50
+                          ? 'Trung Lập-'
+                          : 'Tà Ác'}
                 </div>
               </div>
             </div>
@@ -144,38 +144,38 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                     ([faction, score]) => (
                       <div key={faction} className="flex justify-between">
                         <span className="text-gray-400 capitalize">
-                          {faction.replace(/([A-Z])/g, " $1").trim()}:
+                          {faction.replace(/([A-Z])/g, ' $1').trim()}:
                         </span>
                         <span
                           className={`font-medium ${
                             score >= 60
-                              ? "text-green-400"
+                              ? 'text-green-400'
                               : score >= 20
-                              ? "text-blue-400"
-                              : score >= 0
-                              ? "text-gray-400"
-                              : score >= -20
-                              ? "text-orange-400"
-                              : "text-red-400"
+                                ? 'text-blue-400'
+                                : score >= 0
+                                  ? 'text-gray-400'
+                                  : score >= -20
+                                    ? 'text-orange-400'
+                                    : 'text-red-400'
                           }`}
                         >
                           {score >= 80
-                            ? "Tôn Kính"
+                            ? 'Tôn Kính'
                             : score >= 60
-                            ? "Danh Dự"
-                            : score >= 40
-                            ? "Thân Thiện"
-                            : score >= 20
-                            ? "Trung Lập"
-                            : score >= 0
-                            ? "Không Thân"
-                            : score >= -20
-                            ? "Thù Địch"
-                            : "Căm Ghét"}{" "}
+                              ? 'Danh Dự'
+                              : score >= 40
+                                ? 'Thân Thiện'
+                                : score >= 20
+                                  ? 'Trung Lập'
+                                  : score >= 0
+                                    ? 'Không Thân'
+                                    : score >= -20
+                                      ? 'Thù Địch'
+                                      : 'Căm Ghét'}{' '}
                           ({score})
                         </span>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               ) : (
@@ -312,7 +312,7 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
               disabled={isLoading}
               className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Đang hồi sinh..." : "🔄 Hồi Sinh (Có hình phạt)"}
+              {isLoading ? 'Đang hồi sinh...' : '🔄 Hồi Sinh (Có hình phạt)'}
             </button>
           )}
           <button

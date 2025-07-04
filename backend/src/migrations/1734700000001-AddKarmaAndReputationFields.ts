@@ -9,9 +9,7 @@ export class AddKarmaAndReputationFields1734700000001
     await queryRunner.query(
       `ALTER TABLE "games" ADD "karma_score" integer NOT NULL DEFAULT '0'`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "games" ADD "reputation" jsonb`,
-    );
+    await queryRunner.query(`ALTER TABLE "games" ADD "reputation" jsonb`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { useGame } from "@/contexts/GameContext";
-import { GameSettings } from "@/services/game.service";
-import Header from "@/components/Header";
-import BackstoryGuide from "@/components/BackstoryGuide";
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGame } from '@/contexts/GameContext';
+import { GameSettings } from '@/services/game.service';
+import Header from '@/components/Header';
+import BackstoryGuide from '@/components/BackstoryGuide';
 
 export default function CreateGame() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -14,24 +14,24 @@ export default function CreateGame() {
   const router = useRouter();
 
   const [formData, setFormData] = useState<GameSettings>({
-    theme: "",
-    setting: "",
-    characterName: "",
-    characterBackstory: "",
+    theme: '',
+    setting: '',
+    characterName: '',
+    characterBackstory: '',
     additionalSettings: {
-      style: "Chinese",
-      difficulty: "medium",
-      gameLength: "medium",
-      combatStyle: "balanced",
+      style: 'Chinese',
+      difficulty: 'medium',
+      gameLength: 'medium',
+      combatStyle: 'balanced',
     },
   });
 
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>('');
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -43,12 +43,14 @@ export default function CreateGame() {
   }, [gameError]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
 
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
       setFormData({
         ...formData,
         [parent]: {
@@ -69,13 +71,13 @@ export default function CreateGame() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     try {
       const game = await createGame(formData);
       router.push(`/game/${game.id}`);
-    } catch{
-      setError("Failed to create game. Please try again.");
+    } catch {
+      setError('Failed to create game. Please try again.');
     }
   };
 
@@ -93,9 +95,11 @@ export default function CreateGame() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Tạo cuộc phiêu lưu mới</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Tạo cuộc phiêu lưu mới
+            </h1>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push('/dashboard')}
               className="text-blue-600 hover:text-blue-800"
             >
               Quay lại Dashboard
@@ -105,7 +109,10 @@ export default function CreateGame() {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="p-6">
               {error && (
-                <div className="p-4 mb-6 text-red-700 bg-red-100 rounded-md" role="alert">
+                <div
+                  className="p-4 mb-6 text-red-700 bg-red-100 rounded-md"
+                  role="alert"
+                >
                   {error}
                 </div>
               )}
@@ -129,7 +136,9 @@ export default function CreateGame() {
                     >
                       <option value="">Chọn thể loại</option>
                       <option value="Fantasy">Giả tưởng (Fantasy)</option>
-                      <option value="Sci-Fi">Khoa học viễn tưởng (Sci-Fi)</option>
+                      <option value="Sci-Fi">
+                        Khoa học viễn tưởng (Sci-Fi)
+                      </option>
                       <option value="Post-Apocalyptic">Hậu tận thế</option>
                       <option value="Historical">Lịch sử</option>
                       <option value="Modern">Hiện đại</option>
@@ -145,7 +154,8 @@ export default function CreateGame() {
                       Bối cảnh thế giới
                     </label>
                     <p className="text-xs text-gray-500 mb-1">
-                      Mô tả môi trường, thời đại, địa điểm mà cuộc phiêu lưu sẽ diễn ra
+                      Mô tả môi trường, thời đại, địa điểm mà cuộc phiêu lưu sẽ
+                      diễn ra
                     </p>
                     <input
                       type="text"
@@ -232,7 +242,9 @@ export default function CreateGame() {
                     disabled={gameLoading}
                     className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    {gameLoading ? "Đang tạo cuộc phiêu lưu..." : "Bắt đầu cuộc phiêu lưu mới"}
+                    {gameLoading
+                      ? 'Đang tạo cuộc phiêu lưu...'
+                      : 'Bắt đầu cuộc phiêu lưu mới'}
                   </button>
                 </div>
               </form>

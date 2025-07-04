@@ -69,7 +69,7 @@ class AuthService {
     const response = await api.get<UserProfile>('/auth/profile');
     return response.data;
   }
-  
+
   /**
    * Update user profile
    */

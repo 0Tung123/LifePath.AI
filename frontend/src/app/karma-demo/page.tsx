@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import KarmaReputationPanel from "@/components/GameplayScreen/KarmaReputationPanel";
+import React from 'react';
+import KarmaReputationPanel from '@/components/GameplayScreen/KarmaReputationPanel';
 
 export default function KarmaDemoPage() {
   // Sample data for testing

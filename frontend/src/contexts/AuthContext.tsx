@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, {
   createContext,
@@ -6,12 +6,12 @@ import React, {
   useState,
   useEffect,
   ReactNode,
-} from "react";
+} from 'react';
 import authService, {
   LoginCredentials,
   RegisterData,
   UserProfile,
-} from "../services/auth.service";
+} from '../services/auth.service';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(userProfile);
         }
       } catch (error) {
-        console.error("Failed to fetch user profile:", error);
+        console.error('Failed to fetch user profile:', error);
         authService.logout();
       } finally {
         setIsLoading(false);
@@ -63,15 +63,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { access_token } = await authService.login(credentials);
 
       // Save token to localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("token", access_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', access_token);
       }
 
       // Fetch user profile
       const userProfile = await authService.getProfile();
       setUser(userProfile);
     } catch {
-      const errorMessage = "Failed to login. Please try again.";
+      const errorMessage = 'Failed to login. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authService.register(data);
     } catch {
-      const errorMessage = "Failed to register. Please try again.";
+      const errorMessage = 'Failed to register. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userProfile = await authService.getProfile();
       setUser(userProfile);
     } catch (error) {
-      console.error("Failed to refresh user profile:", error);
+      console.error('Failed to refresh user profile:', error);
     }
   };
 
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
