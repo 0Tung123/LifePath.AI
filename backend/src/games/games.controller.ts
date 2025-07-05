@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { Game } from './entities/game.entity';
+import { LifeSummary } from './interfaces/game-content.interface';
 
 @ApiTags('games')
 @Controller('games')
@@ -179,7 +180,10 @@ export class GamesController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async getLifeSummary(@Param('id') id: string, @Request() req): Promise<any> {
+  async getLifeSummary(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<LifeSummary> {
     const userId = req.user.userId;
     return this.gamesService.generateLifeSummary(id);
   }
