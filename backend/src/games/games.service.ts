@@ -17,6 +17,7 @@ import {
   Skill,
   LoreFragment,
   Choice,
+  LifeSummary,
 } from './interfaces/game-content.interface';
 
 @Injectable()
@@ -110,7 +111,7 @@ export class GamesService {
 
       return savedGame;
     } catch (error) {
-      console.error('Error creating game:', error);
+      this.logger.error('Error creating game:', error);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -525,7 +526,7 @@ export class GamesService {
       );
       return buildEnhancedWorldPrompt(gameSettings);
     } catch (error) {
-      console.error('Error building initial prompt:', error);
+      this.logger.error('Error building initial prompt:', error);
       throw new InternalServerErrorException('Failed to build game prompt');
     }
   }
@@ -618,14 +619,16 @@ export class GamesService {
         };
 
         // Parse name, description, etc
-        const nameMatch = itemString.match(/Name="([^"]+)"/);
-        const descMatch = itemString.match(/Description="([^"]+)"/);
-        const quantityMatch = itemString.match(/Quantity=(\d+)/);
+        if (itemString) {
+          const nameMatch = itemString.match(/Name="([^"]+)"/);
+          const descMatch = itemString.match(/Description="([^"]+)"/);
+          const quantityMatch = itemString.match(/Quantity=(\d+)/);
 
-        if (nameMatch) itemProps.name = nameMatch[1];
-        if (descMatch) itemProps.description = descMatch[1];
-        if (quantityMatch) itemProps.quantity = parseInt(quantityMatch[1]);
-        else itemProps.quantity = 1; // Default quantity
+          itemProps.name = nameMatch && nameMatch[1] ? nameMatch[1] : '';
+          if (descMatch) itemProps.description = descMatch[1];
+          if (quantityMatch) itemProps.quantity = parseInt(quantityMatch[1]);
+          else itemProps.quantity = 1; // Default quantity
+        }
 
         inventory.push(itemProps);
       });
@@ -642,7 +645,7 @@ export class GamesService {
               inventory.push(...initInventory.items);
             }
           } catch (e) {
-            console.error('Error parsing INVENTORY_INIT:', e);
+            this.logger.error('Error parsing INVENTORY_INIT:', e);
           }
         }
       }
@@ -684,7 +687,7 @@ export class GamesService {
               skills.push(...parsedSkills.abilities);
             }
           } catch (e) {
-            console.error('Error parsing SKILLS:', e);
+            this.logger.error('Error parsing SKILLS:', e);
           }
         }
       }
@@ -782,7 +785,7 @@ export class GamesService {
               );
             }
           } catch (e) {
-            console.error('Error parsing LORE:', e);
+            this.logger.error('Error parsing LORE:', e);
           }
         }
       }
@@ -857,9 +860,15 @@ export class GamesService {
                 Array.isArray(parsedChoices.options)
               ) {
                 choices = parsedChoices.options.map(
-                  (option: any, index: number) => ({
-                    text: option.text || option,
-                    number: option.number || index + 1,
+                  (
+                    option: string | { text: string; number?: number },
+                    index: number,
+                  ) => ({
+                    text: typeof option === 'string' ? option : option.text,
+                    number:
+                      typeof option === 'string'
+                        ? index + 1
+                        : option.number || index + 1,
                   }),
                 );
               }
@@ -1093,7 +1102,7 @@ export class GamesService {
   /**
    * Generate character life summary
    */
-  async generateLifeSummary(gameId: string): Promise<any> {
+  async generateLifeSummary(gameId: string): Promise<LifeSummary> {
     const game = await this.gamesRepository.findOne({
       where: { id: gameId },
     });
@@ -1124,20 +1133,21 @@ export class GamesService {
       }));
 
     return {
-      characterName: game.settings.characterName,
-      theme: game.settings.theme,
-      setting: game.settings.setting,
-      birthDate: game.createdAt,
-      deathDate: game.deathDate || new Date(),
-      deathCause: game.deathCause || 'Không rõ nguyên nhân',
-      playTime: `${playDays} ngày ${playHours} giờ`,
-      finalStats: game.characterStats,
-      inventory: game.inventoryItems,
-      skills: game.characterSkills,
-      npcsMet: npcsMet,
-      importantEvents: importantEvents,
-      totalChapters: game.storyHistory.length,
+      characterName: game.settings.characterName || 'Unknown Character',
+      totalYears: Math.floor(playDays / 365) || 0,
+      majorEvents: importantEvents.map((event) => event.description),
+      finalStats: game.characterStats || {},
       achievements: game.achievements || [],
+      relationships: npcsMet.reduce(
+        (acc, npc) => {
+          if (npc.name) {
+            acc[npc.name] = npc.description;
+          }
+          return acc;
+        },
+        {} as Record<string, unknown>,
+      ),
+      legacy: game.deathCause || 'A life well lived',
     };
   }
 

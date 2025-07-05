@@ -55,6 +55,16 @@ export interface Achievement {
   unlockedAt: Date;
 }
 
+export interface LifeSummary {
+  characterName: string;
+  totalYears: number;
+  majorEvents: string[];
+  finalStats: GameStats;
+  achievements: Achievement[];
+  relationships: Record<string, unknown>;
+  legacy: string;
+}
+
 export interface ParsedGameContent {
   storyText: string;
   stats: GameStats;
