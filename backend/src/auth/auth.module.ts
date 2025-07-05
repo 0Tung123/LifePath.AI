@@ -18,10 +18,10 @@ import { MailModule } from 'src/mail/mail.module';
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'defaultsecret',
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN'),
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '1h',
         },
       }),
       inject: [ConfigService],
