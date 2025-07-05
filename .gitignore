@@ -30,12 +30,45 @@ out/
 # Database & Docker
 .pgdata/
 pgadmin/
+pgadmin-data/
+pgadmin_data/
 postgres-data/
 mysql-data/
 redis-data/
 docker-compose.*.yml
+
+# Database dumps and backups (pgAdmin and others)
+*.sql
 *.sql.gz
+*.sql.bz2
+*.sql.xz
 *.dump
+*.dmp
+*.backup
+*.bak
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+*.dbf
+
+# pgAdmin specific files
+pgadmin.db
+pgadmin.log
+pgadmin_sessions/
+storage/
+sessions/
+*.pgpass
+pgpass.conf
+
+# Database backup directories
+backups/
+dumps/
+db_backups/
+database_backups/
+pg_dumps/
+mysql_dumps/
 
 # Logs
 *.log
