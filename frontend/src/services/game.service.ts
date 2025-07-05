@@ -57,7 +57,9 @@ export interface KnowledgeBaseItem {
   type: 'npc' | 'item' | 'location' | 'general';
   name: string;
   description: string;
-  [key: string]: string | number | boolean | object | undefined;
+  title?: string;
+  content?: string;
+  additionalInfo?: Record<string, string | number | boolean | string[] | null>;
 }
 
 export interface Game {
@@ -107,7 +109,7 @@ export interface AdditionalSettings {
   difficulty?: string;
   gameLength?: string;
   combatStyle?: string;
-  [key: string]: string | number | boolean | object | undefined;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface GameSettings {

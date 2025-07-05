@@ -126,9 +126,7 @@ class NPCService implements NPCTrackingService {
   }
 
   // Extract NPC mentions from text
-  private extractNPCMentions(
-    content: string,
-  ): Array<{
+  private extractNPCMentions(content: string): Array<{
     name: string;
     position: { start: number; end: number };
     context: string;

@@ -1244,16 +1244,16 @@ export class GamesService {
       characterName: game.settings.characterName || 'Unknown Character',
       totalYears: Math.floor(playDays / 365) || 0,
       majorEvents: importantEvents.map((event) => event.description),
-      finalStats: game.characterStats || {},
+      finalStats: (game.characterStats as GameStats) || {},
       achievements: game.achievements || [],
       relationships: npcsMet.reduce(
         (acc, npc) => {
           if (npc.name) {
-            acc[npc.name] = npc.description;
+            acc[npc.name] = npc.description ?? null;
           }
           return acc;
         },
-        {} as Record<string, unknown>,
+        {} as Record<string, string | number | boolean | null>,
       ),
       legacy: game.deathCause || 'A life well lived',
     };
@@ -1449,5 +1449,93 @@ export class GamesService {
     game.currentPrompt = resurrectionMessage + weaknessNote;
 
     return await this.gamesRepository.save(game);
+  }
+
+  /**
+   * Generate story summary using AI
+   */
+  async generateSummary(gameId: string, userId: string): Promise<string> {
+    try {
+      // Find the game
+      const game = await this.gamesRepository.findOne({
+        where: { id: gameId, userId },
+      });
+
+      if (!game) {
+        throw new NotFoundException('Game not found');
+      }
+
+      // Build summary prompt
+      const summaryPrompt = this.buildSummaryPrompt(game);
+
+      // Generate summary using AI
+      const aiResponse =
+        await this.geminiService.generateGameContent(summaryPrompt);
+
+      // Extract the summary from AI response (remove any tags)
+      const summary = aiResponse.replace(/\[[^\]]*\]/g, '').trim();
+
+      this.logger.log(`Generated summary for game ${gameId}`);
+      return summary;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Error generating summary for game ${gameId}:`, error);
+      throw new InternalServerErrorException('Failed to generate summary');
+    }
+  }
+
+  /**
+   * Build prompt for story summary
+   */
+  private buildSummaryPrompt(game: Game): string {
+    const storyHistory = game.storyHistory
+      .filter((segment) => segment.type === 'story')
+      .map((segment) => segment.content)
+      .join('\n\n');
+
+    const characterInfo = `
+**Thông tin nhân vật:**
+- Tên: ${game.settings.characterName}
+- Câu chuyện: ${game.settings.characterBackstory}
+- Thế giới: ${game.settings.theme} - ${game.settings.setting}
+- Điểm Karma: ${game.karmaScore || 0}
+- Trạng thái: ${game.active ? 'Đang sống' : 'Đã chết'}
+    `.trim();
+
+    const statsInfo = Object.entries(game.characterStats || {})
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+
+    const inventoryInfo = game.inventoryItems
+      .map((item) => `${item.name} (x${item.quantity})`)
+      .join(', ');
+
+    const skillsInfo = game.characterSkills
+      .map(
+        (skill) => `${skill.name}${skill.level ? ` (Lv.${skill.level})` : ''}`,
+      )
+      .join(', ');
+
+    return `
+Bạn là một AI chuyên tạo tóm tắt câu chuyện. Hãy tóm tắt cuộc phiêu lưu dưới đây một cách súc tích và hấp dẫn.
+
+${characterInfo}
+
+**Thống kê hiện tại:**
+${statsInfo}
+
+**Trang bị:**
+${inventoryInfo || 'Không có'}
+
+**Kỹ năng:**
+${skillsInfo || 'Không có'}
+
+**Câu chuyện:**
+${storyHistory}
+
+Hãy tóm tắt cuộc phiêu lưu này trong 3-5 đoạn văn, tập trung vào những sự kiện quan trọng và sự phát triển của nhân vật. Viết bằng tiếng Việt và sử dụng giọng văn hấp dẫn.
+    `.trim();
   }
 }

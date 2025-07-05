@@ -13,7 +13,7 @@ export interface AdditionalSettings {
   difficulty?: string;
   gameLength?: string;
   combatStyle?: string;
-  [key: string]: string | number | boolean | object | undefined;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 export class GameSettingsDto {

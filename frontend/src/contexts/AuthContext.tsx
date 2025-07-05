@@ -11,6 +11,7 @@ import authService, {
   LoginCredentials,
   RegisterData,
   UserProfile,
+  ApiError,
 } from '../services/auth.service';
 
 interface AuthContextType {
@@ -35,6 +36,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Extract error message from various error types
+  const extractErrorMessage = (
+    error: unknown,
+    defaultMessage: string,
+  ): string => {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response: { data: ApiError } };
+      return axiosError.response?.data?.message || defaultMessage;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return defaultMessage;
+  };
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -70,8 +86,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Fetch user profile
       const userProfile = await authService.getProfile();
       setUser(userProfile);
-    } catch {
-      const errorMessage = 'Failed to login. Please try again.';
+    } catch (error: unknown) {
+      const errorMessage = extractErrorMessage(
+        error,
+        'Failed to login. Please try again.',
+      );
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -85,8 +104,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       await authService.register(data);
-    } catch {
-      const errorMessage = 'Failed to register. Please try again.';
+    } catch (error: unknown) {
+      const errorMessage = extractErrorMessage(
+        error,
+        'Failed to register. Please try again.',
+      );
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

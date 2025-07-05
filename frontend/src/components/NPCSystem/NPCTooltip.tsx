@@ -8,7 +8,7 @@ import { NPCTooltipProps } from '@/types/npc.types';
  * Shows quick information about NPC on hover
  * Positioned near the cursor with smart positioning to avoid screen edges
  */
-const NPCTooltip: React.FC<NPCTooltipProps> = ({ data, visible, onClose }) => {
+const NPCTooltip: React.FC<NPCTooltipProps> = ({ data, visible }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);

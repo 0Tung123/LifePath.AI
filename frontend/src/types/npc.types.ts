@@ -43,7 +43,10 @@ export interface NPCState {
     description: string;
     content?: string;
     title?: string;
-    additionalInfo?: Record<string, any>;
+    additionalInfo?: Record<
+      string,
+      string | number | boolean | string[] | null
+    >;
   };
 }
 
@@ -210,7 +213,7 @@ export interface NPCBackendData {
   gameId: string;
   name: string;
   description: string;
-  loreData: any;
+  loreData: NPCState['loreData'];
   discoveryStage: NPCState['discoveryStage'];
   relationshipStatus: NPCState['relationshipStatus'];
   relationshipScore: number;

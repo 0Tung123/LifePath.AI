@@ -46,6 +46,12 @@ export interface UserProfile {
   updatedAt: string;
 }
 
+export interface ApiError {
+  message: string;
+  statusCode?: number;
+  error?: string;
+}
+
 class AuthService {
   /**
    * Register a new user

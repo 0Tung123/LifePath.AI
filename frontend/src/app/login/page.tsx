@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHydration } from '@/hooks/useHydration';
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>('');
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { login, isLoading } = useAuth();
   const router = useRouter();
+  const isHydrated = useHydration();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,22 @@ export default function LoginPage() {
       setErrorMessage('Failed to login. Please try again.');
     }
   };
+
+  // Show loading state during hydration to prevent mismatch
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+          <div className="text-center">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+              Sign in to your account
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -66,6 +84,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                suppressHydrationWarning
               />
             </div>
 
@@ -85,6 +104,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                suppressHydrationWarning
               />
             </div>
           </div>

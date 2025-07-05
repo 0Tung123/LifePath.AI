@@ -16,6 +16,7 @@ import {
   NPCRelationshipStatus,
   NPCImportance,
 } from '../dto/npc.dto';
+import { LoreFragment } from '../interfaces/game-content.interface';
 
 @Injectable()
 export class NPCService {
@@ -260,7 +261,7 @@ export class NPCService {
   async processLoreFragments(
     gameId: string,
     userId: string,
-    loreFragments: any[],
+    loreFragments: LoreFragment[],
   ): Promise<NPC[]> {
     const game = await this.gameRepository.findOne({
       where: { id: gameId, userId },
@@ -272,7 +273,7 @@ export class NPCService {
     const processedNPCs: NPC[] = [];
 
     for (const fragment of loreFragments) {
-      if (fragment.type === 'npc') {
+      if (fragment.type === 'npc' && fragment.name) {
         let npc = await this.npcRepository.findOne({
           where: { gameId, name: fragment.name },
         });
@@ -290,7 +291,8 @@ export class NPCService {
             hiddenAttributes: this.extractHiddenAttributes(fragment),
             role: fragment.role,
             faction: fragment.faction,
-            importance: fragment.importance || NPCImportance.MINOR,
+            importance:
+              (fragment.importance as NPCImportance) || NPCImportance.MINOR,
           };
 
           npc = await this.createNPC(gameId, userId, createNPCDto);
@@ -300,7 +302,8 @@ export class NPCService {
           npc.loreData = { ...npc.loreData, ...fragment };
           npc.role = fragment.role || npc.role;
           npc.faction = fragment.faction || npc.faction;
-          npc.importance = fragment.importance || npc.importance;
+          npc.importance =
+            (fragment.importance as NPCImportance) || npc.importance;
 
           // Merge attributes
           const newKnownAttributes = this.extractKnownAttributes(fragment);
@@ -409,7 +412,7 @@ export class NPCService {
     return 'enemy';
   }
 
-  private extractKnownAttributes(fragment: any): string[] {
+  private extractKnownAttributes(fragment: LoreFragment): string[] {
     const attributes: string[] = [];
 
     if (fragment.KnownAttributes) {
@@ -425,7 +428,7 @@ export class NPCService {
     return attributes;
   }
 
-  private extractHiddenAttributes(fragment: any): string[] {
+  private extractHiddenAttributes(fragment: LoreFragment): string[] {
     if (fragment.HiddenAttributes) {
       return fragment.HiddenAttributes.split('|').map((attr: string) =>
         attr.trim(),

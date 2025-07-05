@@ -10,6 +10,11 @@ import { GamesModule } from './games/games.module';
 import { User } from './user/entities/user.entity';
 import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
 import { Game } from './games/entities/game.entity';
+import {
+  NPC,
+  NPCInteraction,
+  NPCNotification,
+} from './games/entities/npc.entity';
 
 @Module({
   imports: [
@@ -24,7 +29,14 @@ import { Game } from './games/entities/game.entity';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_NAME', 'postgres'),
-        entities: [User, PasswordResetToken, Game],
+        entities: [
+          User,
+          PasswordResetToken,
+          Game,
+          NPC,
+          NPCInteraction,
+          NPCNotification,
+        ],
         synchronize: true,
         autoLoadEntities: true,
         retryAttempts: 10,

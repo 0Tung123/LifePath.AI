@@ -4,12 +4,13 @@ import {
   GoogleGenerativeAI,
   HarmBlockThreshold,
   HarmCategory,
+  GenerativeModel,
 } from '@google/generative-ai';
 
 @Injectable()
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
-  private model: any;
+  private model: GenerativeModel;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');

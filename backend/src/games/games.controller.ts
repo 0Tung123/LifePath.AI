@@ -188,6 +188,40 @@ export class GamesController {
     return this.gamesService.generateLifeSummary(id);
   }
 
+  @Post(':id/summary')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate story summary using AI' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Summary generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'AI-generated story summary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async generateSummary(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<{ summary: string }> {
+    const userId = req.user.userId;
+    const summary = await this.gamesService.generateSummary(id, userId);
+    return { summary };
+  }
+
   @Post(':id/resurrect')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

@@ -21,6 +21,23 @@ export interface LoreFragment {
   title?: string;
   description?: string;
   content?: string;
+  Name?: string;
+  Description?: string;
+  KnownAttributes?: string;
+  HiddenAttributes?: string;
+  Disposition?: string;
+  Importance?: string;
+  Type?: string;
+  Location?: string;
+  Occupation?: string;
+  Age?: string;
+  Gender?: string;
+  Personality?: string;
+  Background?: string;
+  Motivation?: string;
+  Secrets?: string;
+  Connections?: string;
+  [key: string]: string | undefined;
 }
 
 export interface Choice {
@@ -61,7 +78,7 @@ export interface LifeSummary {
   majorEvents: string[];
   finalStats: GameStats;
   achievements: Achievement[];
-  relationships: Record<string, unknown>;
+  relationships: Record<string, string | number | boolean | null>;
   legacy: string;
 }
 

@@ -6,6 +6,7 @@ import {
   NPCTooltipData,
   NPCDetailCardData,
   NPCNotificationData,
+  NPCInteraction,
 } from '@/types/npc.types';
 import NPCHighlight from './NPCHighlight';
 import NPCTooltip from './NPCTooltip';
@@ -45,7 +46,7 @@ const NPCManager: React.FC<NPCManagerProps> = ({
   // UI state
   const [showTooltip, setShowTooltip] = useState(false);
   const [showDetailCard, setShowDetailCard] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   // Initialize NPC service when component mounts
   useEffect(() => {
@@ -139,6 +140,20 @@ const NPCManager: React.FC<NPCManagerProps> = ({
     setDetailCardData(null);
   }, []);
 
+  // Map UI actions to NPC interaction types
+  const mapActionToInteractionType = (
+    action: string,
+  ): NPCInteraction['interactionType'] => {
+    const actionMap: Record<string, NPCInteraction['interactionType']> = {
+      talk: 'dialogue',
+      investigate: 'observation',
+      trade: 'trade',
+      fight: 'combat',
+      quest: 'quest',
+    };
+    return actionMap[action] || 'dialogue';
+  };
+
   // Handle NPC interaction from detail card
   const handleNPCInteraction = useCallback(
     (npcId: string, action: string) => {
@@ -147,9 +162,10 @@ const NPCManager: React.FC<NPCManagerProps> = ({
       }
 
       // Record the interaction in the service
+      const interactionType = mapActionToInteractionType(action);
       npcService.markNPCInteraction(
         npcId,
-        action as any,
+        interactionType,
         `Player initiated ${action}`,
       );
 
