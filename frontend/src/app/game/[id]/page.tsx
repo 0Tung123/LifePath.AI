@@ -215,6 +215,14 @@ export default function GamePage({
     router.push('/dashboard');
   };
 
+  // Handle NPC interaction
+  const handleNPCInteraction = async (npcId: string, action: string) => {
+    // This could be extended to handle specific NPC interactions
+    console.log(`NPC interaction: ${npcId} - ${action}`);
+    // For now, just log the interaction
+    // In the future, this could trigger specific game actions
+  };
+
   // Check if character has resurrection ability
   const hasResurrectionAbility = () => {
     if (!currentGame) return false;
@@ -462,6 +470,8 @@ export default function GamePage({
               onLoreClick={handleLoreClick}
               isLoading={gameLoading}
               onScrollToChoices={scrollToChoices}
+              gameId={gameId}
+              onNPCInteract={handleNPCInteraction}
             />
           </div>
 

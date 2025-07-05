@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto, GameSettingsDto } from './dto/create-game.dto';
 import { GeminiService } from './gemini.service';
+import { NPCService } from './services/npc.service';
 import {
   ParsedGameContent,
   GameStats,
@@ -28,6 +29,7 @@ export class GamesService {
     @InjectRepository(Game)
     private gamesRepository: Repository<Game>,
     private geminiService: GeminiService,
+    private npcService: NPCService,
   ) {}
 
   async create(userId: string, createGameDto: CreateGameDto): Promise<Game> {
@@ -100,6 +102,27 @@ export class GamesService {
 
       // Save to database
       const savedGame = await this.gamesRepository.save(newGame);
+
+      // Process NPCs after game is saved (to ensure game ID exists)
+      const npcLoreFragments =
+        parsedContent.lore?.filter((fragment) => fragment.type === 'npc') || [];
+      if (npcLoreFragments.length > 0) {
+        try {
+          await this.npcService.processLoreFragments(
+            savedGame.id,
+            userId,
+            npcLoreFragments,
+          );
+          this.logger.log(
+            `Processed ${npcLoreFragments.length} NPC lore fragments for game ${savedGame.id}`,
+          );
+        } catch (error) {
+          this.logger.error(
+            'Error processing NPC lore fragments during game creation:',
+            error,
+          );
+        }
+      }
 
       // Debug logging after save
       this.logger.log(
@@ -476,6 +499,28 @@ export class GamesService {
 
       // 7. Save updated game to database
       const updatedGame = await this.gamesRepository.save(game);
+
+      // 8. Process NPCs from lore fragments
+      const npcLoreFragments =
+        parsedContent.lore?.filter((fragment) => fragment.type === 'npc') || [];
+      if (npcLoreFragments.length > 0) {
+        try {
+          await this.npcService.processLoreFragments(
+            updatedGame.id,
+            userId,
+            npcLoreFragments,
+          );
+          this.logger.log(
+            `Processed ${npcLoreFragments.length} NPC lore fragments for game ${updatedGame.id}`,
+          );
+        } catch (error) {
+          this.logger.error(
+            'Error processing NPC lore fragments during action processing:',
+            error,
+          );
+        }
+      }
+
       this.logger.log(`Game ${id} action processed successfully`);
 
       return updatedGame;
@@ -769,6 +814,69 @@ export class GamesService {
       loreLocationMatches.forEach((match) =>
         processLoreMatch(match, 'location'),
       );
+
+      // Process NPCs with enhanced attributes parsing
+      const npcLoreFragments = lore.filter(
+        (fragment) => fragment.type === 'npc',
+      );
+      if (npcLoreFragments.length > 0) {
+        try {
+          // Process NPC lore fragments with advanced parsing
+          const enhancedNPCFragments = npcLoreFragments.map((fragment) => {
+            // Parse enhanced NPC attributes from the match string
+            const originalMatch = loreNpcMatches.find((match) =>
+              match[1].includes(fragment.name || ''),
+            );
+
+            if (originalMatch) {
+              const loreString = originalMatch[1];
+
+              // Parse additional NPC attributes
+              const roleMatch = loreString.match(/Role="([^"]+)"/);
+              const factionMatch = loreString.match(/Faction="([^"]+)"/);
+              const importanceMatch = loreString.match(/Importance="([^"]+)"/);
+              const knownAttrMatch = loreString.match(
+                /KnownAttributes="([^"]+)"/,
+              );
+              const hiddenAttrMatch = loreString.match(
+                /HiddenAttributes="([^"]+)"/,
+              );
+              const firstAppearanceMatch = loreString.match(
+                /FirstAppearance="([^"]+)"/,
+              );
+              const relationshipHintMatch = loreString.match(
+                /RelationshipHint="([^"]+)"/,
+              );
+
+              return {
+                ...fragment,
+                role: roleMatch ? roleMatch[1] : undefined,
+                faction: factionMatch ? factionMatch[1] : undefined,
+                importance: importanceMatch ? importanceMatch[1] : 'minor',
+                KnownAttributes: knownAttrMatch ? knownAttrMatch[1] : undefined,
+                HiddenAttributes: hiddenAttrMatch
+                  ? hiddenAttrMatch[1]
+                  : undefined,
+                FirstAppearance: firstAppearanceMatch
+                  ? firstAppearanceMatch[1] === 'true'
+                  : false,
+                RelationshipHint: relationshipHintMatch
+                  ? relationshipHintMatch[1]
+                  : undefined,
+              };
+            }
+
+            return fragment;
+          });
+
+          this.logger.log(
+            `Processing ${enhancedNPCFragments.length} NPC lore fragments`,
+          );
+          // Note: NPC processing will be called after game is saved to ensure game ID exists
+        } catch (error) {
+          this.logger.error('Error processing NPC lore fragments:', error);
+        }
+      }
 
       // If there are no LORE_X tags, try looking for LORE
       if (lore.length === 0) {

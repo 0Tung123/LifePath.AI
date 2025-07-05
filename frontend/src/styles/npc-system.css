@@ -1,0 +1,324 @@
+/* NPC System Styles */
+
+/* Base NPC highlight styles */
+.npc-highlight {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border-radius: 2px;
+  padding: 1px 2px;
+  text-decoration: none;
+}
+
+/* First mention highlighting */
+.npc-highlight--first-mention {
+  color: #fbbf24; /* amber-400 */
+  background-color: rgba(217, 119, 6, 0.3); /* amber-900/30 */
+  border-bottom: 2px solid #fbbf24; /* amber-400 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  animation: npc-first-mention-glow 2s ease-in-out;
+}
+
+.npc-highlight--first-mention:hover {
+  background-color: rgba(217, 119, 6, 0.5); /* amber-900/50 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Subsequent mention highlighting */
+.npc-highlight--subsequent-mention {
+  color: #60a5fa; /* blue-400 */
+  background-color: rgba(30, 58, 138, 0.2); /* blue-900/20 */
+  border-bottom: 1px solid #60a5fa; /* blue-400 */
+}
+
+.npc-highlight--subsequent-mention:hover {
+  background-color: rgba(30, 58, 138, 0.4); /* blue-900/40 */
+}
+
+/* Important update highlighting */
+.npc-highlight--important-update {
+  color: #c084fc; /* purple-400 */
+  background-color: rgba(88, 28, 135, 0.3); /* purple-900/30 */
+  border-bottom: 2px solid #c084fc; /* purple-400 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  animation: npc-pulse 1.5s ease-in-out infinite;
+}
+
+.npc-highlight--important-update:hover {
+  background-color: rgba(88, 28, 135, 0.5); /* purple-900/50 */
+}
+
+/* Animations */
+@keyframes npc-first-mention-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+@keyframes npc-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Icon styles */
+.npc-highlight-icon {
+  display: inline-block;
+  margin-left: 2px;
+  vertical-align: middle;
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.npc-highlight:hover .npc-highlight-icon {
+  opacity: 1;
+}
+
+/* Tooltip styles */
+.npc-tooltip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  background: rgba(31, 41, 55, 0.95); /* gray-800 with transparency */
+  backdrop-filter: blur(8px);
+  border: 1px solid #4b5563; /* gray-600 */
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  max-width: 320px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
+}
+
+.npc-tooltip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.npc-tooltip__arrow {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-1px, -50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: rgba(31, 41, 55, 0.95);
+  border-left: 1px solid #4b5563;
+  border-bottom: 1px solid #4b5563;
+}
+
+/* Detail card styles */
+.npc-detail-card {
+  background: rgba(31, 41, 55, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid #4b5563;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  max-height: 90vh;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s ease-out;
+}
+
+.npc-detail-card--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.npc-detail-card__tab {
+  transition: all 0.2s ease-in-out;
+  border-bottom: 2px solid transparent;
+}
+
+.npc-detail-card__tab:hover {
+  background-color: rgba(55, 65, 81, 0.5); /* gray-700/50 */
+}
+
+.npc-detail-card__tab--active {
+  background-color: rgba(217, 119, 6, 0.5); /* amber-900/50 */
+  color: #fbbf24; /* amber-400 */
+  border-bottom-color: #fbbf24; /* amber-400 */
+}
+
+.npc-relationship-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #374151; /* gray-700 */
+  border-radius: 4px;
+  overflow: hidden;
+  transition: all 0.5s ease-out;
+}
+
+.npc-relationship-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition:
+    width 0.5s ease-out,
+    background-color 0.3s ease-out;
+}
+
+.npc-relationship-bar__fill--positive {
+  background: linear-gradient(90deg, #10b981, #34d399); /* green gradient */
+}
+
+.npc-relationship-bar__fill--negative {
+  background: linear-gradient(90deg, #ef4444, #f87171); /* red gradient */
+}
+
+/* Notification styles */
+.npc-notification {
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateX(100%);
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out;
+}
+
+.npc-notification--visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.npc-notification--priority-high {
+  border-left: 4px solid #ef4444; /* red-500 */
+}
+
+.npc-notification--priority-medium {
+  border-left: 4px solid #f59e0b; /* amber-500 */
+}
+
+.npc-notification--priority-low {
+  border-left: 4px solid #3b82f6; /* blue-500 */
+}
+
+/* Discovery level indicators */
+.npc-discovery-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.npc-discovery-level--hidden {
+  background-color: rgba(75, 85, 99, 0.3); /* gray-600/30 */
+  color: #9ca3af; /* gray-400 */
+}
+
+.npc-discovery-level--mentioned {
+  background-color: rgba(251, 191, 36, 0.3); /* amber-400/30 */
+  color: #fbbf24; /* amber-400 */
+}
+
+.npc-discovery-level--detailed {
+  background-color: rgba(96, 165, 250, 0.3); /* blue-400/30 */
+  color: #60a5fa; /* blue-400 */
+}
+
+.npc-discovery-level--familiar {
+  background-color: rgba(34, 197, 94, 0.3); /* green-500/30 */
+  color: #22c55e; /* green-500 */
+}
+
+/* Mystery attribute styles */
+.npc-mystery-attribute {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(107, 114, 128, 0.3),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: npc-mystery-shimmer 2s ease-in-out infinite;
+  border-radius: 4px;
+  color: #6b7280; /* gray-500 */
+  font-style: italic;
+}
+
+@keyframes npc-mystery-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Interaction history styles */
+.npc-interaction-history {
+  position: relative;
+}
+
+.npc-interaction-history::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #fbbf24, transparent);
+}
+
+.npc-interaction-item {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 12px;
+}
+
+.npc-interaction-item::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  background-color: #fbbf24;
+  border-radius: 50%;
+  border: 2px solid #1f2937;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .npc-tooltip {
+    max-width: 280px;
+  }
+
+  .npc-detail-card {
+    margin: 8px;
+    max-height: calc(100vh - 16px);
+  }
+
+  .npc-notification {
+    margin-right: 8px;
+    margin-left: 8px;
+  }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  .npc-highlight--first-mention {
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+  }
+
+  .npc-highlight--important-update {
+    box-shadow: 0 0 8px rgba(192, 132, 252, 0.3);
+  }
+}

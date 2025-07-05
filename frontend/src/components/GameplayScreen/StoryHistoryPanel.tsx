@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { StoryHistoryItem, KnowledgeBaseItem } from '@/services/game.service';
+import { NPCManager } from '@/components/NPCSystem';
 import '../../styles/scrollbar.css';
 
 interface StoryHistoryPanelProps {
@@ -12,6 +13,8 @@ interface StoryHistoryPanelProps {
   onLoreClick: (item: KnowledgeBaseItem) => void;
   isLoading?: boolean;
   onScrollToChoices?: () => void;
+  gameId?: string; // Add gameId for NPC system
+  onNPCInteract?: (npcId: string, action: string) => void; // Add NPC interaction handler
 }
 
 interface TooltipState {
@@ -34,6 +37,8 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   onLoreClick,
   isLoading = false,
   onScrollToChoices,
+  gameId,
+  onNPCInteract,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -396,8 +401,22 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return parts.length > 1 ? <>{parts}</> : <span>{text}</span>;
   };
 
-  // Function to highlight lore items in text
+  // Function to highlight lore items in text with NPC system
   const highlightLoreItems = (text: string) => {
+    // If gameId is available, use NPCManager for advanced highlighting
+    if (gameId) {
+      return (
+        <NPCManager
+          gameId={gameId}
+          storyText={text}
+          chapterNumber={storyHistory.length}
+          isEnabled={true}
+          onNPCInteract={onNPCInteract}
+        />
+      );
+    }
+
+    // Fallback to basic highlighting
     if (!knowledgeBase || knowledgeBase.length === 0) {
       return highlightBracketItems(text);
     }

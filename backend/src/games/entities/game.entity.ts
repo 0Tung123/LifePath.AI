@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
@@ -121,4 +122,11 @@ export class Game {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  // Relations
+  @OneToMany(() => NPC, (npc) => npc.game, { cascade: true })
+  npcs: NPC[];
 }
+
+// Import NPC entities
+import { NPC } from './npc.entity';
