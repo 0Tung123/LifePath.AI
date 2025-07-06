@@ -11,6 +11,20 @@ import {
   CharacterLifeSummary,
 } from '../../common/types/game.types';
 
+// Re-export types for convenience
+export {
+  GameStats,
+  InventoryItem,
+  Skill,
+  LoreFragment,
+  Choice,
+  NpcInfo,
+  ItemUsageRecord,
+  ImportantEvent,
+  Achievement,
+  CharacterLifeSummary,
+};
+
 // Alias for backward compatibility
 export type NpcMet = NpcInfo;
 export type ItemUsed = ItemUsageRecord;
