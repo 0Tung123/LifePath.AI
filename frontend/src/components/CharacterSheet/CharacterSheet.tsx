@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
+import { GameStats, Skill } from '@/services/game.service';
 
 import './CharacterSheet.css';
+
+const AttributeAllocation: React.FC<{
+  gameId: string;
+  stats: GameStats;
+  onAttributesAllocated: () => void;
+}> = ({ gameId, stats, onAttributesAllocated }) => {
+  return (
+    <div className="attribute-allocation">
+      <p>Attribute allocation component placeholder</p>
+      <button onClick={onAttributesAllocated}>Save Changes</button>
+    </div>
+  );
+};
+
+interface CharacterLevel {
+  availableAttributePoints: number;
+  // Add other properties as needed
+}
 
 export interface CharacterSheetProps {
   character: {
@@ -9,6 +28,10 @@ export interface CharacterSheetProps {
     backstory: string;
     karma: number;
     reputation?: { [key: string]: number };
+    stats: GameStats & {
+      level?: CharacterLevel;
+    };
+    skills: Skill[];
   };
   onClose: () => void;
   onStatsUpdated?: () => void; // Callback khi thuộc tính được cập nhật
