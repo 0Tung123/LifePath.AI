@@ -21,6 +21,7 @@ interface GameContextType {
   error: string | null;
   createGame: (settings: GameSettings) => Promise<Game>;
   loadGame: (gameId: string) => Promise<void>;
+  getGameById: (gameId: string) => Promise<Game>;
   makeChoice: (choiceNumber: number) => Promise<void>;
   performAction: (action: string) => Promise<void>;
   performThinking: (think: string) => Promise<void>;
@@ -97,6 +98,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  const getGameById = useCallback(async (gameId: string): Promise<Game> => {
+    try {
+      const game = await gameService.getGameById(gameId);
+      return game;
+    } catch (error: unknown) {
+      const errorMessage = extractErrorMessage(
+        error,
+        'Failed to get game. Please try again.',
+      );
+      throw new Error(errorMessage);
     }
   }, []);
 
@@ -303,6 +317,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     error,
     createGame,
     loadGame,
+    getGameById,
     makeChoice,
     performAction,
     performThinking,

@@ -36,8 +36,8 @@ export interface NPCState {
   faction?: string;
   role?: string;
 
-  // Original lore data
-  loreData: {
+  // Original lore data - sync with backend
+  loreData?: {
     type: 'npc';
     name: string;
     description: string;
@@ -48,6 +48,9 @@ export interface NPCState {
       string | number | boolean | string[] | null
     >;
   };
+
+  // Additional metadata - sync with backend
+  metadata: Record<string, unknown>;
 }
 
 export interface NPCInteraction {
@@ -228,6 +231,7 @@ export interface NPCBackendData {
   importance: NPCState['importance'];
   faction?: string;
   role?: string;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

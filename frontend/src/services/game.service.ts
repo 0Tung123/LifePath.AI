@@ -96,7 +96,7 @@ export interface Game {
   }[];
   achievements?: { name: string; description: string; unlockedAt: string }[];
   karmaScore: number;
-  reputation?: { [key: string]: number };
+  reputation: { [key: string]: number };
   active: boolean;
   deathDate?: string;
   deathCause?: string;
@@ -140,7 +140,7 @@ export interface CharacterLifeSummary {
   totalChapters: number;
   achievements: { name: string; description: string; unlockedAt: string }[];
   karmaScore: number;
-  reputation?: { [key: string]: number };
+  reputation: { [key: string]: number };
 }
 
 class GameService {

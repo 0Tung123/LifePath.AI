@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Res,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -20,6 +21,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -210,5 +212,71 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@Request() req) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiBearerAuth()
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: {
+          type: 'string',
+          description: 'User first name',
+          example: 'John',
+        },
+        lastName: {
+          type: 'string',
+          description: 'User last name',
+          example: 'Doe',
+        },
+        profilePicture: {
+          type: 'string',
+          description: 'URL to user profile picture',
+          example: 'https://example.com/profile.jpg',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'User ID',
+        },
+        email: {
+          type: 'string',
+          description: 'User email',
+        },
+        firstName: {
+          type: 'string',
+          description: 'User first name',
+        },
+        lastName: {
+          type: 'string',
+          description: 'User last name',
+        },
+        isActive: {
+          type: 'boolean',
+          description: 'User active status',
+        },
+        profilePicture: {
+          type: 'string',
+          description: 'URL to user profile picture',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid input data' })
+  async updateProfile(@Request() req, @Body() updateData: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.userId, updateData);
   }
 }

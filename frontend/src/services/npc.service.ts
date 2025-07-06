@@ -55,6 +55,7 @@ class NPCService implements NPCTrackingService {
         faction: data.faction,
         role: data.role,
         loreData: data.loreData,
+        metadata: data.metadata,
       };
 
       this.npcs.set(data.id, npcState);

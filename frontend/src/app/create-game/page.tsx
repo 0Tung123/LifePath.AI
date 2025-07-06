@@ -75,7 +75,8 @@ export default function CreateGame() {
 
     try {
       const game = await createGame(formData);
-      router.push(`/game/${game.id}`);
+      // Redirect to character creation instead of directly to game
+      router.push(`/character-creation/${game.id}`);
     } catch {
       setError('Failed to create game. Please try again.');
     }
