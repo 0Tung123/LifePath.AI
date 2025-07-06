@@ -1,23 +1,37 @@
 import React, { useState } from 'react';
-import {
-  GameStats,
-  Skill,
-  ExperiencePoints,
-  CharacterLevel,
-} from '../../types/game.types';
+import { GameStats, Skill } from '@/services/game.service';
+
 import './CharacterSheet.css';
-import ExperienceDisplay from '../GameUI/ExperienceDisplay';
-import AttributeAllocation from '../GameUI/AttributeAllocation';
+
+const AttributeAllocation: React.FC<{
+  gameId: string;
+  stats: GameStats;
+  onAttributesAllocated: () => void;
+}> = ({ gameId, stats, onAttributesAllocated }) => {
+  return (
+    <div className="attribute-allocation">
+      <p>Attribute allocation component placeholder</p>
+      <button onClick={onAttributesAllocated}>Save Changes</button>
+    </div>
+  );
+};
+
+interface CharacterLevel {
+  availableAttributePoints: number;
+  // Add other properties as needed
+}
 
 export interface CharacterSheetProps {
   character: {
     id?: string; // Game ID
     name: string;
     backstory: string;
-    stats: GameStats;
-    skills: Skill[];
     karma: number;
     reputation?: { [key: string]: number };
+    stats: GameStats & {
+      level?: CharacterLevel;
+    };
+    skills: Skill[];
   };
   onClose: () => void;
   onStatsUpdated?: () => void; // Callback khi thuộc tính được cập nhật
@@ -93,10 +107,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
           <h3 className="character-sheet__section-title">
             Experience & Progress
           </h3>
-          <ExperienceDisplay
-            stats={character.stats}
-            skills={character.skills}
-          />
         </section>
 
         {/* Phân bổ điểm thuộc tính */}
@@ -143,7 +153,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   <span className="stat-value">
                     {typeof value === 'object'
                       ? JSON.stringify(value)
-                      : formatStatValue(value !== undefined ? value : '')}
+                      : typeof value === 'string' || typeof value === 'number'
+                        ? formatStatValue(value)
+                        : ''}
                   </span>
                 </div>
               ))}
