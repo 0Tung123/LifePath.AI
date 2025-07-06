@@ -96,4 +96,5 @@ export interface ParsedGameContent {
   itemsUsed?: ItemUsed[];
   importantEvents?: ImportantEvent[];
   achievements?: Achievement[];
+  deathCause?: string;
 }

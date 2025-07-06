@@ -19,6 +19,10 @@ import {
   LoreFragment,
   Choice,
   LifeSummary,
+  NpcMet,
+  ItemUsed,
+  ImportantEvent,
+  Achievement,
 } from './interfaces/game-content.interface';
 
 @Injectable()
@@ -425,9 +429,12 @@ export class GamesService {
           // Character is dead - end game
           game.active = false;
           game.deathDate = new Date();
-          game.deathCause = this.extractDeathCause(parsedContent.storyText);
+          // Use death cause from AI response if available, otherwise extract from story
+          game.deathCause =
+            parsedContent.deathCause ||
+            this.extractDeathCause(parsedContent.storyText);
           game.currentChoices = [];
-          game.currentPrompt = `${parsedContent.storyText}\n\n**GAME OVER: Nhân vật của bạn đã chết!**`;
+          game.currentPrompt = `${parsedContent.storyText}\n\n**GAME OVER: Nhân vật của bạn đã chết!**\n\n**Nguyên nhân cái chết:** ${game.deathCause}`;
         }
       }
 
@@ -546,7 +553,7 @@ export class GamesService {
     try {
       // Import the enhanced action prompt
       const { buildEnhancedActionPrompt } = await import(
-        './prompts/enhanced-world-building.prompt.backup'
+        './prompts/enhanced-world-building-v2.prompt'
       );
       return buildEnhancedActionPrompt(
         game,
@@ -567,7 +574,7 @@ export class GamesService {
     try {
       // Import the enhanced world-building prompt
       const { buildEnhancedWorldPrompt } = await import(
-        './prompts/enhanced-world-building.prompt.backup'
+        './prompts/enhanced-world-building-v2.prompt'
       );
       return buildEnhancedWorldPrompt(gameSettings);
     } catch (error) {
@@ -603,7 +610,7 @@ export class GamesService {
       // Extract story text (everything before the first tag)
       let storyText = response;
       const firstTagMatch = response.match(
-        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION):/,
+        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION|DEATH_CAUSE|NPC_MET|ITEM_USED|IMPORTANT_EVENT|ACHIEVEMENT):/,
       );
       if (firstTagMatch && firstTagMatch.index !== undefined) {
         storyText = response.substring(0, firstTagMatch.index).trim();
@@ -768,6 +775,23 @@ export class GamesService {
             reputationChanges[key] = numValue;
           }
         });
+      }
+
+      // Extract death cause
+      let deathCause: string | undefined;
+      const deathCauseMatches = [
+        ...response.matchAll(/\[DEATH_CAUSE:\s*"([^"]+)"\]/g),
+      ];
+      if (deathCauseMatches.length > 0) {
+        deathCause = deathCauseMatches[0][1].trim();
+      } else {
+        // Try alternative format without quotes
+        const deathCauseMatches2 = [
+          ...response.matchAll(/\[DEATH_CAUSE:\s*([^\]]+)\]/g),
+        ];
+        if (deathCauseMatches2.length > 0) {
+          deathCause = deathCauseMatches2[0][1].trim();
+        }
       }
 
       // Extract lore
@@ -999,6 +1023,87 @@ export class GamesService {
         ];
       }
 
+      // Extract NPCs met
+      const npcsMet: NpcMet[] = [];
+      const npcMetMatches = [...response.matchAll(/\[NPC_MET:\s*([^\]]+)\]/g)];
+      npcMetMatches.forEach((match) => {
+        try {
+          const npcData = this.parseTagContent(match[1]);
+          if (npcData.Name && npcData.Description) {
+            npcsMet.push({
+              name: npcData.Name,
+              description: npcData.Description,
+              firstMet: new Date(),
+              interactions: 1,
+            });
+          }
+        } catch (e) {
+          this.logger.error('Error parsing NPC_MET tag:', e);
+        }
+      });
+
+      // Extract items used
+      const itemsUsed: ItemUsed[] = [];
+      const itemUsedMatches = [
+        ...response.matchAll(/\[ITEM_USED:\s*([^\]]+)\]/g),
+      ];
+      itemUsedMatches.forEach((match) => {
+        try {
+          const itemData = this.parseTagContent(match[1]);
+          if (itemData.Name && itemData.Description) {
+            itemsUsed.push({
+              name: itemData.Name,
+              description: itemData.Description,
+              usedAt: new Date(),
+              quantity: parseInt(itemData.Quantity) || 1,
+            });
+          }
+        } catch (e) {
+          this.logger.error('Error parsing ITEM_USED tag:', e);
+        }
+      });
+
+      // Extract important events
+      const importantEvents: ImportantEvent[] = [];
+      const eventMatches = [
+        ...response.matchAll(/\[IMPORTANT_EVENT:\s*([^\]]+)\]/g),
+      ];
+      eventMatches.forEach((match) => {
+        try {
+          const eventData = this.parseTagContent(match[1]);
+          if (eventData.Title && eventData.Description) {
+            importantEvents.push({
+              title: eventData.Title,
+              description: eventData.Description,
+              timestamp: new Date(),
+              type: eventData.Type || 'General',
+            });
+          }
+        } catch (e) {
+          this.logger.error('Error parsing IMPORTANT_EVENT tag:', e);
+        }
+      });
+
+      // Extract achievements
+      const achievements: Achievement[] = [];
+      const achievementMatches = [
+        ...response.matchAll(/\[ACHIEVEMENT:\s*([^\]]+)\]/g),
+      ];
+      achievementMatches.forEach((match) => {
+        try {
+          const achievementData = this.parseTagContent(match[1]);
+          if (achievementData.Name && achievementData.Description) {
+            achievements.push({
+              name: achievementData.Name,
+              description: achievementData.Description,
+              unlockedAt: new Date(),
+            });
+          }
+        } catch (e) {
+          this.logger.error('Error parsing ACHIEVEMENT tag:', e);
+        }
+      });
+
       return {
         storyText,
         stats,
@@ -1009,6 +1114,11 @@ export class GamesService {
         karmaChange,
         karmaReason,
         reputationChanges,
+        deathCause,
+        npcsMet,
+        itemsUsed,
+        importantEvents,
+        achievements,
       };
     } catch (error) {
       const logger = new Logger('GamesService');
@@ -1126,14 +1236,93 @@ export class GamesService {
   }
 
   /**
+   * Parse tag content in format: Key="Value", Key2=Value2
+   */
+  private parseTagContent(content: string): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    // Split by comma but respect quotes
+    const pairs = content.match(/(\w+)=(?:"([^"]*)"|([^,]+))/g) || [];
+
+    pairs.forEach((pair) => {
+      const match = pair.match(/(\w+)=(?:"([^"]*)"|([^,]+))/);
+      if (match) {
+        const key = match[1];
+        const value = match[2] || match[3];
+        result[key] = value?.trim() || '';
+      }
+    });
+
+    return result;
+  }
+
+  /**
    * Extract death cause from story text
    */
   private extractDeathCause(storyText: string): string {
-    // Simple extraction - take last sentence or paragraph
+    // First try to extract from [DEATH_CAUSE: ...] tag
+    const deathCauseMatch = storyText.match(/\[DEATH_CAUSE:\s*"([^"]+)"\]/);
+    if (deathCauseMatch) {
+      return deathCauseMatch[1].trim();
+    }
+
+    // Alternative format without quotes
+    const deathCauseMatch2 = storyText.match(/\[DEATH_CAUSE:\s*([^\]]+)\]/);
+    if (deathCauseMatch2) {
+      return deathCauseMatch2[1].trim();
+    }
+
+    // Fallback: Look for common death-related keywords and extract surrounding context
+    const deathKeywords = [
+      'chết',
+      'tử vong',
+      'qua đời',
+      'mất mạng',
+      'thiệt mạng',
+      'ngã xuống',
+      'tắt thở',
+      'mất máu',
+      'trúng độc',
+      'bị giết',
+      'bị sát hại',
+      'rơi xuống',
+      'ngạt thở',
+      'bị thương nặng',
+      'không qua khỏi',
+      'tử trận',
+      'hi sinh',
+      'bỏ mạng',
+    ];
+
+    // Split into sentences and find the one with death keywords
     const sentences = storyText
       .split(/[.!?]+/)
-      .filter((s) => s.trim().length > 0);
-    return sentences[sentences.length - 1]?.trim() || 'Nguyên nhân không rõ';
+      .filter((s) => s.trim().length > 0)
+      .map((s) => s.trim());
+
+    // Look for sentences containing death keywords
+    for (
+      let i = sentences.length - 1;
+      i >= Math.max(0, sentences.length - 3);
+      i--
+    ) {
+      const sentence = sentences[i].toLowerCase();
+      if (deathKeywords.some((keyword) => sentence.includes(keyword))) {
+        // Found a death-related sentence, return it with some context
+        let deathCause = sentences[i];
+
+        // If the sentence is very short, try to include the previous sentence for context
+        if (deathCause.length < 30 && i > 0) {
+          deathCause = sentences[i - 1] + '. ' + deathCause;
+        }
+
+        return deathCause;
+      }
+    }
+
+    // Final fallback: take last sentence or paragraph
+    const lastSentence = sentences[sentences.length - 1];
+    return lastSentence || 'Nguyên nhân không rõ';
   }
 
   /**

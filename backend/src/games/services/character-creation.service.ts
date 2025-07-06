@@ -571,42 +571,10 @@ export class CharacterCreationService {
     worldType: string,
     templateId?: string,
   ): Promise<string> {
-    return `
-Analyze the following character backstory and suggest appropriate stats for a ${worldType} setting:
-
-BACKSTORY:
-${backstory}
-
-WORLD TYPE: ${worldType}
-
-Please provide a detailed analysis including:
-1. Character archetype (warrior, mage, rogue, etc.)
-2. Suggested stats (0-20 scale) for core attributes
-3. Reasoning for each stat suggestion
-4. Detected keywords that influenced the analysis
-5. World-specific adjustments
-
-Format your response as JSON with the following structure:
-{
-  "characterArchetype": "string",
-  "suggestedStats": {"stat_name": number},
-  "reasoning": "string",
-  "confidence": number (0-1),
-  "detectedKeywords": ["keyword1", "keyword2"],
-  "worldContextAdjustments": {"stat_name": number}
-}
-
-Focus on these core attributes:
-- Sức Mạnh (Strength) - physical power
-- Trí Tuệ (Intelligence) - mental capacity
-- Khéo Léo (Dexterity) - agility and precision
-- Thể Lực (Constitution) - endurance and health
-- Tinh Thần (Wisdom/Spirit) - willpower and perception
-- Uy Tín (Charisma) - social influence
-
-For ${worldType} settings, also consider:
-${this.getWorldSpecificStats(worldType)}
-`;
+    const { buildBackstoryAnalysisPrompt } = await import(
+      '../prompts/character-creation.prompt'
+    );
+    return buildBackstoryAnalysisPrompt(backstory, worldType, templateId);
   }
 
   private getWorldSpecificStats(worldType: string): string {
