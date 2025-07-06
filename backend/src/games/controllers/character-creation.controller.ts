@@ -55,7 +55,11 @@ export class CharacterCreationController {
     @Request() req: any,
     @Query() filters: GetTemplatesDto,
   ): Promise<CharacterTemplate[]> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+
     return this.characterCreationService.getTemplates(userId, filters);
   }
 
@@ -70,7 +74,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Body() selectTemplateDto: SelectTemplateDto,
   ): Promise<CharacterCreationSession> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.characterCreationService.selectTemplate(
       userId,
       selectTemplateDto,
@@ -88,7 +95,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Body() analyzeDto: AnalyzeBackstoryDto,
   ): Promise<BackstoryAnalysisResponseDto> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.characterCreationService.analyzeBackstory(userId, analyzeDto);
   }
 
@@ -102,7 +112,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Body() allocateDto: AllocateStatsDto,
   ): Promise<CharacterCreationSession> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.characterCreationService.allocateStats(userId, allocateDto);
   }
 
@@ -117,7 +130,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Body() finalizeDto: FinalizeCharacterDto,
   ): Promise<CharacterCreationResultDto> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.characterCreationService.finalizeCharacter(userId, finalizeDto);
   }
 
@@ -133,7 +149,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Body() createDto: CreateCustomTemplateDto,
   ): Promise<CharacterTemplate> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.characterCreationService.createCustomTemplate(
       userId,
       createDto,
@@ -152,7 +171,10 @@ export class CharacterCreationController {
     @Param('templateId') templateId: string,
     @Query('worldType') worldType?: string,
   ): Promise<CharacterTemplate> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
 
     // Get all templates and find the requested one
     const templates = await this.characterCreationService.getTemplates(userId, {
@@ -177,63 +199,7 @@ export class CharacterCreationController {
   async getPointAllocationRules(
     @Param('worldType') worldType: string,
   ): Promise<any> {
-    // This would normally be handled by the service
-    // For now, return a basic structure
-    return {
-      totalPoints: 80,
-      bonusPoints: 20,
-      rules: [
-        {
-          statName: 'Sức Mạnh',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Trí Tuệ',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Khéo Léo',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Thể Lực',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Tinh Thần',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Uy Tín',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-      ],
-      worldType,
-    };
+    return this.characterCreationService['getPointAllocationSystem'](worldType);
   }
 
   @Get('session/:gameId')
@@ -246,7 +212,10 @@ export class CharacterCreationController {
     @Request() req: any,
     @Param('gameId') gameId: string,
   ): Promise<Partial<CharacterCreationSession>> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
 
     // In a real implementation, this would retrieve from database
     // For now, return a basic session structure
@@ -291,33 +260,75 @@ export class CharacterCreationController {
   })
   async validateStats(
     @Body() body: { stats: Record<string, number>; worldType: string },
-  ): Promise<{ valid: boolean; errors?: string[] }> {
+  ): Promise<{ valid: boolean; errors?: string[]; warnings?: string[] }> {
     const { stats, worldType } = body;
 
-    // Basic validation logic
-    const errors: string[] = [];
-    const totalPoints = Object.values(stats).reduce(
-      (sum, value) => sum + value,
-      0,
-    );
+    // Get the point allocation system for this world type
+    const pointSystem =
+      await this.characterCreationService['getPointAllocationSystem'](
+        worldType,
+      );
 
-    if (totalPoints > 100) {
-      errors.push('Total points exceed maximum allowed (100)');
+    // Validate stats using the rules
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const individualStatErrors: Record<string, string[]> = {};
+
+    let totalPointsUsed = 0;
+
+    // Check each stat against the rules
+    Object.entries(stats).forEach(([statName, value]) => {
+      const rule = pointSystem.rules.find((r) => r.statName === statName);
+      if (!rule) {
+        // If the stat is not found in the rules, use default values
+        console.warn(
+          `Stat not found in rules: ${statName}. Using default values.`,
+        );
+
+        // Add a default rule for this stat
+        pointSystem.rules.push({
+          statName: statName,
+          baseCost: 1,
+          scalingFactor: 1.2,
+          maxValue: 20,
+          minValue: 6,
+          category: 'custom',
+        });
+
+        // Don't add an error, just continue with the default rule
+        totalPointsUsed += value;
+        return;
+      }
+
+      if (value < rule.minValue) {
+        errors.push(`${statName} cannot be less than ${rule.minValue}`);
+      }
+      if (value > rule.maxValue) {
+        errors.push(`${statName} cannot be greater than ${rule.maxValue}`);
+      }
+
+      // Calculate points used (simplified for this example)
+      totalPointsUsed += value;
+    });
+
+    // Check total points
+    const maxPointsAllowed = pointSystem.totalPoints + pointSystem.bonusPoints;
+    if (totalPointsUsed > maxPointsAllowed) {
+      errors.push(
+        `Total points used (${totalPointsUsed}) exceeds maximum allowed (${maxPointsAllowed})`,
+      );
     }
 
-    // Validate individual stats
-    Object.entries(stats).forEach(([statName, value]) => {
-      if (value < 6) {
-        errors.push(`${statName} cannot be less than 6`);
-      }
-      if (value > 20) {
-        errors.push(`${statName} cannot be greater than 20`);
-      }
-    });
+    if (totalPointsUsed < pointSystem.totalPoints * 0.8) {
+      warnings.push(
+        'You have many unused points. Consider allocating them to improve your character.',
+      );
+    }
 
     return {
       valid: errors.length === 0,
       errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 }

@@ -1,0 +1,242 @@
+.character-sheet {
+  background: var(--surface-color, #1a1a1a);
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #333);
+}
+
+.character-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.character-sheet__title {
+  color: var(--text-primary, #ffffff);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.character-sheet__close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #999);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.character-sheet__close:hover {
+  background-color: var(--hover-color, #333);
+  color: var(--text-primary, #ffffff);
+}
+
+.character-sheet__content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.character-sheet__section {
+  border-bottom: 1px solid var(--border-color, #333);
+  padding-bottom: 15px;
+}
+
+.character-sheet__section:last-child {
+  border-bottom: none;
+}
+
+.character-sheet__section-title {
+  color: var(--text-primary, #ffffff);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0 0 10px 0;
+}
+
+.character-sheet__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.character-sheet__info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.character-sheet__info-item .label {
+  color: var(--text-secondary, #999);
+  font-weight: 500;
+}
+
+.character-sheet__info-item .value {
+  color: var(--text-primary, #ffffff);
+}
+
+.karma {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.karma--positive {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.karma--negative {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.karma--neutral {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.character-sheet__backstory {
+  background: var(--surface-secondary, #2a2a2a);
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-color, #4f46e5);
+}
+
+.character-sheet__backstory p {
+  color: var(--text-primary, #ffffff);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.character-sheet__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.character-sheet__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--surface-secondary, #2a2a2a);
+  border-radius: 4px;
+}
+
+.stat-name {
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.stat-value {
+  color: var(--text-primary, #ffffff);
+  font-weight: 600;
+}
+
+.character-sheet__skills {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.character-sheet__skill {
+  background: var(--surface-secondary, #2a2a2a);
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid var(--skill-color, #10b981);
+}
+
+.skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.skill-name {
+  color: var(--text-primary, #ffffff);
+  font-weight: 600;
+}
+
+.skill-level {
+  color: var(--skill-color, #10b981);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.skill-description {
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.skill-mastery {
+  color: var(--text-tertiary, #666);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.character-sheet__reputation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.character-sheet__reputation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--surface-secondary, #2a2a2a);
+  border-radius: 4px;
+}
+
+.reputation-faction {
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+}
+
+.reputation-value {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.reputation-value.positive {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.reputation-value.negative {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .character-sheet {
+    padding: 15px;
+    max-width: 100%;
+  }
+
+  .character-sheet__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .character-sheet__info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

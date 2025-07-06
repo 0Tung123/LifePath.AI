@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -52,7 +53,11 @@ export class NPCController {
     @Body() createNPCDto: CreateNPCDto,
     @Req() req: any,
   ): Promise<NPC> {
-    return this.npcService.createNPC(gameId, req.user.id, createNPCDto);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.createNPC(gameId, userId, createNPCDto);
   }
 
   @Get()
@@ -67,7 +72,11 @@ export class NPCController {
     @Param('gameId') gameId: string,
     @Req() req: any,
   ): Promise<NPC[]> {
-    return this.npcService.getNPCsByGame(gameId, req.user.id);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.getNPCsByGame(gameId, userId);
   }
 
   @Get(':npcId')
@@ -83,7 +92,11 @@ export class NPCController {
     @Param('npcId') npcId: string,
     @Req() req: any,
   ): Promise<NPC> {
-    return this.npcService.getNPC(gameId, npcId, req.user.id);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.getNPC(gameId, npcId, userId);
   }
 
   @Patch(':npcId')
@@ -100,7 +113,11 @@ export class NPCController {
     @Body() updateNPCDto: UpdateNPCDto,
     @Req() req: any,
   ): Promise<NPC> {
-    return this.npcService.updateNPC(gameId, npcId, req.user.id, updateNPCDto);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.updateNPC(gameId, npcId, userId, updateNPCDto);
   }
 
   @Delete(':npcId')
@@ -113,7 +130,11 @@ export class NPCController {
     @Param('npcId') npcId: string,
     @Req() req: any,
   ): Promise<void> {
-    return this.npcService.deleteNPC(gameId, npcId, req.user.id);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.deleteNPC(gameId, npcId, userId);
   }
 
   @Post(':npcId/interactions')
@@ -130,10 +151,14 @@ export class NPCController {
     @Body() createInteractionDto: CreateNPCInteractionDto,
     @Req() req: any,
   ): Promise<NPCInteraction> {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.npcService.createNPCInteraction(
       gameId,
       npcId,
-      req.user.id,
+      userId,
       createInteractionDto,
     );
   }
@@ -151,7 +176,11 @@ export class NPCController {
     @Param('npcId') npcId: string,
     @Req() req: any,
   ): Promise<NPCInteraction[]> {
-    return this.npcService.getNPCInteractions(gameId, npcId, req.user.id);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.getNPCInteractions(gameId, npcId, userId);
   }
 
   @Patch('batch-update')
@@ -167,7 +196,11 @@ export class NPCController {
     @Body() batchUpdateDto: NPCBatchUpdateDto,
     @Req() req: any,
   ): Promise<NPC[]> {
-    return this.npcService.batchUpdateNPCs(gameId, req.user.id, batchUpdateDto);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.batchUpdateNPCs(gameId, userId, batchUpdateDto);
   }
 
   @Post('process-lore')
@@ -183,11 +216,11 @@ export class NPCController {
     @Body() loreFragments: any[],
     @Req() req: any,
   ): Promise<NPC[]> {
-    return this.npcService.processLoreFragments(
-      gameId,
-      req.user.id,
-      loreFragments,
-    );
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.processLoreFragments(gameId, userId, loreFragments);
   }
 
   @Get('notifications')
@@ -202,7 +235,11 @@ export class NPCController {
     @Param('gameId') gameId: string,
     @Req() req: any,
   ): Promise<NPCNotification[]> {
-    return this.npcService.getNPCNotifications(gameId, req.user.id);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.npcService.getNPCNotifications(gameId, userId);
   }
 
   @Patch('notifications/:notificationId/read')
@@ -215,10 +252,14 @@ export class NPCController {
     @Param('notificationId') notificationId: string,
     @Req() req: any,
   ): Promise<void> {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.npcService.markNotificationAsRead(
       gameId,
       notificationId,
-      req.user.id,
+      userId,
     );
   }
 
@@ -237,10 +278,14 @@ export class NPCController {
     body: { type: string; title: string; message: string; priority?: string },
     @Req() req: any,
   ): Promise<NPCNotification> {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.npcService.createNPCNotification(
       gameId,
       npcId,
-      req.user.id,
+      userId,
       body.type as any,
       body.title,
       body.message,

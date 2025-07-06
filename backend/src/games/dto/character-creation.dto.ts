@@ -12,7 +12,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 // Character Template DTOs
 export class CharacterTemplateDto {
@@ -211,9 +211,16 @@ export class GetTemplatesDto {
   @ApiProperty({
     description: 'Whether to include user custom templates',
     required: false,
+    type: Boolean,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (value === '') return true;
+    return value;
   })
   @IsBoolean()
-  @IsOptional()
   includeCustom?: boolean;
 }
 

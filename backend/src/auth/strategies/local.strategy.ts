@@ -24,13 +24,7 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
       );
     }
 
-    // Check if user's email is verified
-    if (!user.isActive) {
-      throw new UnauthorizedException(
-        'Please verify your email before logging in',
-      );
-    }
-
-    return user;
+    // Return user object with userId field for consistency with JWT payload
+    return { userId: user.id, email: user.email };
   }
 }

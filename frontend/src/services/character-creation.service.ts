@@ -206,8 +206,27 @@ class CharacterCreationService {
     rules: PointAllocationSystem,
   ): number {
     return Object.entries(stats).reduce((total, [statName, value]) => {
-      const rule = rules.rules.find((r) => r.statName === statName);
-      if (!rule) return total;
+      let rule = rules.rules.find((r) => r.statName === statName);
+
+      // If the stat is not found in the rules, create a default rule
+      if (!rule) {
+        console.warn(
+          `Stat not found in rules: ${statName}. Using default values.`,
+        );
+
+        // Create a default rule for this stat
+        rule = {
+          statName: statName,
+          baseCost: 1,
+          scalingFactor: 1.2,
+          maxValue: 20,
+          minValue: 6,
+          category: 'custom',
+        };
+
+        // Add the rule to the rules array for future use
+        rules.rules.push(rule);
+      }
 
       const baseCost = this.calculateStatCost(
         statName,
@@ -233,10 +252,26 @@ class CharacterCreationService {
     let totalPointsUsed = 0;
 
     Object.entries(stats).forEach(([statName, value]) => {
-      const rule = rules.rules.find((r) => r.statName === statName);
+      let rule = rules.rules.find((r) => r.statName === statName);
+
+      // If the stat is not found in the rules, create a default rule
       if (!rule) {
-        errors.push(`Unknown stat: ${statName}`);
-        return;
+        console.warn(
+          `Stat not found in rules: ${statName}. Using default values.`,
+        );
+
+        // Create a default rule for this stat
+        rule = {
+          statName: statName,
+          baseCost: 1,
+          scalingFactor: 1.2,
+          maxValue: 20,
+          minValue: 6,
+          category: 'custom',
+        };
+
+        // Add the rule to the rules array for future use
+        rules.rules.push(rule);
       }
 
       const statErrors: string[] = [];
@@ -294,6 +329,12 @@ class CharacterCreationService {
       'Thể Lực': 10,
       'Tinh Thần': 10,
       'Uy Tín': 10,
+      'Luyện Đan': 10,
+      'Thảo Dược': 10,
+      'Khôn Ngoan': 10,
+      'May Mắn': 10,
+      'Sinh Lực': 50,
+      Mana: 50,
     };
 
     switch (archetype.toLowerCase()) {
@@ -355,6 +396,21 @@ class CharacterCreationService {
           'Sức Mạnh': 12,
           'Trí Tuệ': 11,
           'Uy Tín': 10,
+        };
+
+      case 'alchemist':
+      case 'herbalist':
+      case 'luyện đan sư':
+      case 'dược sư':
+        return {
+          ...baseStats,
+          'Luyện Đan': 16,
+          'Thảo Dược': 16,
+          'Trí Tuệ': 14,
+          'Khéo Léo': 12,
+          'Tinh Thần': 12,
+          'Thể Lực': 8,
+          'Sức Mạnh': 8,
         };
 
       default:
@@ -439,6 +495,34 @@ class CharacterCreationService {
           suggestedPlayStyle = 'Social interaction and leadership';
           strengths = ['Persuasion', 'Leadership', 'Social manipulation'];
           break;
+        case 'Luyện Đan':
+          archetype = 'Alchemist';
+          suggestedPlayStyle = 'Crafting potions and magical items';
+          strengths = ['Potion brewing', 'Item crafting', 'Resource gathering'];
+          break;
+        case 'Thảo Dược':
+          archetype = 'Herbalist';
+          suggestedPlayStyle = 'Healing and support through herbs';
+          strengths = [
+            'Healing abilities',
+            'Plant knowledge',
+            'Medicine crafting',
+          ];
+          break;
+        case 'Khôn Ngoan':
+          archetype = 'Sage';
+          suggestedPlayStyle = 'Wisdom-based decision making';
+          strengths = [
+            'Insightful observations',
+            'Strategic planning',
+            'Avoiding traps',
+          ];
+          break;
+        case 'May Mắn':
+          archetype = 'Fortune Favored';
+          suggestedPlayStyle = 'Taking risks for high rewards';
+          strengths = ['Lucky escapes', 'Finding rare items', 'Critical hits'];
+          break;
       }
     }
 
@@ -467,6 +551,24 @@ class CharacterCreationService {
             break;
           case 'Uy Tín':
             weaknesses.push('Poor social interactions');
+            break;
+          case 'Luyện Đan':
+            weaknesses.push('Ineffective potion brewing');
+            break;
+          case 'Thảo Dược':
+            weaknesses.push('Limited herb knowledge');
+            break;
+          case 'Khôn Ngoan':
+            weaknesses.push('Poor decision making');
+            break;
+          case 'May Mắn':
+            weaknesses.push('Frequent bad luck');
+            break;
+          case 'Sinh Lực':
+            weaknesses.push('Easily exhausted');
+            break;
+          case 'Mana':
+            weaknesses.push('Limited magical energy');
             break;
         }
       }

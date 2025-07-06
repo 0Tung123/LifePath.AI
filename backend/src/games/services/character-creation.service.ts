@@ -16,6 +16,7 @@ import {
   PointAllocationSystem,
   CharacterCreationResult,
   EnhancedGameStats,
+  PointAllocationRule,
 } from '../interfaces/character-stats.interface';
 import {
   SelectTemplateDto,
@@ -632,59 +633,132 @@ export class CharacterCreationService {
   private async getPointAllocationSystem(
     worldType: string,
   ): Promise<PointAllocationSystem> {
+    // Base rules for all world types
+    const baseRules: PointAllocationRule[] = [
+      {
+        statName: 'Sức Mạnh',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      {
+        statName: 'Trí Tuệ',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      {
+        statName: 'Khéo Léo',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      {
+        statName: 'Thể Lực',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      {
+        statName: 'Tinh Thần',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      {
+        statName: 'Uy Tín',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'core',
+      },
+      // Add additional stats that were causing errors
+      {
+        statName: 'Khôn Ngoan',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'derived',
+      },
+      {
+        statName: 'May Mắn',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'derived',
+      },
+      {
+        statName: 'Sinh Lực',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 100,
+        minValue: 10,
+        category: 'derived',
+      },
+    ];
+
+    // Common stats for all world types
+    const commonWorldSpecificRules: PointAllocationRule[] = [
+      {
+        statName: 'Luyện Đan',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'world_specific',
+      },
+      {
+        statName: 'Thảo Dược',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'world_specific',
+      },
+    ];
+
+    // World-specific stats
+    let worldSpecificRules: PointAllocationRule[] = [
+      ...commonWorldSpecificRules,
+    ];
+
+    if (worldType === 'Fantasy') {
+      worldSpecificRules.push({
+        statName: 'Mana',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 100,
+        minValue: 10,
+        category: 'world_specific',
+      });
+    } else if (worldType === 'SciFi') {
+      worldSpecificRules.push({
+        statName: 'Tech',
+        baseCost: 1,
+        scalingFactor: 1.2,
+        maxValue: 20,
+        minValue: 6,
+        category: 'world_specific',
+      });
+    }
+
     return {
       totalPoints: 80, // Base points
       bonusPoints: 20, // Additional points for customization
-      rules: [
-        {
-          statName: 'Sức Mạnh',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Trí Tuệ',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Khéo Léo',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Thể Lực',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Tinh Thần',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-        {
-          statName: 'Uy Tín',
-          baseCost: 1,
-          scalingFactor: 1.2,
-          maxValue: 20,
-          minValue: 6,
-          category: 'core',
-        },
-      ],
+      rules: [...baseRules, ...worldSpecificRules],
       worldType,
     };
   }
@@ -695,6 +769,27 @@ export class CharacterCreationService {
     totalPointsUsed: number,
   ): Promise<boolean> {
     const maxAllowed = pointSystem.totalPoints + pointSystem.bonusPoints;
+
+    // Check if all stats are valid
+    for (const [statName, value] of Object.entries(stats)) {
+      const rule = pointSystem.rules.find((r) => r.statName === statName);
+      if (!rule) {
+        // If the stat is not found in the rules, add it with default values
+        this.logger.warn(
+          `Stat not found in rules: ${statName}. Adding with default values.`,
+        );
+
+        pointSystem.rules.push({
+          statName: statName,
+          baseCost: 1,
+          scalingFactor: 1.2,
+          maxValue: 20,
+          minValue: 6,
+          category: 'custom',
+        });
+      }
+    }
+
     return totalPointsUsed <= maxAllowed;
   }
 

@@ -59,7 +59,10 @@ export class GamesController {
     }
 
     // Extract user ID from JWT
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
 
     // Create the game
     return this.gamesService.create(userId, createGameDto);
@@ -80,7 +83,10 @@ export class GamesController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async findAll(@Request() req): Promise<Game[]> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.gamesService.findAllByUser(userId);
   }
 
@@ -101,7 +107,10 @@ export class GamesController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async findOne(@Param('id') id: string, @Request() req): Promise<Game> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.gamesService.findOne(id, userId);
   }
 
@@ -122,7 +131,10 @@ export class GamesController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async remove(@Param('id') id: string, @Request() req): Promise<void> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.gamesService.remove(id, userId);
   }
 
@@ -152,7 +164,10 @@ export class GamesController {
     @Request() req,
     @Body() actionDto: GameActionDto,
   ): Promise<Game> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     const { choiceNumber, action, think, communication } = actionDto;
 
     return this.gamesService.processAction(
@@ -184,7 +199,10 @@ export class GamesController {
     @Param('id') id: string,
     @Request() req,
   ): Promise<LifeSummary> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.gamesService.generateLifeSummary(id);
   }
 
@@ -217,7 +235,10 @@ export class GamesController {
     @Param('id') id: string,
     @Request() req,
   ): Promise<{ summary: string }> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     const summary = await this.gamesService.generateSummary(id, userId);
     return { summary };
   }
@@ -243,7 +264,10 @@ export class GamesController {
     @Param('id') id: string,
     @Request() req,
   ): Promise<Game> {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     return this.gamesService.resurrectCharacter(id, userId);
   }
 }

@@ -11,6 +11,7 @@ import {
   Res,
   Req,
   Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -211,7 +212,11 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@Request() req) {
-    return this.authService.getProfile(req.user.userId);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.authService.getProfile(userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -277,6 +282,10 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 400, description: 'Bad request - Invalid input data' })
   async updateProfile(@Request() req, @Body() updateData: UpdateProfileDto) {
-    return this.authService.updateProfile(req.user.userId, updateData);
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.authService.updateProfile(userId, updateData);
   }
 }

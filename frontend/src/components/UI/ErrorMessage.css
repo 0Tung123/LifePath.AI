@@ -1,0 +1,206 @@
+.error-message {
+  background: var(--surface-color, #1a1a1a);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #333);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.error-message--error {
+  background: var(--error-bg, #2a1a1a);
+  border-color: var(--error-border, #4a2626);
+  border-left: 4px solid var(--error-color, #ef4444);
+}
+
+.error-message--warning {
+  background: var(--warning-bg, #2a2a1a);
+  border-color: var(--warning-border, #4a4626);
+  border-left: 4px solid var(--warning-color, #f59e0b);
+}
+
+.error-message--info {
+  background: var(--info-bg, #1a2332);
+  border-color: var(--info-border, #264a66);
+  border-left: 4px solid var(--info-color, #06b6d4);
+}
+
+.error-message__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.error-message__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.error-message__text {
+  flex: 1;
+}
+
+.error-message__message {
+  color: var(--text-primary, #ffffff);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.error-message__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.error-message__action-button {
+  background: var(--accent-color, #4f46e5);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.error-message__action-button:hover {
+  background: var(--accent-hover, #4338ca);
+  transform: translateY(-1px);
+}
+
+.error-message__action-button:active {
+  transform: translateY(0);
+}
+
+/* Type-specific button colors */
+.error-message--error .error-message__action-button {
+  background: var(--error-color, #ef4444);
+}
+
+.error-message--error .error-message__action-button:hover {
+  background: var(--error-hover, #dc2626);
+}
+
+.error-message--warning .error-message__action-button {
+  background: var(--warning-color, #f59e0b);
+}
+
+.error-message--warning .error-message__action-button:hover {
+  background: var(--warning-hover, #d97706);
+}
+
+.error-message--info .error-message__action-button {
+  background: var(--info-color, #06b6d4);
+}
+
+.error-message--info .error-message__action-button:hover {
+  background: var(--info-hover, #0891b2);
+}
+
+/* Compact variant */
+.error-message--compact {
+  padding: 12px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.error-message--compact .error-message__content {
+  gap: 8px;
+}
+
+.error-message--compact .error-message__icon {
+  font-size: 1.2rem;
+}
+
+.error-message--compact .error-message__message {
+  font-size: 0.8rem;
+}
+
+.error-message--compact .error-message__actions {
+  margin-left: 12px;
+}
+
+.error-message--compact .error-message__action-button {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  min-width: 60px;
+}
+
+/* Animation */
+.error-message {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .error-message {
+    padding: 12px;
+    max-width: 100%;
+  }
+
+  .error-message__content {
+    gap: 8px;
+  }
+
+  .error-message__icon {
+    font-size: 1.3rem;
+  }
+
+  .error-message__message {
+    font-size: 0.85rem;
+  }
+
+  .error-message__actions {
+    justify-content: center;
+  }
+
+  .error-message__action-button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    min-width: 70px;
+  }
+}
+
+/* Dark mode variables */
+:root {
+  --surface-color: #1a1a1a;
+  --border-color: #333;
+  --text-primary: #ffffff;
+  --accent-color: #4f46e5;
+  --accent-hover: #4338ca;
+
+  --error-bg: #2a1a1a;
+  --error-border: #4a2626;
+  --error-color: #ef4444;
+  --error-hover: #dc2626;
+
+  --warning-bg: #2a2a1a;
+  --warning-border: #4a4626;
+  --warning-color: #f59e0b;
+  --warning-hover: #d97706;
+
+  --info-bg: #1a2332;
+  --info-border: #264a66;
+  --info-color: #06b6d4;
+  --info-hover: #0891b2;
+}

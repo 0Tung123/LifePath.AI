@@ -1,0 +1,309 @@
+.game-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.game-menu {
+  background: var(--surface-color, #1a1a1a);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #333);
+  max-width: 400px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: menu-enter 0.2s ease-out;
+}
+
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.game-menu__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.game-menu__title {
+  color: var(--text-primary, #ffffff);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.game-menu__close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #999);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.game-menu__close:hover {
+  background-color: var(--hover-color, #333);
+  color: var(--text-primary, #ffffff);
+}
+
+.game-menu__content {
+  padding: 20px;
+}
+
+.game-menu__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-menu__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-secondary, #2a2a2a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-align: left;
+  width: 100%;
+}
+
+.game-menu__option:hover {
+  background: var(--surface-hover, #3a3a3a);
+  border-color: var(--accent-color, #4f46e5);
+  transform: translateX(4px);
+}
+
+.game-menu__option--danger {
+  border-color: var(--danger-border, #4a2626);
+}
+
+.game-menu__option--danger:hover {
+  background: var(--danger-hover, #2a1a1a);
+  border-color: var(--danger-color, #ef4444);
+  color: var(--danger-color, #ef4444);
+}
+
+.option-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  width: 20px;
+  text-align: center;
+}
+
+.option-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.game-menu__divider {
+  height: 1px;
+  background: var(--border-color, #333);
+  margin: 12px 0;
+}
+
+.game-menu__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+}
+
+.confirm-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-icon {
+  font-size: 2rem;
+  color: var(--warning-color, #f59e0b);
+}
+
+.confirm-title {
+  color: var(--text-primary, #ffffff);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.confirm-message {
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.confirm-button--cancel {
+  background: var(--surface-secondary, #2a2a2a);
+  color: var(--text-primary, #ffffff);
+  border: 1px solid var(--border-color, #333);
+}
+
+.confirm-button--cancel:hover {
+  background: var(--surface-hover, #3a3a3a);
+  border-color: var(--accent-color, #4f46e5);
+}
+
+.confirm-button--danger {
+  background: var(--danger-color, #ef4444);
+  color: white;
+}
+
+.confirm-button--danger:hover {
+  background: var(--danger-hover, #dc2626);
+  transform: translateY(-1px);
+}
+
+.game-menu__footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #333);
+  background: var(--surface-secondary, #2a2a2a);
+  border-radius: 0 0 8px 8px;
+}
+
+.game-menu__info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-tertiary, #666);
+  font-size: 0.8rem;
+}
+
+.info-item {
+  color: var(--text-secondary, #999);
+}
+
+.info-separator {
+  color: var(--text-tertiary, #666);
+}
+
+/* Keyboard navigation */
+.game-menu__option:focus {
+  outline: 2px solid var(--accent-color, #4f46e5);
+  outline-offset: 2px;
+}
+
+.confirm-button:focus {
+  outline: 2px solid var(--accent-color, #4f46e5);
+  outline-offset: 2px;
+}
+
+/* Animation for option hover effects */
+.game-menu__option {
+  position: relative;
+  overflow: hidden;
+}
+
+.game-menu__option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(79, 70, 229, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.game-menu__option:hover::before {
+  left: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .game-menu {
+    max-width: 100%;
+    max-height: 90vh;
+    margin: 0 10px;
+  }
+
+  .game-menu__header,
+  .game-menu__content,
+  .game-menu__footer {
+    padding: 16px;
+  }
+
+  .game-menu__option {
+    padding: 14px 16px;
+    font-size: 0.9rem;
+  }
+
+  .option-icon {
+    font-size: 1.1rem;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .confirm-button {
+    width: 100%;
+    padding: 12px;
+  }
+}
+
+/* Dark mode variables */
+:root {
+  --surface-color: #1a1a1a;
+  --surface-secondary: #2a2a2a;
+  --surface-hover: #3a3a3a;
+  --border-color: #333;
+  --text-primary: #ffffff;
+  --text-secondary: #999;
+  --text-tertiary: #666;
+  --accent-color: #4f46e5;
+  --hover-color: #333;
+  --danger-color: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-border: #4a2626;
+  --warning-color: #f59e0b;
+}

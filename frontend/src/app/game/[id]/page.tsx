@@ -456,9 +456,7 @@ export default function GamePage({
               karmaScore={currentGame?.karmaScore || 0}
               reputation={currentGame?.reputation}
             />
-            <InventoryPanel
-              inventoryItems={currentGame?.inventoryItems || []}
-            />
+            <InventoryPanel items={currentGame?.inventoryItems || []} />
             <SkillsPanel characterSkills={currentGame?.characterSkills || []} />
           </div>
 

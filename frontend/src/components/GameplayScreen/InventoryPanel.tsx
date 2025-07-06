@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { InventoryItem } from '@/services/game.service';
 
 interface InventoryPanelProps {
-  inventoryItems: InventoryItem[];
+  items: InventoryItem[];
+  onClose?: () => void;
 }
 
-const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
+const InventoryPanel: React.FC<InventoryPanelProps> = ({ items, onClose }) => {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
   const handleItemClick = (item: InventoryItem) => {
@@ -16,24 +17,46 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
 
   return (
     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center">
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-          />
-        </svg>
-        Kho Đồ ({inventoryItems?.length || 0})
-      </h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-semibold text-amber-400 flex items-center">
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
+          </svg>
+          Kho Đồ ({items?.length || 0})
+        </h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
 
-      {!inventoryItems || inventoryItems.length === 0 ? (
+      {!items || items.length === 0 ? (
         <div className="text-center text-gray-400 py-6">
           <svg
             className="w-12 h-12 mx-auto mb-4 opacity-50"
@@ -52,7 +75,7 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
         </div>
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {inventoryItems.map((item, index) => (
+          {items.map((item, index) => (
             <div key={index} className="space-y-2">
               <button
                 onClick={() => handleItemClick(item)}
@@ -89,3 +112,4 @@ const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
 };
 
 export default InventoryPanel;
+export { InventoryPanel };
