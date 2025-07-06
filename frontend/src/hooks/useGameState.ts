@@ -297,13 +297,11 @@ export const useGameState = (
       setUIState((prev) => {
         const panelKey =
           `show${panel.charAt(0).toUpperCase() + panel.slice(1)}` as keyof GameUIState;
-
-        // Safely get the current value, defaulting to false if undefined
-        const currentValue = Boolean(prev[panelKey]);
+        const currentValue = prev[panelKey] as boolean | undefined;
 
         return {
           ...prev,
-          [panelKey]: !currentValue,
+          [panelKey]: !(currentValue ?? false),
         };
       });
     },
@@ -389,7 +387,7 @@ export const useGameState = (
   }, [gameId]);
 
   // Computed properties
-  const canPerformAction = !isLoading && gameState?.active && !error;
+  const canPerformAction = !isLoading && !!gameState?.active && !error;
 
   return {
     gameState,
