@@ -115,17 +115,17 @@ export class AuthController {
     );
   }
 
-  @Get('verify-email')
+  @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address' })
-  @ApiQuery({ name: 'token', description: 'Email verification token' })
+  @ApiBody({ type: VerifyEmailDto })
   @ApiResponse({ status: 200, description: 'Email verified successfully' })
   @ApiResponse({
     status: 400,
     description: 'Invalid verification token or token expired',
   })
-  async verifyEmail(@Query('token') token: string) {
-    return this.authService.verifyEmail(token);
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto.token);
   }
 
   @Post('resend-verification')

@@ -60,16 +60,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const { token } = await authService.login(credentials);
+      const { token, user } = await authService.login(credentials);
 
       // Save token to localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
       }
 
-      // Fetch user profile
-      const userProfile = await authService.getProfile();
-      setUser(userProfile);
+      // Set user directly from login response
+      setUser(user);
     } catch {
       const errorMessage = 'Failed to login. Please try again.';
       setError(errorMessage);

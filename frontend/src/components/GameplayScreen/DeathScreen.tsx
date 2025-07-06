@@ -63,7 +63,7 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-400">Tổng chương:</span>
                   <span className="text-white">
-                    {lifeSummary.totalChapters}
+                    {lifeSummary.totalChapters || 0}
                   </span>
                 </div>
               </div>
@@ -193,10 +193,10 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
           {/* Expandable Sections */}
           <div className="space-y-4">
             {/* NPCs Met */}
-            {lifeSummary.npcsMet.length > 0 && (
+            {lifeSummary.npcsMet && lifeSummary.npcsMet.length > 0 && (
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-blue-400 mb-3">
-                  Nhân Vật Đã Gặp ({lifeSummary.npcsMet.length})
+                  Nhân Vật Đã Gặp ({lifeSummary.npcsMet?.length || 0})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                   {lifeSummary.npcsMet.slice(0, 6).map((npc, index) => (
@@ -209,7 +209,7 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                       </div>
                     </div>
                   ))}
-                  {lifeSummary.npcsMet.length > 6 && (
+                  {lifeSummary.npcsMet && lifeSummary.npcsMet.length > 6 && (
                     <div className="text-gray-400 text-sm">
                       +{lifeSummary.npcsMet.length - 6} nhân vật khác...
                     </div>
@@ -219,10 +219,10 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
             )}
 
             {/* Inventory */}
-            {lifeSummary.inventory.length > 0 && (
+            {lifeSummary.inventory && lifeSummary.inventory.length > 0 && (
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-green-400 mb-3">
-                  Vật Phẩm Sở Hữu ({lifeSummary.inventory.length})
+                  Vật Phẩm Sở Hữu ({lifeSummary.inventory?.length || 0})
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                   {lifeSummary.inventory.map((item, index) => (
@@ -240,10 +240,10 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
             )}
 
             {/* Skills */}
-            {lifeSummary.skills.length > 0 && (
+            {lifeSummary.skills && lifeSummary.skills.length > 0 && (
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-purple-400 mb-3">
-                  Kỹ Năng Đã Học ({lifeSummary.skills.length})
+                  Kỹ Năng Đã Học ({lifeSummary.skills?.length || 0})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                   {lifeSummary.skills.map((skill, index) => (
@@ -263,48 +263,50 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
             )}
 
             {/* Important Events */}
-            {lifeSummary.importantEvents.length > 0 && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-yellow-400 mb-3">
-                  Sự Kiện Quan Trọng
-                </h3>
-                <div className="space-y-2 text-sm">
-                  {lifeSummary.importantEvents
-                    .slice(0, 5)
-                    .map((event, index) => (
+            {lifeSummary.importantEvents &&
+              lifeSummary.importantEvents.length > 0 && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">
+                    Sự Kiện Quan Trọng
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    {lifeSummary.importantEvents
+                      .slice(0, 5)
+                      .map((event, index) => (
+                        <div key={index} className="bg-gray-700 rounded p-2">
+                          <div className="text-yellow-300">
+                            {event.description}
+                          </div>
+                          <div className="text-gray-400 text-xs">
+                            {new Date(event.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Achievements */}
+            {lifeSummary.achievements &&
+              lifeSummary.achievements.length > 0 && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-orange-400 mb-3">
+                    Thành Tựu ({lifeSummary.achievements?.length || 0})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    {lifeSummary.achievements.map((achievement, index) => (
                       <div key={index} className="bg-gray-700 rounded p-2">
-                        <div className="text-yellow-300">
-                          {event.description}
+                        <div className="font-medium text-orange-300">
+                          🏆 {achievement.name}
                         </div>
                         <div className="text-gray-400 text-xs">
-                          {new Date(event.timestamp).toLocaleString()}
+                          {achievement.description}
                         </div>
                       </div>
                     ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Achievements */}
-            {lifeSummary.achievements.length > 0 && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-orange-400 mb-3">
-                  Thành Tựu ({lifeSummary.achievements.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  {lifeSummary.achievements.map((achievement, index) => (
-                    <div key={index} className="bg-gray-700 rounded p-2">
-                      <div className="font-medium text-orange-300">
-                        🏆 {achievement.name}
-                      </div>
-                      <div className="text-gray-400 text-xs">
-                        {achievement.description}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
           </div>
         </div>
 

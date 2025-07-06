@@ -24,41 +24,41 @@ class AuthService {
    * Login with email and password
    */
   async login(credentials: LoginCredentialsDto): Promise<AuthResponseDto> {
-    const response = await api.post<ApiResponse<AuthResponseDto>>(
+    const response = await api.post<AuthResponseDto>(
       '/auth/login',
       credentials,
     );
 
     // Store token and user data in localStorage
-    if (typeof window !== 'undefined' && response.data.data) {
-      const authData = response.data.data;
+    if (typeof window !== 'undefined' && response.data) {
+      const authData = response.data;
       localStorage.setItem('token', authData.token);
       localStorage.setItem('user', JSON.stringify(authData.user));
     }
 
-    return response.data.data as AuthResponseDto;
+    return response.data;
   }
 
   /**
    * Get current user profile
    */
   async getProfile(): Promise<User> {
-    const response = await api.get<ApiResponse<User>>('/auth/profile');
-    return response.data.data as User;
+    const response = await api.get<User>('/auth/profile');
+    return response.data;
   }
 
   /**
    * Update user profile
    */
   async updateProfile(data: UpdateProfileDto): Promise<User> {
-    const response = await api.patch<ApiResponse<User>>('/auth/profile', data);
+    const response = await api.patch<User>('/auth/profile', data);
 
     // Update stored user data
-    if (typeof window !== 'undefined' && response.data.data) {
-      localStorage.setItem('user', JSON.stringify(response.data.data));
+    if (typeof window !== 'undefined' && response.data) {
+      localStorage.setItem('user', JSON.stringify(response.data));
     }
 
-    return response.data.data as User;
+    return response.data;
   }
 
   /**
@@ -79,7 +79,7 @@ class AuthService {
    * Verify email with token
    */
   async verifyEmail(token: string): Promise<void> {
-    await api.post<ApiResponse<void>>('/auth/verify-email', { token });
+    await api.post<void>('/auth/verify-email', { token });
   }
 
   /**

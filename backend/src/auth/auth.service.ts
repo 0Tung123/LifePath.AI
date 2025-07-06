@@ -104,11 +104,22 @@ export class AuthService {
 
   async login(user: any) {
     const payload = { email: user.email, sub: user.id };
+    const token = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
+    });
+
+    // Return user data without sensitive information
+    const {
+      password,
+      emailVerificationToken,
+      emailVerificationExpires,
+      ...userResult
+    } = user;
+
     return {
-      access_token: await this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
-      }),
+      token,
+      user: userResult,
     };
   }
 

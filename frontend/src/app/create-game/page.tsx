@@ -7,7 +7,7 @@ import { useGame } from '@/contexts/GameContext';
 
 import Header from '@/components/Header';
 import BackstoryGuide from '@/components/BackstoryGuide';
-import { GameSettings } from '@/types/shared';
+import { GameSettings, GameTheme } from '@/types/shared';
 
 export default function CreateGame() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -136,14 +136,24 @@ export default function CreateGame() {
                       className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Chọn thể loại</option>
-                      <option value="Fantasy">Giả tưởng (Fantasy)</option>
-                      <option value="Sci-Fi">
+                      <option value={GameTheme.FANTASY}>
+                        Giả tưởng (Fantasy)
+                      </option>
+                      <option value={GameTheme.SCI_FI}>
                         Khoa học viễn tưởng (Sci-Fi)
                       </option>
-                      <option value="Post-Apocalyptic">Hậu tận thế</option>
-                      <option value="Historical">Lịch sử</option>
-                      <option value="Modern">Hiện đại</option>
-                      <option value="Horror">Kinh dị</option>
+                      <option value={GameTheme.POST_APOCALYPTIC}>
+                        Hậu tận thế
+                      </option>
+                      <option value={GameTheme.HISTORICAL}>Lịch sử</option>
+                      <option value={GameTheme.MODERN}>Hiện đại</option>
+                      <option value={GameTheme.HORROR}>Kinh dị</option>
+                      <option value={GameTheme.MYSTERY}>Bí ẩn</option>
+                      <option value={GameTheme.WESTERN}>Miền Tây</option>
+                      <option value={GameTheme.CYBERPUNK}>Cyberpunk</option>
+                      <option value={GameTheme.STEAMPUNK}>Steampunk</option>
+                      <option value={GameTheme.CULTIVATION}>Tu Luyện</option>
+                      <option value={GameTheme.SUPERHERO}>Siêu Anh Hùng</option>
                     </select>
                   </div>
 

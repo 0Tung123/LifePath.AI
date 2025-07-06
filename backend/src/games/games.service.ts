@@ -1119,12 +1119,12 @@ export class GamesService {
     );
 
     // Extract NPCs met from lore fragments
-    const npcsMet = game.loreFragments
+    const npcsMet = (game.loreFragments || [])
       .filter((lore) => lore.type === 'npc')
       .map((npc) => ({ name: npc.name, description: npc.description }));
 
     // Extract important events from story history
-    const importantEvents = game.storyHistory
+    const importantEvents = (game.storyHistory || [])
       .filter((story) => story.type === 'story')
       .slice(0, 10) // First 10 major events
       .map((event) => ({
@@ -1134,10 +1134,35 @@ export class GamesService {
 
     return {
       characterName: game.settings.characterName || 'Unknown Character',
+      theme: game.settings.theme || 'Unknown',
+      setting: game.settings.setting || 'Unknown setting',
+      birthDate: game.createdAt,
+      deathDate: game.deathDate || new Date(),
+      deathCause: game.deathCause || 'Unknown cause',
+      playTime: `${playDays} ngày ${playHours} giờ`,
+      finalStats: game.characterStats || {},
+      inventory: game.inventoryItems || [],
+      skills: game.characterSkills || [],
+      npcsMet: npcsMet.map((npc) => ({
+        name: npc.name || 'Unknown NPC',
+        description: npc.description || '',
+        firstMet: game.createdAt, // Use creation date as fallback
+        interactions: 1,
+      })),
+      importantEvents: importantEvents.map((event) => ({
+        title: 'Sự kiện quan trọng',
+        description: event.description,
+        timestamp: event.timestamp,
+        type: 'story',
+      })),
+      totalChapters: game.storyHistory.length,
+      achievements: game.achievements || [],
+      karmaScore: game.karmaScore || 0,
+      reputation: game.reputation || {},
+      legacy: game.deathCause || 'A life well lived',
+      // For backward compatibility
       totalYears: Math.floor(playDays / 365) || 0,
       majorEvents: importantEvents.map((event) => event.description),
-      finalStats: game.characterStats || {},
-      achievements: game.achievements || [],
       relationships: npcsMet.reduce(
         (acc, npc) => {
           if (npc.name) {
@@ -1147,7 +1172,6 @@ export class GamesService {
         },
         {} as Record<string, unknown>,
       ),
-      legacy: game.deathCause || 'A life well lived',
     };
   }
 
