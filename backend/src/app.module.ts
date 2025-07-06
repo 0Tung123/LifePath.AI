@@ -7,9 +7,13 @@ import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { UsersModule } from './user/users.module';
 import { GamesModule } from './games/games.module';
+import { DynamicSystemModule } from './dynamic-system/dynamic-system.module';
 import { User } from './user/entities/user.entity';
 import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
 import { Game } from './games/entities/game.entity';
+import { Tag } from './dynamic-system/entities/tag.entity';
+import { DynamicType } from './dynamic-system/entities/dynamic-type.entity';
+import { ValidationRule } from './dynamic-system/entities/validation-rule.entity';
 
 @Module({
   imports: [
@@ -24,7 +28,14 @@ import { Game } from './games/entities/game.entity';
         username: configService.get('DB_USERNAME', 'postgres'),
         password: configService.get('DB_PASSWORD', 'postgres'),
         database: configService.get('DB_NAME', 'postgres'),
-        entities: [User, PasswordResetToken, Game],
+        entities: [
+          User,
+          PasswordResetToken,
+          Game,
+          Tag,
+          DynamicType,
+          ValidationRule,
+        ],
         synchronize: true,
         autoLoadEntities: true,
         retryAttempts: 10,
@@ -37,6 +48,7 @@ import { Game } from './games/entities/game.entity';
     MailModule,
     UsersModule,
     GamesModule,
+    DynamicSystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],
