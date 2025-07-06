@@ -2,13 +2,21 @@
 
 import React from 'react';
 import StoryHistoryPanel from './GameplayScreen/StoryHistoryPanel';
-import { StoryHistoryItem, KnowledgeBaseItem } from '@/services/game.service';
+import {
+  KnowledgeBaseItem,
+  StorySegment,
+  StorySegmentType,
+  LoreFragmentType,
+} from '@/types/shared';
+
+// Type alias for backwards compatibility
+type StoryHistoryItem = StorySegment;
 
 const StoryHistoryDemo: React.FC = () => {
   // Sample data for testing
   const sampleStoryHistory: StoryHistoryItem[] = [
     {
-      type: 'story',
+      type: StorySegmentType.STORY,
       content: `Bạn đang đứng trước cổng của Thiên Kiếm Tông, một trong những môn phái lớn nhất trong Cửu Châu Đại Lục.
 
 Trưởng lão Lý Thiên Minh: "Tiểu hữu, ngươi có muốn gia nhập môn phái của ta không?"
@@ -19,7 +27,7 @@ Bạn nhận được Thiên Kiếm Quyết - một bí kíp kiếm thuật hi�
       timestamp: new Date().toISOString(),
     },
     {
-      type: 'story',
+      type: StorySegmentType.STORY,
       content: `Sư phụ Trần Vô Cực: "Hôm nay ta sẽ dạy ngươi chiêu đầu tiên."
 
 "Chiêu này gọi là Thiên Kiếm Phá Không, cần tập trung toàn bộ nội lực."
@@ -28,19 +36,19 @@ Bạn nhận được Thiên Kiếm Quyết - một bí kíp kiếm thuật hi�
       timestamp: new Date().toISOString(),
     },
     {
-      type: 'user_choice',
+      type: StorySegmentType.USER_CHOICE,
       content: `Tôi chọn gia nhập Thiên Kiếm Tông và học hỏi kiếm thuật từ Lý Thiên Minh.`,
       timestamp: new Date().toISOString(),
     },
     {
-      type: 'system',
+      type: StorySegmentType.SYSTEM,
       content: `✨ [Hệ Thống]: Bạn nhận được 100 điểm kinh nghiệm!
 📊 [Hệ Thống]: Kỹ năng Kiếm Thuật tăng lên cấp 2
 🎯 [Mục Tiêu Mới]: Hoàn thành nhiệm vụ đầu tiên của môn phái`,
       timestamp: new Date().toISOString(),
     },
     {
-      type: 'story',
+      type: StorySegmentType.STORY,
       content: `Đồng môn Lý Hạo Nhiên: "Sư huynh, ngươi học nhanh thật đấy!"
 
 Đồng môn Vương Tiểu Minh: "Đúng vậy, tôi học mãi mà vẫn chưa thành thạo."
@@ -54,54 +62,54 @@ Hệ thống: "Bạn đã hoàn thành bài học đầu tiên!"`,
 
   const sampleKnowledgeBase: KnowledgeBaseItem[] = [
     {
-      type: 'location',
+      type: LoreFragmentType.LOCATION,
       name: 'Thiên Kiếm Tông',
       description:
         'Một môn phái kiếm thuật nổi tiếng với truyền thống lâu đời và nhiều cao thủ.',
     },
     {
-      type: 'npc',
+      type: LoreFragmentType.NPC,
       name: 'Lý Thiên Minh',
       description:
         'Trưởng lão của Thiên Kiếm Tông, tu vi sâu dày, tính cách nghiêm khắc nhưng tốt bụng.',
     },
     {
-      type: 'npc',
+      type: LoreFragmentType.NPC,
       name: 'Trần Vô Cực',
       description:
         'Sư phụ dạy kiếm thuật, nổi tiếng với chiêu thức Thiên Kiếm Phá Không.',
     },
     {
-      type: 'location',
+      type: LoreFragmentType.LOCATION,
       name: 'Cửu Châu Đại Lục',
       description:
         'Lục địa rộng lớn nơi các môn phái tu tiên sinh sống và tranh đấu.',
     },
     {
-      type: 'item',
+      type: LoreFragmentType.ITEM,
       name: 'Thiên Kiếm Quyết',
       description:
         'Bí kíp kiếm thuật cấp cao của Thiên Kiếm Tông, chứa đựng những chiêu thức tinh diệu.',
     },
     {
-      type: 'item',
+      type: LoreFragmentType.ITEM,
       name: 'Kiếm Thuật',
       description:
         'Kỹ năng sử dụng kiếm, một trong những võ công cơ bản nhất của tu tiên giả.',
     },
     {
-      type: 'item',
+      type: LoreFragmentType.ITEM,
       name: 'Thiên Kiếm Phá Không',
       description: 'Chiêu thức kiếm thuật mạnh mẽ, có thể phá vỡ không gian.',
     },
     {
-      type: 'npc',
+      type: LoreFragmentType.NPC,
       name: 'Lý Hạo Nhiên',
       description:
         'Đồng môn trong Thiên Kiếm Tông, tính cách thân thiện và hòa đồng.',
     },
     {
-      type: 'npc',
+      type: LoreFragmentType.NPC,
       name: 'Vương Tiểu Minh',
       description:
         'Đồng môn khác trong Thiên Kiếm Tông, chăm chỉ nhưng tiến bộ chậm.',

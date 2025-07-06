@@ -21,22 +21,36 @@ function GoogleCallbackContent() {
       return;
     }
 
-    try {
-      // Process the Google callback with the token
-      authService.processGoogleCallback(token);
-      setStatus('success');
-      setMessage(
-        'Successfully authenticated with Google! Redirecting to dashboard...',
-      );
+    const processGoogleAuth = async () => {
+      try {
+        // Store the token first
+        localStorage.setItem('token', token);
 
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-    } catch {
-      setStatus('error');
-      setMessage('Failed to process Google authentication. Please try again.');
-    }
+        // Get user profile with the token
+        const userProfile = await authService.getProfile();
+
+        // Store user data
+        localStorage.setItem('user', JSON.stringify(userProfile));
+
+        setStatus('success');
+        setMessage(
+          'Successfully authenticated with Google! Redirecting to dashboard...',
+        );
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      } catch {
+        setMessage(
+          'Failed to process Google authentication. Please try again.',
+        );
+        // Clear any stored token on error
+        localStorage.removeItem('token');
+      }
+    };
+
+    processGoogleAuth();
   }, [searchParams, router]);
 
   const handleRetry = () => {

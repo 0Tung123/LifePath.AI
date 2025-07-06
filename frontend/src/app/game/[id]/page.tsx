@@ -4,10 +4,7 @@ import React, { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import {
-  KnowledgeBaseItem,
-  CharacterLifeSummary,
-} from '@/services/game.service';
+import { KnowledgeBaseItem, CharacterLifeSummary } from '@/types/shared';
 import Header from '@/components/Header';
 
 // Import GameplayScreen components

@@ -4,9 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { GameSettings } from '@/services/game.service';
+
 import Header from '@/components/Header';
 import BackstoryGuide from '@/components/BackstoryGuide';
+import { GameSettings } from '@/types/shared';
 
 export default function CreateGame() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();

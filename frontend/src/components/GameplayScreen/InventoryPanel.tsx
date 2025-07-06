@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { InventoryItem } from '@/services/game.service';
+import { InventoryItem } from '@/types/shared';
 
 interface InventoryPanelProps {
   inventoryItems: InventoryItem[];

@@ -1,5 +1,12 @@
 'use client';
 
+import gameService from '@/services/game.service';
+import {
+  CharacterLifeSummary,
+  CreateGameDto,
+  Game,
+  GameSettings,
+} from '@/types/shared';
 import React, {
   createContext,
   useContext,
@@ -7,12 +14,12 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import gameService, {
-  Game,
-  CreateGameDto,
-  GameSettings,
-  CharacterLifeSummary,
-} from '../services/game.service';
+// import gameService, {
+//   Game,
+//   CreateGameDto,
+//   GameSettings,
+//   CharacterLifeSummary,
+// } from '../services/game.service';
 
 interface GameContextType {
   currentGame: Game | null;
@@ -197,8 +204,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const summary = await gameService.getSummary(currentGame.id);
-      return summary;
+      const summaryResponse = await gameService.getSummary(currentGame.id);
+      return summaryResponse.summary;
     } catch {
       const errorMessage = 'Failed to get summary. Please try again.';
       setError(errorMessage);

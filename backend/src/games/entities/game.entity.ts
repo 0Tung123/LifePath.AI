@@ -15,19 +15,14 @@ import {
   Skill,
   LoreFragment,
   Choice,
-} from '../interfaces/game-content.interface';
-
-interface StorySegment {
-  type:
-    | 'story'
-    | 'user_choice'
-    | 'user_custom_action'
-    | 'user_thinking'
-    | 'user_communication'
-    | 'system';
-  content: string;
-  timestamp: Date;
-}
+  StorySegment,
+  NpcInfo,
+  ItemUsageRecord,
+  ImportantEvent,
+  Achievement,
+  ChatHistoryItem,
+  KnowledgeBaseItem,
+} from '../../common/types/game.types';
 
 @Entity('games')
 export class Game {
@@ -66,40 +61,25 @@ export class Game {
   currentChoices: Choice[];
 
   @Column({ type: 'jsonb', name: 'chat_history_for_gemini', nullable: true })
-  chatHistoryForGemini: any[];
+  chatHistoryForGemini: ChatHistoryItem[];
 
   @Column({ type: 'jsonb', name: 'knowledge_base', nullable: true })
-  knowledgeBase: any[];
+  knowledgeBase: KnowledgeBaseItem[];
 
   @Column({ type: 'text', name: 'current_objective', nullable: true })
   currentObjective: string | null;
 
   @Column({ type: 'jsonb', name: 'npcs_met', nullable: true })
-  npcsMet: {
-    name: string;
-    description: string;
-    firstMet: Date;
-    interactions: number;
-  }[];
+  npcsMet: NpcInfo[];
 
   @Column({ type: 'jsonb', name: 'items_used', nullable: true })
-  itemsUsed: {
-    name: string;
-    description: string;
-    usedAt: Date;
-    quantity: number;
-  }[];
+  itemsUsed: ItemUsageRecord[];
 
   @Column({ type: 'jsonb', name: 'important_events', nullable: true })
-  importantEvents: {
-    title: string;
-    description: string;
-    timestamp: Date;
-    type: string;
-  }[];
+  importantEvents: ImportantEvent[];
 
   @Column({ type: 'jsonb', name: 'achievements', nullable: true })
-  achievements: { name: string; description: string; unlockedAt: Date }[];
+  achievements: Achievement[];
 
   @Column({ type: 'integer', name: 'karma_score', default: 0 })
   karmaScore: number;

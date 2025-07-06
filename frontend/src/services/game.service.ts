@@ -1,199 +1,74 @@
 import api from './api';
-
-// Game types
-export interface GameStats {
-  [key: string]: string | number;
-}
-
-export interface InventoryItem {
-  name: string;
-  description?: string;
-  quantity: number;
-}
-
-export interface Skill {
-  name: string;
-  description?: string;
-  level?: number;
-  mastery?: string;
-}
-
-export interface LoreFragment {
-  type: 'npc' | 'item' | 'location' | 'general';
-  name?: string;
-  title?: string;
-  description?: string;
-  content?: string;
-}
-
-export interface Choice {
-  text: string;
-  number: number;
-}
-
-export interface StorySegment {
-  text: string;
-  timestamp: string;
-}
-
-export interface StoryHistoryItem {
-  type:
-    | 'story'
-    | 'user_choice'
-    | 'user_custom_action'
-    | 'user_thinking'
-    | 'user_communication'
-    | 'system';
-  content: string;
-  timestamp: string;
-}
-
-export interface ChatHistoryItem {
-  role: 'user' | 'model';
-  content: string;
-}
-
-export interface KnowledgeBaseItem {
-  type: 'npc' | 'item' | 'location' | 'general';
-  name: string;
-  description: string;
-  [key: string]: string | number | boolean | object | undefined;
-}
-
-export interface Game {
-  id: string;
-  userId: string;
-  settings: GameSettings;
-  storyHistory: StoryHistoryItem[];
-  chatHistoryForGemini: ChatHistoryItem[];
-  characterStats: GameStats;
-  inventoryItems: InventoryItem[];
-  characterSkills: Skill[];
-  loreFragments: LoreFragment[];
-  knowledgeBase: KnowledgeBaseItem[];
-  currentPrompt: string;
-  currentChoices: Choice[];
-  currentObjective: string;
-  npcsMet?: {
-    name: string;
-    description: string;
-    firstMet: string;
-    interactions: number;
-  }[];
-  itemsUsed?: {
-    name: string;
-    description: string;
-    usedAt: string;
-    quantity: number;
-  }[];
-  importantEvents?: {
-    title: string;
-    description: string;
-    timestamp: string;
-    type: string;
-  }[];
-  achievements?: { name: string; description: string; unlockedAt: string }[];
-  karmaScore: number;
-  reputation?: { [key: string]: number };
-  active: boolean;
-  deathDate?: string;
-  deathCause?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdditionalSettings {
-  style?: string;
-  difficulty?: string;
-  gameLength?: string;
-  combatStyle?: string;
-  [key: string]: string | number | boolean | object | undefined;
-}
-
-export interface GameSettings {
-  theme: string;
-  setting: string;
-  characterName: string;
-  characterBackstory: string;
-  additionalSettings?: AdditionalSettings;
-}
-
-export interface CreateGameDto {
-  gameSettings: GameSettings;
-}
-
-export interface CharacterLifeSummary {
-  characterName: string;
-  theme: string;
-  setting: string;
-  birthDate: string;
-  deathDate: string;
-  deathCause: string;
-  playTime: string;
-  finalStats: GameStats;
-  inventory: InventoryItem[];
-  skills: Skill[];
-  npcsMet: { name: string; description: string }[];
-  importantEvents: { description: string; timestamp: string }[];
-  totalChapters: number;
-  achievements: { name: string; description: string; unlockedAt: string }[];
-  karmaScore: number;
-  reputation?: { [key: string]: number };
-}
+import {
+  Game,
+  CreateGameDto,
+  CharacterLifeSummary,
+  GameActionDto,
+  ApiResponse,
+  GameSummaryResponse,
+} from '../types/shared';
 
 class GameService {
   /**
    * Create a new game
    */
   async createGame(createGameData: CreateGameDto): Promise<Game> {
-    const response = await api.post<Game>('/games', createGameData);
-    return response.data;
+    const response = await api.post<ApiResponse<Game>>(
+      '/games',
+      createGameData,
+    );
+    return response.data.data as Game;
   }
 
   /**
    * Get all games for the current user
    */
   async getGames(): Promise<Game[]> {
-    const response = await api.get<Game[]>('/games');
-    return response.data;
+    const response = await api.get<ApiResponse<Game[]>>('/games');
+    return response.data.data as Game[];
   }
 
   /**
    * Get a specific game by ID
    */
   async getGameById(gameId: string): Promise<Game> {
-    const response = await api.get<Game>(`/games/${gameId}`);
-    return response.data;
+    const response = await api.get<ApiResponse<Game>>(`/games/${gameId}`);
+    return response.data.data as Game;
   }
 
   /**
-   * Process player action in the game (choice, action, think, communication)
+   * Process player action in the game
+   */
+  async performGameAction(
+    gameId: string,
+    actionData: GameActionDto,
+  ): Promise<Game> {
+    const response = await api.post<ApiResponse<Game>>(
+      `/games/${gameId}/action`,
+      actionData,
+    );
+    return response.data.data as Game;
+  }
+
+  /**
+   * Process player choice
    */
   async makeChoice(gameId: string, choiceNumber: number): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/action`, {
-      choiceNumber,
-    });
-    return response.data;
+    return this.performGameAction(gameId, { choiceNumber });
   }
 
   /**
    * Submit a custom action for the character
    */
   async performAction(gameId: string, action: string): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/action`, {
-      action,
-    });
-    return response.data;
+    return this.performGameAction(gameId, { action });
   }
 
   /**
    * Submit character thoughts
    */
   async performThinking(gameId: string, think: string): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/action`, {
-      think,
-    });
-    return response.data;
+    return this.performGameAction(gameId, { think });
   }
 
   /**
@@ -203,20 +78,21 @@ class GameService {
     gameId: string,
     communication: string,
   ): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/action`, {
-      communication,
-    });
-    return response.data;
+    return this.performGameAction(gameId, { communication });
   }
 
   /**
    * Get story summary from AI
    */
-  async getSummary(gameId: string): Promise<string> {
-    const response = await api.post<{ summary: string }>(
+  async getSummary(
+    gameId: string,
+    type: 'brief' | 'detailed' = 'brief',
+  ): Promise<GameSummaryResponse> {
+    const response = await api.post<ApiResponse<GameSummaryResponse>>(
       `/games/${gameId}/summary`,
+      { type },
     );
-    return response.data.summary;
+    return response.data.data as GameSummaryResponse;
   }
 
   /**
@@ -224,7 +100,7 @@ class GameService {
    */
   async deleteGame(gameId: string): Promise<void> {
     try {
-      await api.delete(`/games/${gameId}`);
+      await api.delete<ApiResponse<void>>(`/games/${gameId}`);
       console.log(`Game ${gameId} deleted successfully`);
     } catch (error) {
       console.error('Error deleting game:', error);
@@ -236,18 +112,24 @@ class GameService {
    * Get character life summary (for death screen)
    */
   async getLifeSummary(gameId: string): Promise<CharacterLifeSummary> {
-    const response = await api.get<CharacterLifeSummary>(
+    const response = await api.get<ApiResponse<CharacterLifeSummary>>(
       `/games/${gameId}/life-summary`,
     );
-    return response.data;
+    return response.data.data as CharacterLifeSummary;
   }
 
   /**
    * Resurrect character with penalties
    */
-  async resurrectCharacter(gameId: string): Promise<Game> {
-    const response = await api.post<Game>(`/games/${gameId}/resurrect`);
-    return response.data;
+  async resurrectCharacter(
+    gameId: string,
+    acceptPenalties: boolean = true,
+  ): Promise<Game> {
+    const response = await api.post<ApiResponse<Game>>(
+      `/games/${gameId}/resurrect`,
+      { acceptPenalties },
+    );
+    return response.data.data as Game;
   }
 }
 

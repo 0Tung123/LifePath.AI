@@ -1,7 +1,7 @@
 'use client';
 
+import { KnowledgeBaseItem, LoreFragment } from '@/types/shared';
 import React, { useState } from 'react';
-import { LoreFragment, KnowledgeBaseItem } from '@/services/game.service';
 
 interface LorePanelProps {
   loreFragments: LoreFragment[];

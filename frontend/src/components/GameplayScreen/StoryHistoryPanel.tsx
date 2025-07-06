@@ -1,12 +1,20 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { StoryHistoryItem, KnowledgeBaseItem } from '@/services/game.service';
+
 import '../../styles/scrollbar.css';
+import {
+  KnowledgeBaseItem,
+  StorySegment,
+  StorySegmentType,
+} from '@/types/shared';
+
+// Type alias for backwards compatibility
+type StoryHistoryItem = StorySegment;
 
 interface StoryHistoryPanelProps {
   storyHistory:
-    | StoryHistoryItem[]
+    | StorySegment[]
     | { text?: string; content?: string; type?: string; timestamp: string }[];
   knowledgeBase: KnowledgeBaseItem[];
   onLoreClick: (item: KnowledgeBaseItem) => void;
@@ -69,8 +77,8 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       // Check if we have new story items (not just user choices)
       const newItems = storyHistory?.slice(previousStoryLength) || [];
       const hasNewStory = newItems.some((item) => {
-        const type = 'type' in item ? item.type : 'story';
-        return type === 'story';
+        const type = 'type' in item ? item.type : StorySegmentType.STORY;
+        return type === StorySegmentType.STORY;
       });
 
       if (hasNewStory) {
@@ -616,17 +624,17 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
   const getItemStyle = (type: StoryHistoryItem['type']) => {
     switch (type) {
-      case 'story':
+      case StorySegmentType.STORY:
         return 'bg-gray-900/80 border-gray-600/50 backdrop-blur-sm';
-      case 'user_choice':
+      case StorySegmentType.USER_CHOICE:
         return 'bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border-blue-400/60 backdrop-blur-sm shadow-blue-500/20';
-      case 'user_custom_action':
+      case StorySegmentType.USER_CUSTOM_ACTION:
         return 'bg-purple-900/30 border-purple-400/40 backdrop-blur-sm';
-      case 'user_thinking':
+      case StorySegmentType.USER_THINKING:
         return 'bg-indigo-900/30 border-indigo-400/40 backdrop-blur-sm';
-      case 'user_communication':
+      case StorySegmentType.USER_COMMUNICATION:
         return 'bg-green-900/30 border-green-400/40 backdrop-blur-sm';
-      case 'system':
+      case StorySegmentType.SYSTEM:
         return 'bg-yellow-900/20 border-yellow-400/30 backdrop-blur-sm';
       default:
         return 'bg-gray-900/80 border-gray-600/50 backdrop-blur-sm';
@@ -635,7 +643,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
   const getItemIcon = (type: StoryHistoryItem['type']) => {
     switch (type) {
-      case 'story':
+      case StorySegmentType.STORY:
         return (
           <svg
             className="w-4 h-4"
@@ -651,7 +659,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case 'user_choice':
+      case StorySegmentType.USER_CHOICE:
         return (
           <svg
             className="w-4 h-4"
@@ -667,7 +675,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case 'user_custom_action':
+      case StorySegmentType.USER_CUSTOM_ACTION:
         return (
           <svg
             className="w-4 h-4"
@@ -683,7 +691,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case 'user_thinking':
+      case StorySegmentType.USER_THINKING:
         return (
           <svg
             className="w-4 h-4"
@@ -699,7 +707,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case 'user_communication':
+      case StorySegmentType.USER_COMMUNICATION:
         return (
           <svg
             className="w-4 h-4"
@@ -715,7 +723,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             />
           </svg>
         );
-      case 'system':
+      case StorySegmentType.SYSTEM:
         return (
           <svg
             className="w-4 h-4"
@@ -860,19 +868,20 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                   ? (item as { text: string }).text
                   : (item as StoryHistoryItem).content;
                 const type = isOldFormat
-                  ? 'story'
+                  ? StorySegmentType.STORY
                   : (item as StoryHistoryItem).type;
                 const timestamp = item.timestamp;
 
                 // Check if this is the first new story item (for scroll reference)
                 const isFirstNewStoryItem =
                   index >= previousStoryLength &&
-                  type === 'story' &&
+                  type === StorySegmentType.STORY &&
                   storyHistory
                     .slice(previousStoryLength, index + 1)
                     .filter((item) => {
-                      const itemType = 'type' in item ? item.type : 'story';
-                      return itemType === 'story';
+                      const itemType =
+                        'type' in item ? item.type : StorySegmentType.STORY;
+                      return itemType === StorySegmentType.STORY;
                     }).length === 1;
 
                 // Check if this is a new item (for animation)
@@ -949,12 +958,17 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                                 : 'text-gray-300'
                             }`}
                           >
-                            {type === 'user_choice' && 'Lựa Chọn Của Bạn'}
-                            {type === 'user_custom_action' && 'Hành Động Tự Do'}
-                            {type === 'story' && 'Câu Chuyện'}
-                            {type === 'system' && 'Thông Báo Hệ Thống'}
-                            {type === 'user_thinking' && 'Suy Nghĩ'}
-                            {type === 'user_communication' && 'Giao Tiếp'}
+                            {type === StorySegmentType.USER_CHOICE &&
+                              'Lựa Chọn Của Bạn'}
+                            {type === StorySegmentType.USER_CUSTOM_ACTION &&
+                              'Hành Động Tự Do'}
+                            {type === StorySegmentType.STORY && 'Câu Chuyện'}
+                            {type === StorySegmentType.SYSTEM &&
+                              'Thông Báo Hệ Thống'}
+                            {type === StorySegmentType.USER_THINKING &&
+                              'Suy Nghĩ'}
+                            {type === StorySegmentType.USER_COMMUNICATION &&
+                              'Giao Tiếp'}
                           </span>
                           <div className="text-xs text-gray-500 mt-1">
                             {formatTimestamp(timestamp)}
@@ -965,20 +979,20 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
                       {/* Type indicator */}
                       <div
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          type === 'story'
+                          type === StorySegmentType.STORY
                             ? 'bg-gray-700/50 text-gray-300'
-                            : type === 'user_choice'
+                            : type === StorySegmentType.USER_CHOICE
                               ? 'bg-blue-900/60 text-blue-200 ring-1 ring-blue-400/30'
-                              : type === 'user_custom_action'
+                              : type === StorySegmentType.USER_CUSTOM_ACTION
                                 ? 'bg-purple-900/50 text-purple-300'
-                                : type === 'user_thinking'
+                                : type === StorySegmentType.USER_THINKING
                                   ? 'bg-indigo-900/50 text-indigo-300'
-                                  : type === 'user_communication'
+                                  : type === StorySegmentType.USER_COMMUNICATION
                                     ? 'bg-green-900/50 text-green-300'
                                     : 'bg-yellow-900/50 text-yellow-300'
                         }`}
                       >
-                        {type === 'user_choice'
+                        {type === StorySegmentType.USER_CHOICE
                           ? 'Đã chọn'
                           : `${contentSegments.length} đoạn`}
                       </div>

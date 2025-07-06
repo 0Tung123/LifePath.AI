@@ -60,11 +60,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const { access_token } = await authService.login(credentials);
+      const { token } = await authService.login(credentials);
 
       // Save token to localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('token', access_token);
+        localStorage.setItem('token', token);
       }
 
       // Fetch user profile

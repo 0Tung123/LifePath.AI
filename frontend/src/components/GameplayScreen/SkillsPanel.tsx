@@ -1,7 +1,7 @@
 'use client';
 
+import { Skill } from '@/types/shared';
 import React, { useState } from 'react';
-import { Skill } from '@/services/game.service';
 
 interface SkillsPanelProps {
   characterSkills: Skill[];

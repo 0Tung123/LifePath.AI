@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CharacterLifeSummary } from '@/services/game.service';
+import { CharacterLifeSummary } from '@/types/shared';
 
 interface DeathScreenProps {
   lifeSummary: CharacterLifeSummary;
@@ -78,7 +78,11 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
                 {Object.entries(lifeSummary.finalStats).map(([key, value]) => (
                   <div key={key} className="flex justify-between">
                     <span className="text-gray-400">{key}:</span>
-                    <span className="text-white">{value}</span>
+                    <span className="text-white">
+                      {typeof value === 'string' || typeof value === 'number'
+                        ? value
+                        : JSON.stringify(value)}
+                    </span>
                   </div>
                 ))}
               </div>

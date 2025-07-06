@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,23 +14,30 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Apply global interceptors and filters
+  app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   // Enable validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
   // Configure Swagger
   const config = new DocumentBuilder()
-    .setTitle('Authentication API')
+    .setTitle('LifePath.AI API')
     .setDescription(
-      'API for authentication, email verification, and password reset',
+      'API for LifePath.AI game system, authentication, and user management',
     )
     .setVersion('1.0')
     .addTag('auth', 'Authentication endpoints')
+    .addTag('games', 'Game management endpoints')
+    .addTag('user', 'User management endpoints')
     .addBearerAuth(
       {
         type: 'http',

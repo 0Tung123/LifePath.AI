@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { GameStats, Skill } from '@/services/game.service';
+import { GameStats } from '@/types/shared';
+import { Skill } from '@/types/shared';
 
 import './CharacterSheet.css';
 
@@ -7,7 +8,7 @@ const AttributeAllocation: React.FC<{
   gameId: string;
   stats: GameStats;
   onAttributesAllocated: () => void;
-}> = ({ gameId, stats, onAttributesAllocated }) => {
+}> = ({ onAttributesAllocated }) => {
   return (
     <div className="attribute-allocation">
       <p>Attribute allocation component placeholder</p>

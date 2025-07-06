@@ -3,9 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import gameService, { Game } from '@/services/game.service';
+import gameService from '@/services/game.service';
 import Header from '@/components/Header';
 import Link from 'next/link';
+import {
+  Game,
+  CharacterLevel,
+  CultivationInfo,
+  ExperiencePoints,
+  SkillExperience,
+} from '@/types/shared';
 
 export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -76,6 +83,64 @@ export default function Dashboard() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  // Format stat values for display
+  const formatStatValue = (
+    value:
+      | string
+      | number
+      | CharacterLevel
+      | CultivationInfo
+      | ExperiencePoints
+      | Record<string, SkillExperience>
+      | null
+      | undefined,
+  ): string => {
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value);
+    }
+
+    if (typeof value === 'object') {
+      // Handle CharacterLevel
+      if ('current' in value && typeof value.current === 'number') {
+        return `Level ${value.current}`;
+      }
+
+      // Handle CultivationInfo
+      if ('realm' in value && typeof value.realm === 'string') {
+        return value.stage ? `${value.realm} - ${value.stage}` : value.realm;
+      }
+
+      // Handle ExperiencePoints
+      if ('character' in value && typeof value.character === 'number') {
+        return `XP: ${value.character}`;
+      }
+
+      // Handle SkillExperience in Record
+      if ('level' in value && typeof value.level === 'number') {
+        return `Level ${value.level}`;
+      }
+
+      // For Record<string, SkillExperience> or other complex objects
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        const entries = Object.entries(value);
+        if (entries.length === 0) return 'Empty';
+
+        // Show first entry or count
+        if (entries.length === 1) {
+          const [key, val] = entries[0];
+          return `${key}: ${typeof val === 'object' ? JSON.stringify(val) : val}`;
+        }
+        return `${entries.length} items`;
+      }
+    }
+
+    return String(value);
   };
 
   if (authLoading) {
@@ -160,7 +225,9 @@ export default function Dashboard() {
                               className="flex justify-between items-center mb-1"
                             >
                               <span>{key}:</span>
-                              <span className="font-medium">{value}</span>
+                              <span className="font-medium">
+                                {formatStatValue(value)}
+                              </span>
                             </div>
                           ))}
                       </div>

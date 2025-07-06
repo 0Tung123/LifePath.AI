@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { GameStats } from '@/services/game.service';
+import { GameStats } from '@/types/shared';
 
 interface CharacterStatsPanelProps {
   characterStats: GameStats;
@@ -10,6 +10,82 @@ interface CharacterStatsPanelProps {
 const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
   characterStats,
 }) => {
+  // Helper function to convert complex stat values to displayable strings
+  const formatStatValue = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
+
+    // Handle primitive types
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value);
+    }
+
+    // Handle CharacterLevel
+    if (
+      value &&
+      typeof value === 'object' &&
+      'current' in value &&
+      'xp' in value
+    ) {
+      return `Level ${value.current} (${value.xp} XP)`;
+    }
+
+    // Handle CultivationInfo
+    if (value && typeof value === 'object' && 'realm' in value) {
+      const cultivationInfo = value as { realm: unknown; stage?: unknown };
+      return cultivationInfo.stage
+        ? `${cultivationInfo.realm} - ${cultivationInfo.stage}`
+        : String(cultivationInfo.realm);
+    }
+
+    // Handle ExperiencePoints
+    if (value && typeof value === 'object' && 'character' in value) {
+      const experiencePoints = value as {
+        character: unknown;
+        cultivation?: unknown;
+        skills?: unknown;
+      };
+      return `Char: ${experiencePoints.character}${experiencePoints.cultivation ? `, Cult: ${experiencePoints.cultivation}` : ''}${experiencePoints.skills ? `, Skills: ${experiencePoints.skills}` : ''}`;
+    }
+
+    // Handle Record<string, SkillExperience>
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const entries = Object.entries(value);
+      if (entries.length > 0) {
+        // Check if it's a skill experience record
+        const firstEntry = entries[0][1];
+        if (
+          firstEntry &&
+          typeof firstEntry === 'object' &&
+          'level' in firstEntry &&
+          'xp' in firstEntry
+        ) {
+          return entries
+            .map(
+              ([skill, exp]: [string, { level: number; xp: number }]) =>
+                `${skill}: Lv${exp.level}`,
+            )
+            .join(', ');
+        }
+        // Handle generic object
+        return entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+      }
+    }
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+
+    // Fallback to JSON string
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  };
+
   // Calculate EXP bar percentage
   const getExpPercentage = () => {
     const currentExp = Number(
@@ -130,7 +206,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
           return (
             <div key={key} className="flex justify-between items-center">
               <span className="text-gray-300 text-sm">{key}:</span>
-              <span className="text-white font-medium">{value}</span>
+              <span className="text-white font-medium">
+                {formatStatValue(value)}
+              </span>
             </div>
           );
         })}
@@ -141,9 +219,14 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-300 text-sm">Kinh Nghiệm:</span>
               <span className="text-white text-sm">
-                {characterStats.KinhNghiem || characterStats.Experience} /{' '}
-                {characterStats.KinhNghiemCanLenCap ||
-                  characterStats.MaxExperience}
+                {formatStatValue(
+                  characterStats.KinhNghiem || characterStats.Experience,
+                )}{' '}
+                /{' '}
+                {formatStatValue(
+                  characterStats.KinhNghiemCanLenCap ||
+                    characterStats.MaxExperience,
+                )}
               </span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Choice } from '@/services/game.service';
+import { Choice } from '@/types/shared';
 
 interface ActionInputPanelProps {
   currentChoices: Choice[];
