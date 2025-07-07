@@ -8,7 +8,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { DynamicSystemService } from './services/dynamic-system.service';
-import { AIGenerationService } from './services/ai-generation.service';
 import { DynamicSystemSeeder } from './seeders/dynamic-system.seeder';
 import {
   TagCategory,
@@ -22,7 +21,7 @@ async function testDynamicSystem() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
   const dynamicSystemService = app.get(DynamicSystemService);
-  const aiGenerationService = app.get(AIGenerationService);
+  // const aiGenerationService = app.get(AIGenerationService);
   const seeder = app.get(DynamicSystemSeeder);
 
   try {
@@ -102,9 +101,11 @@ async function testDynamicSystem() {
           `  ${index + 1}. ${type.name} (${type.rarity}, Power: ${type.powerLevel})`,
         );
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.log(
-        `⚠️  AI generation failed (expected if no API key): ${error.message}`,
+        `⚠️  AI generation failed (expected if no API key): ${errorMessage}`,
       );
     }
     console.log();
@@ -146,9 +147,12 @@ async function testDynamicSystem() {
     console.log(`- Elemental Tags: ${fireTags.length}`);
 
     console.log('\n🎉 All tests completed successfully!');
-  } catch (error) {
-    console.error('❌ Test failed:', error.message);
-    console.error(error.stack);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack =
+      error instanceof Error ? error.stack : 'No stack trace available';
+    console.error('❌ Test failed:', errorMessage);
+    console.error(errorStack);
   } finally {
     await app.close();
   }

@@ -38,21 +38,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check if user is authenticated on mount
   useEffect(() => {
+    // Use a flag to prevent hydration mismatch
+    const isBrowser = typeof window !== 'undefined';
+
     const checkAuth = async () => {
       try {
-        if (authService.isAuthenticated()) {
-          const userProfile = await authService.getProfile();
-          setUser(userProfile);
+        // Only check authentication on the client side
+        if (isBrowser && authService.isAuthenticated()) {
+          // Get user from localStorage first to prevent flicker
+          const cachedUser = authService.getCurrentUser();
+          if (cachedUser) {
+            setUser(cachedUser);
+          }
+
+          // Then fetch the latest profile from the server
+          try {
+            const userProfile = await authService.getProfile();
+            setUser(userProfile);
+          } catch (profileError) {
+            console.error('Failed to fetch user profile:', profileError);
+            // If we can't get the profile but have a cached user, keep using that
+            if (!cachedUser) {
+              authService.logout();
+            }
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-        authService.logout();
+        console.error('Auth check failed:', error);
+        if (isBrowser) {
+          authService.logout();
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkAuth();
+    // Only run on the client side
+    if (isBrowser) {
+      checkAuth();
+    } else {
+      // On server side, just set loading to false
+      setIsLoading(false);
+    }
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
@@ -60,17 +87,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      const { token, user } = await authService.login(credentials);
+      const authResponse = await authService.login(credentials);
 
-      // Save token to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+      // authService.login already saves to localStorage, so we just need to set user
+      if (authResponse && authResponse.user) {
+        setUser(authResponse.user);
+      } else {
+        throw new Error('Invalid login response');
       }
-
-      // Set user directly from login response
-      setUser(user);
-    } catch {
+    } catch (error) {
       const errorMessage = 'Failed to login. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);

@@ -26,6 +26,13 @@ import { CreateGameDto } from './dto/create-game.dto';
 import { Game } from './entities/game.entity';
 import { LifeSummary } from './interfaces/game-content.interface';
 
+// Define authenticated request interface
+interface AuthenticatedRequest {
+  user: {
+    userId: string;
+  };
+}
+
 @ApiTags('games')
 @Controller('games')
 export class GamesController {
@@ -49,7 +56,7 @@ export class GamesController {
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async create(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() createGameDto: CreateGameDto,
   ): Promise<Game> {
     // Validate essential fields
@@ -79,7 +86,7 @@ export class GamesController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async findAll(@Request() req): Promise<Game[]> {
+  async findAll(@Request() req: AuthenticatedRequest): Promise<Game[]> {
     const userId = req.user.userId;
     return this.gamesService.findAllByUser(userId);
   }
@@ -100,7 +107,10 @@ export class GamesController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async findOne(@Param('id') id: string, @Request() req): Promise<Game> {
+  async findOne(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<Game> {
     const userId = req.user.userId;
     return this.gamesService.findOne(id, userId);
   }
@@ -121,7 +131,10 @@ export class GamesController {
     description: 'Unauthorized - Invalid or missing JWT token',
   })
   @ApiResponse({ status: 500, description: 'Internal server error' })
-  async remove(@Param('id') id: string, @Request() req): Promise<void> {
+  async remove(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<void> {
     const userId = req.user.userId;
     return this.gamesService.remove(id, userId);
   }
@@ -149,7 +162,7 @@ export class GamesController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async processAction(
     @Param('id') id: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() actionDto: GameActionDto,
   ): Promise<Game> {
     const userId = req.user.userId;
@@ -182,9 +195,10 @@ export class GamesController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getLifeSummary(
     @Param('id') id: string,
-    @Request() req,
+    @Request() _req: AuthenticatedRequest,
   ): Promise<LifeSummary> {
-    const userId = req.user.userId;
+    // userId could be used for authorization in the future
+    // const userId = req.user.userId;
     return this.gamesService.generateLifeSummary(id);
   }
 
@@ -207,7 +221,7 @@ export class GamesController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async resurrectCharacter(
     @Param('id') id: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ): Promise<Game> {
     const userId = req.user.userId;
     return this.gamesService.resurrectCharacter(id, userId);

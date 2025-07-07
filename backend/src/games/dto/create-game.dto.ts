@@ -8,17 +8,57 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import {
-  GameTheme,
-  GameDifficulty,
-  GameLength,
-  CombatStyle,
-  AdditionalSettings as IAdditionalSettings,
-  GameSettings as IGameSettings,
-  CreateGameDto as ICreateGameDto,
-} from '../../common/types/game.types';
+// import { GameSettings } from '../../common/types/game-engine.types';
 
-export class AdditionalSettingsDto implements IAdditionalSettings {
+// Define enums for game settings
+export enum GameTheme {
+  FANTASY = 'fantasy',
+  SCIFI = 'scifi',
+  MODERN = 'modern',
+  HISTORICAL = 'historical',
+  HORROR = 'horror',
+  MYSTERY = 'mystery',
+  ROMANCE = 'romance',
+  ADVENTURE = 'adventure',
+  SLICE_OF_LIFE = 'slice_of_life',
+  CYBERPUNK = 'cyberpunk',
+  STEAMPUNK = 'steampunk',
+  APOCALYPSE = 'apocalypse',
+  SUPERHERO = 'superhero',
+  MARTIAL_ARTS = 'martial_arts',
+  CULTIVATION = 'cultivation',
+  ISEKAI = 'isekai',
+  REINCARNATION = 'reincarnation',
+  REGRESSION = 'regression',
+  SYSTEM = 'system',
+  VILLAINESS = 'villainess',
+  OTOME = 'otome',
+  CUSTOM = 'custom',
+}
+
+export enum GameDifficulty {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+  NIGHTMARE = 'nightmare',
+}
+
+export enum GameLength {
+  SHORT = 'short',
+  MEDIUM = 'medium',
+  LONG = 'long',
+  ENDLESS = 'endless',
+}
+
+export enum CombatStyle {
+  TACTICAL = 'tactical',
+  ACTION = 'action',
+  STRATEGIC = 'strategic',
+  BALANCED = 'balanced',
+  NARRATIVE = 'narrative',
+}
+
+export class AdditionalSettingsDto {
   @ApiProperty({
     description: 'Game style',
     example: 'Narrative-focused',
@@ -93,7 +133,7 @@ export class AdditionalSettingsDto implements IAdditionalSettings {
   [key: string]: string | number | boolean | object | undefined;
 }
 
-export class GameSettingsDto implements IGameSettings {
+export class GameSettingsDto {
   @ApiProperty({
     description: 'Game theme',
     enum: GameTheme,
@@ -101,7 +141,7 @@ export class GameSettingsDto implements IGameSettings {
   })
   @IsEnum(GameTheme)
   @IsNotEmpty()
-  theme: GameTheme;
+  theme!: GameTheme;
 
   @ApiProperty({
     description: 'Game world setting',
@@ -109,7 +149,7 @@ export class GameSettingsDto implements IGameSettings {
   })
   @IsString()
   @IsNotEmpty()
-  setting: string;
+  setting!: string;
 
   @ApiProperty({
     description: 'Main character name',
@@ -117,7 +157,7 @@ export class GameSettingsDto implements IGameSettings {
   })
   @IsString()
   @IsNotEmpty()
-  characterName: string;
+  characterName!: string;
 
   @ApiProperty({
     description: 'Main character backstory',
@@ -126,7 +166,7 @@ export class GameSettingsDto implements IGameSettings {
   })
   @IsString()
   @IsNotEmpty()
-  characterBackstory: string;
+  characterBackstory!: string;
 
   @ApiProperty({
     description: 'Additional game settings and preferences',
@@ -140,7 +180,7 @@ export class GameSettingsDto implements IGameSettings {
   additionalSettings?: AdditionalSettingsDto;
 }
 
-export class CreateGameDto implements ICreateGameDto {
+export class CreateGameDto {
   @ApiProperty({
     description: 'Game settings',
     type: GameSettingsDto,
@@ -148,5 +188,5 @@ export class CreateGameDto implements ICreateGameDto {
   @IsNotEmpty()
   @ValidateNested()
   @Type(() => GameSettingsDto)
-  gameSettings: GameSettingsDto;
+  gameSettings!: GameSettingsDto;
 }

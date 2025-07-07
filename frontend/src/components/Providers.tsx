@@ -9,9 +9,22 @@ interface ProvidersProps {
 }
 
 export const Providers: React.FC<ProvidersProps> = ({ children }) => {
+  const [mounted, setMounted] = React.useState(false);
+
+  // Only show the UI after first client-side render to prevent hydration mismatch
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <AuthProvider>
-      <GameProvider>{children}</GameProvider>
+      <GameProvider>
+        {mounted ? (
+          children
+        ) : (
+          <div style={{ visibility: 'hidden' }}>{children}</div>
+        )}
+      </GameProvider>
     </AuthProvider>
   );
 };

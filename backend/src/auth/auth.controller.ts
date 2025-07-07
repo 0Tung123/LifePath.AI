@@ -5,7 +5,6 @@ import {
   UseGuards,
   Body,
   Get,
-  Query,
   HttpCode,
   HttpStatus,
   Res,
@@ -25,12 +24,40 @@ import {
   ApiOperation,
   ApiBody,
   ApiResponse,
-  ApiQuery,
   ApiBearerAuth,
   ApiExcludeEndpoint,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import {
+  ValidatedUser,
+  AuthResponse,
+  LoginResponse,
+  UserProfile,
+} from '../common/types/auth.types';
+
+// Define authenticated request interface
+interface AuthenticatedRequest {
+  user: {
+    userId: string;
+  };
+}
+
+// Define login request interface
+interface LoginRequest {
+  user: ValidatedUser;
+}
+
+// Define Google callback request interface
+interface GoogleCallbackRequest {
+  user: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    picture: string;
+    accessToken: string;
+  };
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -49,7 +76,7 @@ export class AuthController {
     status: 400,
     description: 'User with this email already exists',
   })
-  async register(@Body() registerDto: RegisterDto) {
+  async register(@Body() registerDto: RegisterDto): Promise<AuthResponse> {
     return this.authService.register(registerDto);
   }
 
@@ -89,7 +116,7 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async login(@Request() req) {
+  async login(@Request() req: LoginRequest): Promise<LoginResponse> {
     return this.authService.login(req.user);
   }
 
@@ -98,7 +125,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Request password reset' })
   @ApiBody({ type: ForgotPasswordDto })
   @ApiResponse({ status: 200, description: 'Password reset link sent' })
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+  ): Promise<AuthResponse> {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
@@ -108,7 +137,9 @@ export class AuthController {
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid reset token' })
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<AuthResponse> {
     return this.authService.resetPassword(
       resetPasswordDto.token,
       resetPasswordDto.password,
@@ -124,7 +155,9 @@ export class AuthController {
     status: 400,
     description: 'Invalid verification token or token expired',
   })
-  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+  async verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+  ): Promise<AuthResponse> {
     return this.authService.verifyEmail(verifyEmailDto.token);
   }
 
@@ -140,7 +173,7 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async resendVerification(
     @Body() resendVerificationDto: ResendVerificationDto,
-  ) {
+  ): Promise<AuthResponse> {
     return this.authService.resendVerificationEmail(
       resendVerificationDto.email,
     );
@@ -150,7 +183,7 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Login with Google' })
   @ApiResponse({ status: 302, description: 'Redirects to Google login page' })
-  googleAuth() {
+  googleAuth(): void {
     // This route will redirect to Google OAuth
     return;
   }
@@ -158,16 +191,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   @ApiExcludeEndpoint() // Hide from Swagger docs
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+  async googleAuthRedirect(
+    @Req() req: GoogleCallbackRequest,
+    @Res() res: Response,
+  ): Promise<void> {
     const { access_token } = await this.authService.validateOrCreateGoogleUser(
       req.user,
     );
 
     // Redirect to frontend with token
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    return res.redirect(
-      `${frontendUrl}/auth/google-callback?token=${access_token}`,
-    );
+    res.redirect(`${frontendUrl}/auth/google-callback?token=${access_token}`);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -208,7 +242,9 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@Request() req) {
+  async getProfile(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UserProfile | AuthResponse> {
     return this.authService.getProfile(req.user.userId);
   }
 }

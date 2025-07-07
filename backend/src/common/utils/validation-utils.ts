@@ -19,10 +19,10 @@ export function sanitizeString(value: string): string {
 /**
  * Sanitize an object by applying sanitization to all string properties
  */
-export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
+export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
   if (!isObject(obj)) return obj;
 
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -80,7 +80,7 @@ export function validatePattern(value: string, pattern: RegExp): boolean {
 /**
  * Validate that an object has all required properties
  */
-export function validateRequiredProperties<T extends Record<string, any>>(
+export function validateRequiredProperties<T extends Record<string, unknown>>(
   obj: T,
   requiredProps: (keyof T)[],
 ): boolean {

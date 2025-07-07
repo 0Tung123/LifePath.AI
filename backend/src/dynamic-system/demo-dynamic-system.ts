@@ -11,19 +11,26 @@ import {
   DynamicTypeCategory,
   TagSynergy,
   TagCombinationResult,
+  Tag,
+  ElementProperties,
+  WeaponProperties,
+  EnchantmentProperties,
 } from '../common/types/dynamic-system.types';
 
 // Mock data for demonstration
-const mockTags = [
+const mockTags: Tag[] = [
   {
     id: '1',
     name: 'Fire',
     category: TagCategory.ELEMENT,
     description: 'Grants fire-based abilities and resistance',
-    properties: { fire_damage: 25, fire_resistance: 30 } as Record<string, any>,
+    properties: {
+      damage: 25,
+      resistance: 30,
+    } as ElementProperties,
     rarity: TagRarity.COMMON,
-    conflicts: ['Water', 'Ice'] as string[],
-    synergies: [] as TagSynergy[],
+    conflicts: ['Water', 'Ice'],
+    synergies: [],
     createdBy: { type: 'system' as const },
     isActive: true,
     usageCount: 150,
@@ -33,10 +40,14 @@ const mockTags = [
     name: 'Sword',
     category: TagCategory.ITEM_TYPE,
     description: 'Balanced melee weapon',
-    properties: { damage: 50, speed: 70, reach: 60 } as Record<string, any>,
+    properties: {
+      damage: 50,
+      speed: 70,
+      reach: 60,
+    } as WeaponProperties,
     rarity: TagRarity.COMMON,
-    conflicts: [] as string[],
-    synergies: [] as TagSynergy[],
+    conflicts: [],
+    synergies: [],
     createdBy: { type: 'system' as const },
     isActive: true,
     usageCount: 200,
@@ -46,9 +57,12 @@ const mockTags = [
     name: 'Phoenix',
     category: TagCategory.ENCHANTMENT,
     description: 'Legendary phoenix blessing',
-    properties: { fire_immunity: 1, resurrection: 1 } as Record<string, any>,
+    properties: {
+      power_multiplier: 3.0,
+      special_effects: ['fire_immunity', 'resurrection'],
+    } as EnchantmentProperties,
     rarity: TagRarity.DIVINE,
-    conflicts: [] as string[],
+    conflicts: [],
     synergies: [
       {
         requiredTags: ['Fire', 'Legendary'],
@@ -59,7 +73,7 @@ const mockTags = [
           effects: { auto_resurrect: 1 },
         },
       },
-    ] as TagSynergy[],
+    ],
     createdBy: { type: 'system' as const },
     isActive: true,
     usageCount: 25,
@@ -69,13 +83,13 @@ const mockTags = [
     name: 'Legendary',
     category: TagCategory.RARITY,
     description: 'Marks items of legendary quality',
-    properties: { power_multiplier: 2.0, durability_bonus: 100 } as Record<
-      string,
-      any
-    >,
+    properties: {
+      power_multiplier: 2.0,
+      durability_bonus: 100,
+    } as EnchantmentProperties,
     rarity: TagRarity.LEGENDARY,
-    conflicts: [] as string[],
-    synergies: [] as TagSynergy[],
+    conflicts: [],
+    synergies: [],
     createdBy: { type: 'system' as const },
     isActive: true,
     usageCount: 75,
@@ -102,7 +116,7 @@ class DynamicSystemDemo {
     for (const tag of selectedTags) {
       if (tag.conflicts) {
         const conflictingTags = tagNames.filter((name: string) =>
-          tag.conflicts.includes(name),
+          tag.conflicts!.includes(name),
         );
         if (conflictingTags.length > 0) {
           conflicts.push(
@@ -144,9 +158,9 @@ class DynamicSystemDemo {
     return result;
   }
 
-  private calculatePowerLevel(tags: any[], synergies: TagSynergy[]): number {
+  private calculatePowerLevel(tags: Tag[], synergies: TagSynergy[]): number {
     const basePower = tags.reduce((sum, tag) => {
-      const rarityMultiplier = this.getRarityMultiplier(tag.rarity);
+      const rarityMultiplier = this.getRarityMultiplier(tag.rarity!);
       return sum + 10 * rarityMultiplier;
     }, 0);
 
@@ -154,7 +168,7 @@ class DynamicSystemDemo {
     return Math.min(100, Math.max(1, basePower + synergyBonus));
   }
 
-  private calculateRarity(tags: any[], synergies: TagSynergy[]): TagRarity {
+  private calculateRarity(tags: Tag[], synergies: TagSynergy[]): TagRarity {
     const rarityValues = {
       [TagRarity.COMMON]: 1,
       [TagRarity.UNCOMMON]: 2,
@@ -167,7 +181,7 @@ class DynamicSystemDemo {
     };
 
     const maxTagRarity = Math.max(
-      ...tags.map((tag) => rarityValues[tag.rarity]),
+      ...tags.map((tag) => rarityValues[tag.rarity!]),
     );
     const synergyBonus = synergies.length > 0 ? 1 : 0;
     const finalRarity = Math.min(8, maxTagRarity + synergyBonus);
@@ -192,7 +206,7 @@ class DynamicSystemDemo {
   }
 
   private computeProperties(
-    tags: any[],
+    tags: Tag[],
     synergies: TagSynergy[],
   ): Record<string, any> {
     const computed: Record<string, any> = {};
@@ -257,13 +271,13 @@ class DynamicSystemDemo {
       name: 'Water',
       category: TagCategory.ELEMENT,
       description: 'Water-based abilities',
-      properties: { water_damage: 20, healing_bonus: 15 } as Record<
-        string,
-        any
-      >,
+      properties: {
+        damage: 20,
+        resistance: 15,
+      } as ElementProperties,
       rarity: TagRarity.COMMON,
-      conflicts: ['Fire'] as string[],
-      synergies: [] as TagSynergy[],
+      conflicts: ['Fire'],
+      synergies: [],
       createdBy: { type: 'system' as const },
       isActive: true,
       usageCount: 120,

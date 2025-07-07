@@ -55,7 +55,8 @@ export interface LoginCredentialsDto {
  */
 export interface AuthResponseDto {
   user: User;
-  token: string;
+  access_token: string;
+  token?: string; // For backward compatibility
 }
 
 /**

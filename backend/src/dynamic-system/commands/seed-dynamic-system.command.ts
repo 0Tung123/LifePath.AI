@@ -19,8 +19,11 @@ export class SeedDynamicSystemCommand extends CommandRunner {
     try {
       await this.seeder.seedAll();
       console.log('✅ Dynamic System seeding completed successfully!');
-    } catch (error) {
-      console.error('❌ Dynamic System seeding failed:', error.message);
+    } catch (error: unknown) {
+      console.error(
+        '❌ Dynamic System seeding failed:',
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   }

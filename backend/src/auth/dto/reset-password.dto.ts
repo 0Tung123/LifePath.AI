@@ -5,11 +5,11 @@ export class ResetPasswordDto {
   @ApiProperty({ example: 'your_reset_token', description: 'Reset token' })
   @IsString()
   @IsNotEmpty()
-  token: string;
+  token!: string;
 
   @ApiProperty({ example: 'new_password', description: 'New password' })
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
-  password: string;
+  password!: string;
 }

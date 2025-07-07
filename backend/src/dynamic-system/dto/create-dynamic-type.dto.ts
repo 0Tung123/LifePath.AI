@@ -16,7 +16,6 @@ import { Type } from 'class-transformer';
 import {
   DynamicTypeCategory,
   TagRarity,
-  TagCreator,
 } from '../../common/types/dynamic-system.types';
 import { TagCreatorDto } from './create-tag.dto';
 
@@ -29,7 +28,7 @@ export class CreateDynamicTypeDto {
   })
   @IsString()
   @Length(2, 200)
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example:
@@ -38,7 +37,7 @@ export class CreateDynamicTypeDto {
   })
   @IsString()
   @Length(10, 2000)
-  description: string;
+  description!: string;
 
   @ApiProperty({
     example: DynamicTypeCategory.EQUIPMENT,
@@ -46,7 +45,7 @@ export class CreateDynamicTypeDto {
     enum: DynamicTypeCategory,
   })
   @IsEnum(DynamicTypeCategory)
-  category: DynamicTypeCategory;
+  category!: DynamicTypeCategory;
 
   @ApiProperty({
     example: ['fire', 'weapon', 'legendary', 'phoenix'],
@@ -54,7 +53,7 @@ export class CreateDynamicTypeDto {
   })
   @IsArray()
   @IsString({ each: true })
-  tags: string[];
+  tags!: string[];
 
   @ApiProperty({
     example: {
@@ -66,7 +65,7 @@ export class CreateDynamicTypeDto {
     description: 'Base properties',
   })
   @IsObject()
-  baseProperties: Record<string, any>;
+  baseProperties!: Record<string, any>;
 
   @ApiProperty({
     example: TagRarity.LEGENDARY,
@@ -74,7 +73,7 @@ export class CreateDynamicTypeDto {
     enum: TagRarity,
   })
   @IsEnum(TagRarity)
-  rarity: TagRarity;
+  rarity!: TagRarity;
 
   @ApiProperty({
     example: 85,
@@ -85,7 +84,7 @@ export class CreateDynamicTypeDto {
   @IsNumber()
   @Min(1)
   @Max(100)
-  powerLevel: number;
+  powerLevel!: number;
 
   @ApiProperty({
     example: { type: 'admin', id: 'user-uuid' },
@@ -93,7 +92,7 @@ export class CreateDynamicTypeDto {
   })
   @ValidateNested()
   @Type(() => TagCreatorDto)
-  createdBy: TagCreatorDto;
+  createdBy!: TagCreatorDto;
 
   @ApiProperty({
     example: false,
@@ -202,14 +201,14 @@ export class GenerateDynamicTypeDto {
     enum: DynamicTypeCategory,
   })
   @IsEnum(DynamicTypeCategory)
-  category: DynamicTypeCategory;
+  category!: DynamicTypeCategory;
 
   @ApiProperty({
     example: 'game-uuid-123',
     description: 'Game context ID',
   })
   @IsString()
-  gameId: string;
+  gameId!: string;
 
   @ApiProperty({
     example:
@@ -292,7 +291,7 @@ export class TagCombinationRequestDto {
   })
   @IsArray()
   @IsString({ each: true })
-  tagNames: string[];
+  tagNames!: string[];
 
   @ApiProperty({
     example: DynamicTypeCategory.EQUIPMENT,
@@ -300,7 +299,7 @@ export class TagCombinationRequestDto {
     enum: DynamicTypeCategory,
   })
   @IsEnum(DynamicTypeCategory)
-  category: DynamicTypeCategory;
+  category!: DynamicTypeCategory;
 
   @ApiProperty({
     example: { damage: 80, durability: 400 },

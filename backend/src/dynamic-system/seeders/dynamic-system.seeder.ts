@@ -216,17 +216,20 @@ export class DynamicSystemSeeder {
       });
 
       if (!existingTag) {
-        const tag = this.tagRepository.create({
+        // Create tag with explicit types
+        const tagEntity: Partial<Tag> = {
           name: tagData.name,
           category: tagData.category,
           description: tagData.description,
           properties: tagData.properties,
           rarity: tagData.rarity,
-          conflicts: tagData.conflicts,
-          synergies: tagData.synergies,
+          conflicts: tagData.conflicts || [],
+          synergies: tagData.synergies || [],
           createdBy: { type: 'system' as const },
           isActive: true,
-        });
+        };
+
+        const tag = this.tagRepository.create(tagEntity);
 
         await this.tagRepository.save(tag);
         this.logger.log(`Created tag: ${tagData.name}`);

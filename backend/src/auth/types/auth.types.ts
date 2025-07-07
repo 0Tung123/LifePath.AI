@@ -1,3 +1,5 @@
+import { User } from 'src/user/entities/user.entity';
+
 export interface RegisterResponse {
   message: string;
   statusCode?: number;
@@ -11,6 +13,7 @@ export interface RegisterResponse {
 
 export interface LoginResponse {
   access_token: string;
+  user: User; // Will be properly typed later
 }
 
 export interface PasswordResetResponse {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,8 +9,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isClient, setIsClient] = useState(false);
   const { login, isLoading } = useAuth();
   const router = useRouter();
+
+  // Use useEffect to set client-side state after hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,11 +24,43 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push('/dashboard');
-    } catch {
-      setErrorMessage('Failed to login. Please try again.');
+      // Use a small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage(
+        'Failed to login. Please check your credentials and try again.',
+      );
     }
   };
+
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+          <div className="text-center">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+              Sign in to your account
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Or{' '}
+              <Link
+                href="/register"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                create a new account
+              </Link>
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

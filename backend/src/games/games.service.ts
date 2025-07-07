@@ -14,10 +14,11 @@ import {
   ParsedGameContent,
   GameStats,
   InventoryItem,
-  Skill,
+  CharacterSkill,
   LoreFragment,
-  Choice,
+  GameChoice,
   LifeSummary,
+  Skill,
 } from './interfaces/game-content.interface';
 
 @Injectable()
@@ -316,11 +317,13 @@ export class GamesService {
       game.characterStats = { ...game.characterStats, ...parsedContent.stats };
 
       // Check for death condition
-      const isDead = this.checkIfCharacterIsDead(game.characterStats);
+      const isDead = this.checkIfCharacterIsDead(
+        this.convertGameStats(game.characterStats),
+      );
       if (isDead && game.active) {
         // Check for resurrection items/skills
         const hasResurrectionItem = this.checkForResurrectionItems(
-          game.inventoryItems,
+          this.convertInventoryItems(game.inventoryItems),
           game.characterSkills,
         );
 
@@ -355,7 +358,7 @@ export class GamesService {
             );
           });
 
-          let resurrectionChoiceText =
+          let resurrectionChoiceText: string =
             'Kích hoạt khả năng đặc biệt để tránh cái chết';
 
           if (resurrectionSkill) {
@@ -556,7 +559,7 @@ export class GamesService {
       );
 
       // Extract story text (everything before the first tag)
-      let storyText = response;
+      let storyText: string = response;
       const firstTagMatch = response.match(
         /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION):/,
       );
@@ -566,7 +569,7 @@ export class GamesService {
 
       // Extract stats
       const statsMatches = [...response.matchAll(/\[STATS:\s*(.*?)\]/g)];
-      const stats: GameStats = {};
+      const stats: Record<string, string | number> = {};
       if (statsMatches.length > 0) {
         const statsString = statsMatches[0][1];
         // Parse key-value pairs from format like: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500
@@ -613,10 +616,6 @@ export class GamesService {
 
       inventoryAddMatches.forEach((match) => {
         const itemString = match[1];
-        const itemProps: InventoryItem = {
-          name: '',
-          quantity: 1,
-        };
 
         // Parse name, description, etc
         if (itemString) {
@@ -624,13 +623,19 @@ export class GamesService {
           const descMatch = itemString.match(/Description="([^"]+)"/);
           const quantityMatch = itemString.match(/Quantity=(\d+)/);
 
-          itemProps.name = nameMatch && nameMatch[1] ? nameMatch[1] : '';
-          if (descMatch) itemProps.description = descMatch[1];
-          if (quantityMatch) itemProps.quantity = parseInt(quantityMatch[1]);
-          else itemProps.quantity = 1; // Default quantity
-        }
+          const name = nameMatch?.[1] || '';
+          const description = descMatch?.[1] || '';
+          const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
 
-        inventory.push(itemProps);
+          if (name) {
+            const itemProps: InventoryItem = {
+              name,
+              description,
+              quantity,
+            };
+            inventory.push(itemProps);
+          }
+        }
       });
 
       // If there are no INVENTORY_ADD tags, try looking for INVENTORY_INIT
@@ -642,7 +647,22 @@ export class GamesService {
           try {
             const initInventory = JSON.parse(inventoryInitMatch[1]);
             if (initInventory.items && Array.isArray(initInventory.items)) {
-              inventory.push(...initInventory.items);
+              const items = initInventory.items as Array<{
+                name?: string;
+                description?: string;
+                quantity?: number;
+              }>;
+
+              items.forEach((item) => {
+                if (item.name) {
+                  const inventoryItem: InventoryItem = {
+                    name: item.name,
+                    description: item.description || '',
+                    quantity: item.quantity || 1,
+                  };
+                  inventory.push(inventoryItem);
+                }
+              });
             }
           } catch (e) {
             this.logger.error('Error parsing INVENTORY_INIT:', e);
@@ -652,13 +672,12 @@ export class GamesService {
 
       // Extract skills
       const skillMatches = [...response.matchAll(/\[SKILL:\s*(.*?)\]/g)];
-      const skills: Skill[] = [];
+      const skills: CharacterSkill[] = [];
 
       this.logger.log(`Found ${skillMatches.length} SKILL matches`);
 
       skillMatches.forEach((match) => {
         const skillString = match[1];
-        const skillProps: Skill = { name: '' };
 
         // Parse name, level, description, etc
         const nameMatch = skillString.match(/Name="([^"]+)"/);
@@ -666,12 +685,16 @@ export class GamesService {
         const levelMatch = skillString.match(/Level=(\d+)/);
         const thanhThucMatch = skillString.match(/ThanhThuc="([^"]+)"/);
 
-        if (nameMatch) skillProps.name = nameMatch[1];
-        if (descMatch) skillProps.description = descMatch[1];
-        if (levelMatch) skillProps.level = parseInt(levelMatch[1]);
-        if (thanhThucMatch) skillProps.mastery = thanhThucMatch[1];
-
-        skills.push(skillProps);
+        const name = nameMatch?.[1];
+        if (name) {
+          const skillProps: CharacterSkill = {
+            name,
+            description: descMatch?.[1] || '',
+            ...(levelMatch && { level: parseInt(levelMatch[1]) }),
+            ...(thanhThucMatch && { mastery: thanhThucMatch[1] }),
+          };
+          skills.push(skillProps);
+        }
       });
 
       // If there are no SKILL tags, try looking for SKILLS
@@ -684,7 +707,28 @@ export class GamesService {
               parsedSkills.abilities &&
               Array.isArray(parsedSkills.abilities)
             ) {
-              skills.push(...parsedSkills.abilities);
+              const abilities = parsedSkills.abilities as Array<{
+                name?: string;
+                description?: string;
+                level?: number;
+                mastery?: number;
+              }>;
+
+              abilities.forEach((ability) => {
+                if (ability.name) {
+                  const skill: CharacterSkill = {
+                    name: ability.name,
+                    description: ability.description || '',
+                    ...(ability.level !== undefined && {
+                      level: ability.level,
+                    }),
+                    ...(ability.mastery !== undefined && {
+                      mastery: ability.mastery.toString(),
+                    }),
+                  };
+                  skills.push(skill);
+                }
+              });
             }
           } catch (e) {
             this.logger.error('Error parsing SKILLS:', e);
@@ -693,8 +737,8 @@ export class GamesService {
       }
 
       // Extract karma score changes
-      let karmaChange = 0;
-      let karmaReason = '';
+      let karmaChange: number = 0;
+      let karmaReason: string = '';
       const karmaMatches = [
         ...response.matchAll(
           /\[KARMA_SCORE:\s*([+-]?\d+)(?:,\s*"([^"]+)")?\]/g,
@@ -706,7 +750,7 @@ export class GamesService {
       }
 
       // Extract reputation changes
-      const reputationChanges: { [key: string]: number } = {};
+      const reputationChanges: Record<string, number> = {};
       const reputationMatches = [
         ...response.matchAll(/\[REPUTATION:\s*([^\]]+)\]/g),
       ];
@@ -720,7 +764,9 @@ export class GamesService {
             const numValue =
               parseInt(value.replace(/[+-]/, '')) *
               (value.startsWith('-') ? -1 : 1);
-            reputationChanges[key] = numValue;
+            if (!isNaN(numValue)) {
+              reputationChanges[key] = numValue;
+            }
           }
         });
       }
@@ -736,32 +782,27 @@ export class GamesService {
 
       const processLoreMatch = (
         match: RegExpMatchArray,
-        type: 'npc' | 'item' | 'location' | 'general',
-      ) => {
+        category: 'npc' | 'item' | 'location' | 'event' | 'world',
+      ): void => {
         const loreString = match[1];
-        const loreProps: LoreFragment = { type };
-
         const nameMatch = loreString.match(/Name="([^"]+)"/);
         const descMatch = loreString.match(/Description="([^"]+)"/);
         const titleMatch = loreString.match(/Title="([^"]+)"/);
         const contentMatch = loreString.match(/Content="([^"]+)"/);
 
-        if (nameMatch) loreProps.name = nameMatch[1];
-        if (titleMatch) loreProps.title = titleMatch[1];
-        if (descMatch) loreProps.description = descMatch[1];
-        if (contentMatch) loreProps.content = contentMatch[1];
+        const title = titleMatch?.[1] || nameMatch?.[1] || 'Unknown';
+        const content = contentMatch?.[1] || descMatch?.[1] || 'No description';
 
-        // Ensure there's at least a title or name
-        if (!loreProps.title && loreProps.name) {
-          loreProps.title = loreProps.name;
-        }
+        const loreFragment: LoreFragment = {
+          title,
+          content,
+          type: category,
+          category,
+          importance: 'medium',
+          timestamp: new Date(),
+        };
 
-        // Ensure there's content
-        if (!loreProps.content && loreProps.description) {
-          loreProps.content = loreProps.description;
-        }
-
-        lore.push(loreProps);
+        lore.push(loreFragment);
       };
 
       loreNpcMatches.forEach((match) => processLoreMatch(match, 'npc'));
@@ -777,12 +818,24 @@ export class GamesService {
           try {
             const parsedLore = JSON.parse(loreMatch[1]);
             if (parsedLore.fragments && Array.isArray(parsedLore.fragments)) {
-              lore.push(
-                ...parsedLore.fragments.map((fragment) => ({
-                  ...fragment,
-                  type: 'general',
-                })),
-              );
+              const fragments = parsedLore.fragments as Array<{
+                title?: string;
+                content?: string;
+                category?: string;
+              }>;
+
+              fragments.forEach((fragment) => {
+                const loreFragment: LoreFragment = {
+                  title: fragment.title || 'Unknown',
+                  content: fragment.content || 'No description',
+                  type: fragment.category || 'world',
+                  category:
+                    (fragment.category as LoreFragment['category']) || 'world',
+                  importance: 'medium',
+                  timestamp: new Date(),
+                };
+                lore.push(loreFragment);
+              });
             }
           } catch (e) {
             this.logger.error('Error parsing LORE:', e);
@@ -791,15 +844,15 @@ export class GamesService {
       }
 
       // Extract choices - improved logic to handle various formats
-      let choices: Choice[] = [];
+      let choices: GameChoice[] = [];
 
       // Method 1: Look for numbered choices at the end of the response (most common)
       const lines = response.split('\n');
       const choiceLines: string[] = [];
-      let foundChoicesSection = false;
+      let foundChoicesSection: boolean = false;
 
       // Look for numbered choices from the end of the response
-      for (let i = lines.length - 1; i >= 0; i--) {
+      for (let i: number = lines.length - 1; i >= 0; i--) {
         const line = lines[i].trim();
         if (/^\d+\.\s+/.test(line)) {
           choiceLines.unshift(line);
@@ -817,10 +870,11 @@ export class GamesService {
         choices = choiceLines.map((line, index) => {
           const choiceText = line.replace(/^\d+\.\s*/, '').trim();
           const number = index + 1;
-          return {
+          const choice: GameChoice = {
             text: choiceText,
             number,
           };
+          return choice;
         });
 
         // Clean up story text by removing the numbered choices
@@ -838,10 +892,11 @@ export class GamesService {
           choices = storyChoiceLines.map((line, index) => {
             const choiceText = line.replace(/^\d+\.\s*/, '').trim();
             const number = index + 1;
-            return {
+            const choice: GameChoice = {
               text: choiceText,
               number,
             };
+            return choice;
           });
 
           // Clean up story text
@@ -906,7 +961,8 @@ export class GamesService {
       const logger = new Logger('GamesService');
       logger.error('Error parsing AI response:', error);
       throw new BadRequestException(
-        'Failed to parse AI response: ' + error.message,
+        'Failed to parse AI response: ' +
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   }
@@ -1114,14 +1170,14 @@ export class GamesService {
     // Calculate play time
     const playTime = new Date().getTime() - new Date(game.createdAt).getTime();
     const playDays = Math.floor(playTime / (1000 * 60 * 60 * 24));
-    const playHours = Math.floor(
-      (playTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-    );
+    // const playHours = Math.floor(
+    //   (playTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    // );
 
     // Extract NPCs met from lore fragments
-    const npcsMet = (game.loreFragments || [])
-      .filter((lore) => lore.type === 'npc')
-      .map((npc) => ({ name: npc.name, description: npc.description }));
+    // const npcsMet = (game.loreFragments || [])
+    //   .filter((lore) => lore.type === 'npc')
+    //   .map((npc) => ({ name: npc.name, description: npc.description }));
 
     // Extract important events from story history
     const importantEvents = (game.storyHistory || [])
@@ -1133,45 +1189,20 @@ export class GamesService {
       }));
 
     return {
-      characterName: game.settings.characterName || 'Unknown Character',
-      theme: game.settings.theme || 'Unknown',
-      setting: game.settings.setting || 'Unknown setting',
-      birthDate: game.createdAt,
-      deathDate: game.deathDate || new Date(),
-      deathCause: game.deathCause || 'Unknown cause',
-      playTime: `${playDays} ngày ${playHours} giờ`,
-      finalStats: game.characterStats || {},
-      inventory: game.inventoryItems || [],
-      skills: game.characterSkills || [],
-      npcsMet: npcsMet.map((npc) => ({
-        name: npc.name || 'Unknown NPC',
-        description: npc.description || '',
-        firstMet: game.createdAt, // Use creation date as fallback
-        interactions: 1,
-      })),
-      importantEvents: importantEvents.map((event) => ({
-        title: 'Sự kiện quan trọng',
-        description: event.description,
-        timestamp: event.timestamp,
-        type: 'story',
-      })),
-      totalChapters: game.storyHistory.length,
-      achievements: game.achievements || [],
+      totalDays: playDays,
+      finalStats: this.convertGameStats(game.characterStats) || {},
+      majorEvents: importantEvents.map((event) => event.description),
+      achievements: (game.achievements || []).map((achievement) =>
+        typeof achievement === 'string'
+          ? achievement
+          : achievement.name ||
+            achievement.description ||
+            'Unknown Achievement',
+      ),
       karmaScore: game.karmaScore || 0,
       reputation: game.reputation || {},
+      deathCause: game.deathCause,
       legacy: game.deathCause || 'A life well lived',
-      // For backward compatibility
-      totalYears: Math.floor(playDays / 365) || 0,
-      majorEvents: importantEvents.map((event) => event.description),
-      relationships: npcsMet.reduce(
-        (acc, npc) => {
-          if (npc.name) {
-            acc[npc.name] = npc.description;
-          }
-          return acc;
-        },
-        {} as Record<string, unknown>,
-      ),
     };
   }
 
@@ -1193,7 +1224,7 @@ export class GamesService {
 
     // Check if character has resurrection items/skills
     const hasResurrectionItem = this.checkForResurrectionItems(
-      game.inventoryItems,
+      this.convertInventoryItems(game.inventoryItems),
       game.characterSkills,
     );
 
@@ -1244,8 +1275,8 @@ export class GamesService {
       return hasResurrectionKeyword || hasResurrectionDescription;
     });
 
-    let resurrectionMessage = '';
-    let skillType = 'hồi sinh';
+    let resurrectionMessage: string = '';
+    let skillType: string = 'hồi sinh';
 
     if (resurrectionSkill) {
       const skillName = resurrectionSkill.name.toLowerCase();
@@ -1344,7 +1375,7 @@ export class GamesService {
       ' Hãy cẩn thận hơn trong những quyết định tiếp theo...';
 
     game.storyHistory.push({
-      type: 'system',
+      type: 'story',
       content: storyContent,
       timestamp: new Date(),
     });
@@ -1365,5 +1396,64 @@ export class GamesService {
     game.currentPrompt = resurrectionMessage + weaknessNote;
 
     return await this.gamesRepository.save(game);
+  }
+
+  /**
+   * Convert complex GameStats to simple GameStats for engine compatibility
+   */
+  private convertGameStats(
+    stats: any,
+  ): import('../common/types/game-engine.types').GameStats {
+    const converted: Record<string, string | number> = {};
+
+    for (const [key, value] of Object.entries(stats || {})) {
+      if (typeof value === 'string' || typeof value === 'number') {
+        converted[key] = value;
+      } else if (value && typeof value === 'object') {
+        // Convert complex objects to strings
+        converted[key] = JSON.stringify(value);
+      } else {
+        converted[key] = String(value);
+      }
+    }
+
+    return converted as import('../common/types/game-engine.types').GameStats;
+  }
+
+  /**
+   * Convert InventoryItem array to engine-compatible format
+   */
+  private convertInventoryItems(
+    items: any[],
+  ): import('../common/types/game-engine.types').InventoryItem[] {
+    return (items || []).map((item) => ({
+      name: item.name || '',
+      description: item.description,
+      quantity: item.quantity || 1,
+      type: item.type,
+      rarity: this.normalizeRarity(item.rarity),
+    }));
+  }
+
+  /**
+   * Normalize rarity to engine-compatible values
+   */
+  private normalizeRarity(
+    rarity: any,
+  ): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
+    if (typeof rarity === 'string') {
+      const normalized = rarity.toLowerCase();
+      if (
+        ['common', 'uncommon', 'rare', 'epic', 'legendary'].includes(normalized)
+      ) {
+        return normalized as
+          | 'common'
+          | 'uncommon'
+          | 'rare'
+          | 'epic'
+          | 'legendary';
+      }
+    }
+    return 'common'; // Default fallback
   }
 }

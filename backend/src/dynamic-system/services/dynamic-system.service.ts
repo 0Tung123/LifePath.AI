@@ -13,7 +13,6 @@ import { AIGenerationService } from './ai-generation.service';
 import { CreateTagDto, UpdateTagDto } from '../dto/create-tag.dto';
 import {
   CreateDynamicTypeDto,
-  UpdateDynamicTypeDto,
   GenerateDynamicTypeDto,
   TagCombinationRequestDto,
 } from '../dto/create-dynamic-type.dto';
@@ -21,9 +20,11 @@ import {
   TagCombinationResult,
   TagSynergy,
   TagRarity,
+  TagCategory,
+  TagCreator,
   DynamicTypeCategory,
   AIGenerationRequest,
-  AIGenerationResponse,
+  AIGenerationContext,
 } from '../../common/types/dynamic-system.types';
 
 @Injectable()
@@ -316,7 +317,7 @@ export class DynamicSystemService {
     // Apply validation rules
     const warnings: string[] = [];
     for (const rule of validationRules) {
-      const ruleResult = this.applyValidationRule(rule, tags, tagNames);
+      const ruleResult = this.applyValidationRule(rule, tagNames);
       if (!ruleResult.isValid) {
         if (rule.severity === 'error') {
           conflicts.push(ruleResult.message);
@@ -352,17 +353,30 @@ export class DynamicSystemService {
       `Generating dynamic type for category: ${generateDto.category}`,
     );
 
+    // Prepare context with proper types
+    const context: AIGenerationContext = {
+      gameId: generateDto.gameId,
+      storyContext: generateDto.storyContext || '',
+      requiredCategories: [generateDto.category as unknown as TagCategory], // Convert DynamicTypeCategory to TagCategory
+      existingTags: generateDto.requiredTags || [],
+    };
+
+    // Add optional properties only if they exist
+    if (generateDto.powerLevelRange) {
+      context.powerLevelRange = generateDto.powerLevelRange;
+    }
+
+    if (generateDto.allowedRarities) {
+      context.rarityConstraints = generateDto.allowedRarities;
+    }
+
+    if (generateDto.customPrompt) {
+      context.customPrompt = generateDto.customPrompt;
+    }
+
     const aiRequest: AIGenerationRequest = {
       type: 'dynamic_type',
-      context: {
-        gameId: generateDto.gameId,
-        storyContext: generateDto.storyContext,
-        requiredCategories: [generateDto.category as any], // Dynamic type category used for generation context
-        powerLevelRange: generateDto.powerLevelRange,
-        rarityConstraints: generateDto.allowedRarities,
-        customPrompt: generateDto.customPrompt,
-        existingTags: generateDto.requiredTags,
-      },
+      context,
       count: generateDto.count || 1,
     };
 
@@ -383,7 +397,13 @@ export class DynamicSystemService {
       for (const aiType of aiResponse.data as DynamicType[]) {
         try {
           // Validate and create tags if they don't exist
-          await this.ensureTagsExist(aiType.tags, aiType.createdBy);
+          // Make sure createdBy has the right structure
+          const creator: TagCreator = {
+            type: aiType.createdBy.type || 'ai',
+            aiModel: aiType.createdBy.aiModel || 'gemini-2.0-flash',
+            context: aiType.createdBy.context || '',
+          };
+          await this.ensureTagsExist(aiType.tags, creator);
 
           // Create the dynamic type
           const createDto: CreateDynamicTypeDto = {
@@ -401,20 +421,36 @@ export class DynamicSystemService {
 
           const createdType = await this.createDynamicType(createDto);
 
-          // Add generation metadata
-          createdType.generationMetadata = {
-            aiModel: 'gemini-pro',
+          // Add generation metadata with proper types
+          interface GenerationMetadata {
+            aiModel: string;
+            processingTime: number;
+            confidence: number;
+            version: string;
+            context?: string;
+          }
+
+          const metadata: GenerationMetadata = {
+            aiModel: 'gemini-2.0-flash',
             processingTime: aiResponse.metadata.processingTime,
             confidence: aiResponse.metadata.confidence,
-            context: generateDto.storyContext,
             version: '1.0',
           };
 
+          // Add context only if it exists
+          if (generateDto.storyContext) {
+            metadata.context = generateDto.storyContext;
+          }
+
+          createdType.generationMetadata = metadata;
+
           await this.dynamicTypeRepository.save(createdType);
           generatedTypes.push(createdType);
-        } catch (error) {
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           this.logger.error(
-            `Failed to create AI-generated type: ${error.message}`,
+            `Failed to create AI-generated type: ${errorMessage}`,
           );
           // Continue with other types
         }
@@ -431,8 +467,10 @@ export class DynamicSystemService {
         `Successfully generated ${generatedTypes.length} dynamic types`,
       );
       return generatedTypes;
-    } catch (error) {
-      this.logger.error(`AI generation error: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`AI generation error: ${errorMessage}`);
       return this.createFallbackDynamicTypes(generateDto);
     }
   }
@@ -440,7 +478,7 @@ export class DynamicSystemService {
   // Helper method to ensure tags exist
   private async ensureTagsExist(
     tagNames: string[],
-    createdBy: any,
+    createdBy: TagCreator,
   ): Promise<void> {
     for (const tagName of tagNames) {
       const existingTag = await this.tagRepository.findOne({
@@ -451,7 +489,7 @@ export class DynamicSystemService {
         // Create a basic tag
         const newTag = this.tagRepository.create({
           name: tagName,
-          category: 'custom' as any,
+          category: TagCategory.CUSTOM,
           description: `Auto-generated tag: ${tagName}`,
           rarity: TagRarity.COMMON,
           createdBy,
@@ -470,7 +508,7 @@ export class DynamicSystemService {
   ): Promise<DynamicType[]> {
     const fallbackTypes: DynamicType[] = [];
 
-    for (let i = 0; i < (generateDto.count || 1); i++) {
+    for (let i: number = 0; i < (generateDto.count || 1); i++) {
       const fallbackType = await this.createMockDynamicType(generateDto);
       fallbackTypes.push(fallbackType);
     }
@@ -583,7 +621,7 @@ export class DynamicSystemService {
 
   private applyValidationRule(
     rule: ValidationRule,
-    tags: Tag[],
+    // Remove unused parameter
     tagNames: string[],
   ): { isValid: boolean; message: string } {
     // Simplified validation rule application
@@ -592,8 +630,15 @@ export class DynamicSystemService {
     for (const condition of rule.conditions) {
       switch (condition.type) {
         case 'tag_required':
-          const requiredTag = condition.parameters.tagName;
-          if (!tagNames.includes(requiredTag)) {
+          // Ensure we're working with a string
+          const requiredTagValue = condition.parameters.tagName;
+          const requiredTag =
+            typeof requiredTagValue === 'string'
+              ? requiredTagValue
+              : String(requiredTagValue);
+
+          // Check if the tag is in the array
+          if (!tagNames.some((tag) => tag === requiredTag)) {
             return {
               isValid: false,
               message:
@@ -604,8 +649,15 @@ export class DynamicSystemService {
           break;
 
         case 'tag_forbidden':
-          const forbiddenTag = condition.parameters.tagName;
-          if (tagNames.includes(forbiddenTag)) {
+          // Ensure we're working with a string
+          const forbiddenTagValue = condition.parameters.tagName;
+          const forbiddenTag =
+            typeof forbiddenTagValue === 'string'
+              ? forbiddenTagValue
+              : String(forbiddenTagValue);
+
+          // Check if the tag is in the array
+          if (tagNames.some((tag) => tag === forbiddenTag)) {
             return {
               isValid: false,
               message:
@@ -616,7 +668,14 @@ export class DynamicSystemService {
           break;
 
         case 'tag_limit':
-          const maxTags = condition.parameters.maxCount;
+          // Ensure we're working with a number
+          const maxTagsValue = condition.parameters.maxCount;
+          const maxTags =
+            typeof maxTagsValue === 'number'
+              ? maxTagsValue
+              : Number(maxTagsValue);
+
+          // Compare the length
           if (tagNames.length > maxTags) {
             return {
               isValid: false,
@@ -646,7 +705,15 @@ export class DynamicSystemService {
     // This is a placeholder for AI generation
     // In real implementation, this would call your Gemini AI service
 
-    const mockType = this.dynamicTypeRepository.create({
+    // Create a properly typed dynamic type with explicit handling of optional fields
+    const creator: TagCreator = {
+      type: 'ai' as const,
+      aiModel: 'gemini-2.0-flash',
+      // Initialize context as empty string to avoid undefined
+      context: generateDto.storyContext || '',
+    };
+
+    const dynamicTypeData: Partial<DynamicType> = {
       name: `Generated ${generateDto.category}`,
       description: `AI-generated ${generateDto.category} based on context`,
       category: generateDto.category,
@@ -654,15 +721,15 @@ export class DynamicSystemService {
       baseProperties: { power: 50 },
       rarity: TagRarity.COMMON,
       powerLevel: 50,
-      createdBy: {
-        type: 'ai',
-        aiModel: 'gemini-pro',
-        context: generateDto.storyContext,
-      },
+      createdBy: creator,
       isTemplate: false,
       isActive: true,
-    });
+    };
 
-    return this.dynamicTypeRepository.save(mockType);
+    // Create the entity
+    const mockType = this.dynamicTypeRepository.create(dynamicTypeData);
+
+    // Save and return a single entity
+    return this.dynamicTypeRepository.save(mockType) as Promise<DynamicType>;
   }
 }

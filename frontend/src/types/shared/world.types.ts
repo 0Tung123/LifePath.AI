@@ -10,6 +10,273 @@ import {
 } from './character.types';
 
 // ============================================================================
+// MISSING TYPE DEFINITIONS
+// ============================================================================
+
+export type WorldAge =
+  | 'prehistoric'
+  | 'ancient'
+  | 'classical'
+  | 'medieval'
+  | 'renaissance'
+  | 'industrial'
+  | 'modern'
+  | 'futuristic'
+  | 'post-apocalyptic';
+
+export interface LegalSystem {
+  name: string;
+  type: 'civil' | 'common' | 'religious' | 'tribal' | 'anarchic';
+  enforcement: 'strict' | 'moderate' | 'lax' | 'corrupt';
+}
+
+export interface CivilizationResource {
+  name: string;
+  type: 'natural' | 'manufactured' | 'magical' | 'technological';
+  abundance: 'scarce' | 'limited' | 'common' | 'abundant';
+  value: number;
+}
+
+export type TechnologyLevel =
+  | 'stone_age'
+  | 'bronze_age'
+  | 'iron_age'
+  | 'medieval'
+  | 'renaissance'
+  | 'industrial'
+  | 'modern'
+  | 'advanced'
+  | 'futuristic';
+
+export interface MagicalKnowledge {
+  schools: string[];
+  commonSpells: string[];
+  restrictions: string[];
+  practitioners: number;
+}
+
+export interface MilitarySystem {
+  type: 'professional' | 'militia' | 'feudal' | 'tribal' | 'mercenary';
+  size: number;
+  equipment: string[];
+  training: 'poor' | 'basic' | 'good' | 'excellent' | 'elite';
+}
+
+export interface DefenseSystem {
+  type: 'walls' | 'fortress' | 'natural' | 'magical' | 'technological';
+  strength: number;
+  coverage: 'partial' | 'full' | 'strategic';
+}
+
+export interface DiplomaticRelationship {
+  target: string;
+  status: 'allied' | 'friendly' | 'neutral' | 'hostile' | 'at_war';
+  history: string[];
+}
+
+export interface Treaty {
+  name: string;
+  type: 'trade' | 'military' | 'non_aggression' | 'alliance';
+  parties: string[];
+  terms: string[];
+}
+
+export interface PopulationData {
+  total: number;
+  demographics: Record<string, number>;
+  growth_rate: number;
+  density: number;
+}
+
+export interface Challenge {
+  name: string;
+  type: 'economic' | 'military' | 'social' | 'environmental' | 'political';
+  severity: 'minor' | 'moderate' | 'major' | 'critical';
+  description: string;
+}
+
+export interface Opportunity {
+  name: string;
+  type: 'economic' | 'military' | 'social' | 'technological' | 'diplomatic';
+  potential: 'low' | 'medium' | 'high' | 'exceptional';
+  description: string;
+}
+
+export interface HistoricalEvent {
+  name: string;
+  date: string;
+  type: 'war' | 'discovery' | 'disaster' | 'political' | 'cultural';
+  impact: 'local' | 'regional' | 'global';
+  description: string;
+}
+
+export interface Tradition {
+  name: string;
+  type: 'religious' | 'cultural' | 'seasonal' | 'life_cycle';
+  importance: 'minor' | 'moderate' | 'major' | 'sacred';
+  description: string;
+}
+
+export interface BeliefSystem {
+  name: string;
+  type:
+    | 'monotheistic'
+    | 'polytheistic'
+    | 'animistic'
+    | 'philosophical'
+    | 'secular';
+  followers: number;
+  influence: 'minimal' | 'moderate' | 'significant' | 'dominant';
+}
+
+export interface SocialHierarchy {
+  type: 'caste' | 'class' | 'merit' | 'wealth' | 'birth' | 'egalitarian';
+  mobility: 'none' | 'limited' | 'moderate' | 'high';
+  levels: string[];
+}
+
+export interface SocialNorm {
+  category: 'behavior' | 'dress' | 'speech' | 'interaction';
+  rule: string;
+  enforcement: 'social' | 'legal' | 'religious';
+  penalty: string;
+}
+
+export interface ArtForm {
+  name: string;
+  type: 'visual' | 'performing' | 'literary' | 'musical' | 'craft';
+  popularity: 'niche' | 'common' | 'popular' | 'universal';
+  characteristics: string[];
+}
+
+export interface LanguageSystem {
+  primary: string;
+  dialects: string[];
+  writing_system: 'none' | 'pictographic' | 'alphabetic' | 'syllabic';
+  literacy_rate: number;
+}
+
+export interface Ceremony {
+  name: string;
+  type: 'religious' | 'political' | 'social' | 'seasonal';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'rare';
+  participants: string[];
+}
+
+export interface Festival {
+  name: string;
+  season: 'spring' | 'summer' | 'autumn' | 'winter' | 'any';
+  duration: number;
+  activities: string[];
+  significance: string;
+}
+
+export interface Ritual {
+  name: string;
+  purpose:
+    | 'blessing'
+    | 'protection'
+    | 'celebration'
+    | 'mourning'
+    | 'transition';
+  participants: string[];
+  requirements: string[];
+}
+
+export interface GovernmentStructure {
+  type:
+    | 'monarchy'
+    | 'republic'
+    | 'democracy'
+    | 'theocracy'
+    | 'oligarchy'
+    | 'anarchy';
+  level: 'local' | 'regional' | 'national' | 'imperial';
+  authority: string[];
+}
+
+export interface Leader {
+  name: string;
+  title: string;
+  authority: string[];
+  legitimacy: 'hereditary' | 'elected' | 'appointed' | 'conquered' | 'divine';
+}
+
+export interface SuccessionRule {
+  type: 'hereditary' | 'elective' | 'appointive' | 'meritocratic';
+  criteria: string[];
+  process: string;
+}
+
+export interface PowerBalance {
+  faction: string;
+  influence: number;
+  resources: string[];
+  goals: string[];
+}
+
+export interface DecisionProcess {
+  type: 'autocratic' | 'oligarchic' | 'democratic' | 'consensus';
+  participants: string[];
+  requirements: string[];
+}
+
+export interface Currency {
+  name: string;
+  type: 'metal' | 'paper' | 'digital' | 'commodity' | 'service';
+  backing: string;
+  stability: 'volatile' | 'unstable' | 'stable' | 'very_stable';
+}
+
+export interface ExchangeRate {
+  from: string;
+  to: string;
+  rate: number;
+  volatility: 'low' | 'medium' | 'high';
+}
+
+export interface TradeRoute {
+  name: string;
+  endpoints: string[];
+  goods: string[];
+  safety: 'dangerous' | 'risky' | 'safe' | 'secure';
+}
+
+export interface TradeGood {
+  name: string;
+  type: 'raw_material' | 'manufactured' | 'luxury' | 'necessity';
+  origin: string;
+  demand: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface Industry {
+  name: string;
+  type: 'primary' | 'secondary' | 'tertiary' | 'quaternary';
+  size: 'small' | 'medium' | 'large' | 'dominant';
+  employment: number;
+}
+
+export interface EconomicResource {
+  name: string;
+  type: 'natural' | 'human' | 'capital' | 'technological';
+  availability: 'scarce' | 'limited' | 'adequate' | 'abundant';
+}
+
+export interface Market {
+  name: string;
+  type: 'local' | 'regional' | 'national' | 'international';
+  goods: string[];
+  regulation: 'none' | 'light' | 'moderate' | 'heavy';
+}
+
+export interface MasteryLevel {
+  skill: string;
+  level: number;
+  description: string;
+  requirements: string[];
+}
+
+// ============================================================================
 // WORLD FOUNDATION TYPES
 // ============================================================================
 
@@ -132,7 +399,7 @@ export interface NaturalLaw {
 export interface NaturalLawEffect {
   type: 'automatic' | 'triggered' | 'conditional';
   description: string;
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   conditions?: EffectCondition[];
 }
 
@@ -264,7 +531,10 @@ export interface SpaceBoundary {
 export interface BoundaryEffect {
   type: 'block' | 'teleport' | 'damage' | 'transform' | 'custom';
   description: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 // ============================================================================
@@ -304,7 +574,10 @@ export interface GenerationTemplate {
   weight: number; // Selection probability
 
   // Template Data
-  baseData: Record<string, any>;
+  baseData: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
   variableFields: VariableField[];
 
   // Constraints
@@ -320,7 +593,10 @@ export interface VariableField {
   type: 'random' | 'calculated' | 'lookup' | 'custom';
 
   // Generation Parameters
-  parameters?: Record<string, any>;
+  parameters?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
   constraints?: FieldConstraint[];
 
   // Dependencies
@@ -332,7 +608,13 @@ export interface VariableField {
  */
 export interface FieldConstraint {
   type: 'range' | 'list' | 'pattern' | 'custom';
-  value: any;
+  value:
+    | string
+    | number
+    | boolean
+    | string[]
+    | RegExp
+    | Record<string, unknown>;
   description?: string;
 }
 
@@ -412,7 +694,7 @@ export interface WorldEventEffect {
     | 'technological'
     | 'custom';
   target: string;
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   duration?: number;
   reversible?: boolean;
 }
@@ -467,7 +749,7 @@ export interface EventResponseEffect {
     | 'character_effect'
     | 'custom';
   target?: string;
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   description?: string;
 }
 
@@ -798,7 +1080,7 @@ export interface ValidationRule {
   id: string;
   name: string;
   type: 'consistency' | 'balance' | 'lore' | 'quality' | 'custom';
-  rule: (content: any) => boolean;
+  rule: (content: Record<string, unknown>) => boolean;
   errorMessage?: string;
 }
 
@@ -809,7 +1091,7 @@ export interface PostProcessingStep {
   id: string;
   name: string;
   type: 'enhance' | 'validate' | 'optimize' | 'integrate' | 'custom';
-  process: (content: any) => any;
+  process: (content: Record<string, unknown>) => Record<string, unknown>;
 }
 
 /**
@@ -904,7 +1186,7 @@ export interface Holiday {
  */
 export interface HolidayEffect {
   type: 'mood' | 'commerce' | 'availability' | 'custom';
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   duration?: number;
 }
 
@@ -947,7 +1229,10 @@ export interface SpatialDistortion {
 export interface SpatialEffect {
   type: 'teleport' | 'disorient' | 'trap' | 'enhance' | 'custom';
   description: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**

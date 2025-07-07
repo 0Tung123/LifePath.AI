@@ -8,7 +8,12 @@ import { resetPasswordTemplate } from './templates/reset-password.template';
 export class MailService {
   constructor(private readonly mailerService: MailerService) {}
 
-  async sendEmail(to: string, subject: string, text: string, html?: string) {
+  async sendEmail(
+    to: string,
+    subject: string,
+    text: string,
+    html?: string,
+  ): Promise<void> {
     await this.mailerService.sendMail({
       to: to,
       subject: subject,
@@ -17,7 +22,7 @@ export class MailService {
     });
   }
 
-  async sendWelcomeEmail(to: string, firstName: string) {
+  async sendWelcomeEmail(to: string, firstName: string): Promise<void> {
     const subject = 'Welcome to Our Platform';
     const text = `Hello ${firstName}, welcome to our platform!`;
     const html = welcomeTemplate(firstName);
@@ -29,7 +34,7 @@ export class MailService {
     to: string,
     firstName: string,
     verificationLink: string,
-  ) {
+  ): Promise<void> {
     const subject = 'Verify Your Email';
     const text = `Hello ${firstName}, please verify your email by clicking this link: ${verificationLink}`;
     const html = verifyEmailTemplate(firstName, verificationLink);
@@ -37,7 +42,7 @@ export class MailService {
     await this.sendEmail(to, subject, text, html);
   }
 
-  async sendPasswordResetEmail(to: string, resetLink: string) {
+  async sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
     const subject = 'Password Reset Request';
     const text = `Please click the following link to reset your password: ${resetLink}`;
     const html = resetPasswordTemplate(resetLink);

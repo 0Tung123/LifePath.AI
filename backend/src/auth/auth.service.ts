@@ -10,15 +10,14 @@ import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { User } from '../user/entities/user.entity';
-
-// Interface for Google user
-interface GoogleUser {
-  email: string;
-  firstName: string;
-  lastName: string;
-  picture: string;
-  accessToken: string;
-}
+import {
+  GoogleUserProfile,
+  AuthResponse,
+  LoginResponse,
+  ValidatedUser,
+  UserProfile,
+  JwtPayload,
+} from '../common/types/auth.types';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +30,7 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<any> {
+  async register(registerDto: RegisterDto): Promise<AuthResponse> {
     const { email, password, firstName, lastName } = registerDto;
 
     // Check if user already exists
@@ -81,13 +80,16 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        ...(user.firstName && { firstName: user.firstName }),
+        ...(user.lastName && { lastName: user.lastName }),
       },
     };
   }
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  async validateUser(
+    email: string,
+    pass: string,
+  ): Promise<ValidatedUser | null> {
     const user = await this.usersService.findOne(email);
     if (!user) {
       return null;
@@ -102,11 +104,18 @@ export class AuthService {
     return result;
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id };
+  async login(user: ValidatedUser): Promise<LoginResponse> {
+    const payload: JwtPayload = { email: user.email, sub: user.id };
+    const secret = this.configService.get<string>('JWT_SECRET');
+    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN');
+
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
     const token = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
+      secret,
+      expiresIn: expiresIn || '1h',
     });
 
     // Return user data without sensitive information
@@ -118,12 +127,12 @@ export class AuthService {
     } = user;
 
     return {
-      token,
+      access_token: token,
       user: userResult,
     };
   }
 
-  async forgotPassword(email: string): Promise<any> {
+  async forgotPassword(email: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne(email);
 
     if (!user) {
@@ -145,7 +154,7 @@ export class AuthService {
     return { message: `Password reset link sent to ${email}` };
   }
 
-  async resetPassword(token: string, password: string): Promise<any> {
+  async resetPassword(token: string, password: string): Promise<AuthResponse> {
     const passwordResetToken = await this.passwordResetTokenRepository.findOne({
       where: { token },
     });
@@ -171,7 +180,7 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
-  async verifyEmail(token: string): Promise<any> {
+  async verifyEmail(token: string): Promise<AuthResponse> {
     const user = await this.usersService.findByVerificationToken(token);
 
     if (!user) {
@@ -199,7 +208,7 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  async resendVerificationEmail(email: string): Promise<any> {
+  async resendVerificationEmail(email: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne(email);
 
     if (!user) {
@@ -236,8 +245,10 @@ export class AuthService {
     return { message: 'Verification email sent successfully' };
   }
 
-  async validateOrCreateGoogleUser(googleUser: GoogleUser): Promise<any> {
-    let user = await this.usersService.findOne(googleUser.email);
+  async validateOrCreateGoogleUser(
+    googleUser: GoogleUserProfile,
+  ): Promise<LoginResponse> {
+    let user: User | null = await this.usersService.findOne(googleUser.email);
 
     if (!user) {
       // Create a new user with Google information
@@ -271,10 +282,12 @@ export class AuthService {
       await this.usersService.update(user.id, user);
     }
 
-    return this.login(user);
+    // Convert User to ValidatedUser
+    const { password, ...validatedUser } = user;
+    return this.login(validatedUser);
   }
 
-  async getProfile(userId: string): Promise<any> {
+  async getProfile(userId: string): Promise<UserProfile | AuthResponse> {
     const user = await this.usersService.findById(userId);
 
     if (!user) {
@@ -286,6 +299,8 @@ export class AuthService {
       password,
       emailVerificationToken,
       emailVerificationExpires,
+      resetPasswordToken,
+      resetPasswordExpires,
       ...result
     } = user;
 

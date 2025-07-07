@@ -1,1 +1,6 @@
-export * from '../../../../frontend/src/types/shared/narrative.types';
+// Narrative types - placeholder for future implementation
+export interface NarrativeElement {
+  id: string;
+  type: string;
+  content: string;
+}

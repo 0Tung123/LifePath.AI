@@ -166,7 +166,7 @@ export interface Choice {
   text: string;
   number: number;
   requirements?: Record<string, number | string>;
-  consequences?: string;
+  consequences?: string[];
 }
 
 /**

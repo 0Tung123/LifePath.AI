@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNumber,
   IsOptional,
@@ -7,9 +7,8 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { GameActionDto as IGameActionDto } from '../../common/types/game.types';
 
-export class GameActionDto implements IGameActionDto {
+export class GameActionDto {
   @ApiPropertyOptional({
     description: 'The choice number (1-4) selected by the player',
     example: 2,

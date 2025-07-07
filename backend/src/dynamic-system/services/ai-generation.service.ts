@@ -11,10 +11,63 @@ import {
   DynamicTypeCategory,
 } from '../../common/types/dynamic-system.types';
 
+// Interfaces for AI response data
+interface AITagData {
+  name: string;
+  category: string;
+  description: string;
+  color?: string;
+  properties?: Record<string, string | number | boolean | string[]>;
+  rarity?: string;
+  conflicts?: string[];
+  synergies?: Array<{
+    requiredTags: string[];
+    effect: {
+      type: string;
+      name: string;
+      description: string;
+      effects: Record<string, string | number | boolean | string[]>;
+    };
+  }>;
+}
+
+interface AIDynamicTypeData {
+  name: string;
+  description: string;
+  category: string;
+  properties: Array<{
+    name: string;
+    type: string;
+    description: string;
+    required: boolean;
+    validation?: Record<string, unknown>;
+  }>;
+  tags?: string[];
+  baseProperties?: Record<string, string | number | boolean | string[]>;
+  rarity?: string;
+  powerLevel?: number;
+}
+
+interface AIResponse {
+  tags?: AITagData[];
+  dynamicTypes?: AIDynamicTypeData[];
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    finishReason?: string;
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
+}
+
 @Injectable()
 export class AIGenerationService {
   private readonly logger = new Logger(AIGenerationService.name);
-  private genAI: GoogleGenerativeAI;
+  private genAI: GoogleGenerativeAI | null = null;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -37,7 +90,9 @@ export class AIGenerationService {
         throw new Error('Gemini AI not configured');
       }
 
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+      });
 
       let prompt: string;
 
@@ -78,8 +133,12 @@ export class AIGenerationService {
           warnings: this.validateGeneratedContent(parsedData),
         },
       };
-    } catch (error) {
-      this.logger.error(`AI generation failed: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`AI generation failed: ${errorMessage}`, errorStack);
 
       return {
         success: false,
@@ -88,7 +147,7 @@ export class AIGenerationService {
           processingTime: Date.now() - startTime,
           confidence: 0,
         },
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -245,54 +304,69 @@ OUTPUT FORMAT (JSON):
         .replace(/```\n?/g, '')
         .trim();
 
-      const parsed = JSON.parse(cleanText);
+      const parsed = JSON.parse(cleanText) as AIResponse;
 
       if (type === 'tag' && parsed.tags) {
-        return parsed.tags.map((tagData: any) => this.createTagFromAI(tagData));
+        return parsed.tags.map((tagData) => this.createTagFromAI(tagData));
       } else if (type === 'dynamic_type' && parsed.dynamicTypes) {
-        return parsed.dynamicTypes.map((typeData: any) =>
+        return parsed.dynamicTypes.map((typeData) =>
           this.createDynamicTypeFromAI(typeData),
         );
       }
 
       return [];
-    } catch (error) {
-      this.logger.error(`Failed to parse AI response: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to parse AI response: ${errorMessage}`);
       this.logger.debug(`Raw response: ${text}`);
       return [];
     }
   }
 
-  private createTagFromAI(data: any): Tag {
+  private createTagFromAI(data: AITagData): Tag {
     return {
       name: data.name,
       category: this.validateTagCategory(data.category),
       description: data.description,
       properties: data.properties || {},
-      rarity: this.validateTagRarity(data.rarity),
+      rarity: this.validateTagRarity(data.rarity || 'common'),
       conflicts: data.conflicts || [],
-      synergies: data.synergies || [],
+      synergies:
+        data.synergies?.map((synergy) => ({
+          requiredTags: synergy.requiredTags,
+          effect: {
+            type: synergy.effect.type as
+              | 'stat_bonus'
+              | 'new_ability'
+              | 'transformation'
+              | 'special_event',
+            name: synergy.effect.name,
+            description: synergy.effect.description,
+            effects: synergy.effect.effects,
+          },
+        })) || [],
       createdBy: {
         type: 'ai',
-        aiModel: 'gemini-pro',
+        aiModel: 'gemini-2.0-flash',
         context: 'AI generated content',
       },
       isActive: true,
     };
   }
 
-  private createDynamicTypeFromAI(data: any): DynamicType {
+  private createDynamicTypeFromAI(data: AIDynamicTypeData): DynamicType {
     return {
       name: data.name,
       description: data.description,
       category: this.validateDynamicTypeCategory(data.category),
       tags: data.tags || [],
       baseProperties: data.baseProperties || {},
-      rarity: this.validateTagRarity(data.rarity),
+      rarity: this.validateTagRarity(data.rarity || 'common'),
       powerLevel: Math.max(1, Math.min(100, data.powerLevel || 50)),
       createdBy: {
         type: 'ai',
-        aiModel: 'gemini-pro',
+        aiModel: 'gemini-2.0-flash',
         context: 'AI generated content',
       },
       isTemplate: false,
@@ -320,7 +394,7 @@ OUTPUT FORMAT (JSON):
       : TagRarity.COMMON;
   }
 
-  private calculateConfidence(response: any): number {
+  private calculateConfidence(response: GeminiResponse): number {
     // Simple confidence calculation based on response quality
     // In a real implementation, this would be more sophisticated
 
@@ -331,9 +405,9 @@ OUTPUT FORMAT (JSON):
     const candidate = response.candidates[0];
 
     // Check for safety ratings and finish reason
-    if (candidate.finishReason === 'STOP') {
+    if (candidate?.finishReason === 'STOP') {
       return 0.8; // High confidence for complete responses
-    } else if (candidate.finishReason === 'MAX_TOKENS') {
+    } else if (candidate?.finishReason === 'MAX_TOKENS') {
       return 0.6; // Medium confidence for truncated responses
     } else {
       return 0.3; // Low confidence for other cases
@@ -413,7 +487,7 @@ OUTPUT FORMAT (JSON):
       context: {
         gameId,
         storyContext,
-        requiredCategories: [category as any], // Dynamic type category used for generation context
+        requiredCategories: [category as unknown as TagCategory], // Convert DynamicTypeCategory to TagCategory for context
         powerLevelRange,
       },
       count,

@@ -15,6 +15,9 @@ import {
   TagRarity,
   TagCreator,
   TagSynergy,
+  TagProperties,
+  SynergyEffects,
+  ValidationParameters,
 } from '../../common/types/dynamic-system.types';
 
 export class TagCreatorDto implements TagCreator {
@@ -24,7 +27,7 @@ export class TagCreatorDto implements TagCreator {
     enum: ['ai', 'admin', 'system'],
   })
   @IsEnum(['ai', 'admin', 'system'])
-  type: 'ai' | 'admin' | 'system';
+  type!: 'ai' | 'admin' | 'system';
 
   @ApiProperty({
     example: 'user-uuid',
@@ -36,7 +39,7 @@ export class TagCreatorDto implements TagCreator {
   id?: string;
 
   @ApiProperty({
-    example: 'gemini-pro',
+    example: 'gemini-2.0-flash',
     description: 'AI model if AI created',
     required: false,
   })
@@ -51,7 +54,7 @@ export class TagCreatorDto implements TagCreator {
   })
   @IsOptional()
   @IsString()
-  context?: string;
+  context?: string | undefined;
 }
 
 export class SynergyEffectDto {
@@ -61,25 +64,25 @@ export class SynergyEffectDto {
     enum: ['stat_bonus', 'new_ability', 'transformation', 'special_event'],
   })
   @IsEnum(['stat_bonus', 'new_ability', 'transformation', 'special_event'])
-  type: 'stat_bonus' | 'new_ability' | 'transformation' | 'special_event';
+  type!: 'stat_bonus' | 'new_ability' | 'transformation' | 'special_event';
 
   @ApiProperty({ example: 'Inferno Mastery', description: 'Effect name' })
   @IsString()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'Combines fire and magic for devastating attacks',
     description: 'Effect description',
   })
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiProperty({
     example: { damage_multiplier: 2.5, mana_cost_reduction: 0.3 },
     description: 'Effect properties',
   })
   @IsObject()
-  effects: Record<string, any>;
+  effects!: SynergyEffects;
 
   @ApiProperty({
     example: -1,
@@ -97,12 +100,12 @@ export class TagSynergyDto implements TagSynergy {
   })
   @IsArray()
   @IsString({ each: true })
-  requiredTags: string[];
+  requiredTags!: string[];
 
   @ApiProperty({ description: 'Synergy effect' })
   @ValidateNested()
   @Type(() => SynergyEffectDto)
-  effect: SynergyEffectDto;
+  effect!: SynergyEffectDto;
 
   @ApiProperty({
     example: 0.8,
@@ -119,7 +122,7 @@ export class TagSynergyDto implements TagSynergy {
   })
   @IsOptional()
   @IsObject()
-  conditions?: Record<string, any>;
+  conditions?: ValidationParameters;
 }
 
 export class CreateTagDto {
@@ -131,7 +134,7 @@ export class CreateTagDto {
   })
   @IsString()
   @Length(2, 100)
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: TagCategory.ELEMENT,
@@ -139,7 +142,7 @@ export class CreateTagDto {
     enum: TagCategory,
   })
   @IsEnum(TagCategory)
-  category: TagCategory;
+  category!: TagCategory;
 
   @ApiProperty({
     example: 'Grants fire-based abilities and resistance',
@@ -158,7 +161,7 @@ export class CreateTagDto {
   })
   @IsOptional()
   @IsObject()
-  properties?: Record<string, any>;
+  properties?: TagProperties;
 
   @ApiProperty({
     example: TagRarity.RARE,
@@ -198,7 +201,7 @@ export class CreateTagDto {
   })
   @ValidateNested()
   @Type(() => TagCreatorDto)
-  createdBy: TagCreatorDto;
+  createdBy!: TagCreatorDto;
 
   @ApiProperty({
     example: true,
@@ -239,7 +242,7 @@ export class UpdateTagDto {
   })
   @IsOptional()
   @IsObject()
-  properties?: Record<string, any>;
+  properties?: TagProperties;
 
   @ApiProperty({
     example: TagRarity.EPIC,

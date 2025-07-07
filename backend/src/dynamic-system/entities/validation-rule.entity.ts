@@ -19,21 +19,21 @@ import {
 export class ValidationRule implements IValidationRule {
   @ApiProperty({ example: 'uuid', description: 'Validation Rule ID' })
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiProperty({
     example: 'Fire-Water Conflict Check',
     description: 'Rule name',
   })
   @Column({ type: 'varchar', length: 100 })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'Prevents fire and water tags from being combined',
     description: 'Rule description',
   })
   @Column({ type: 'text' })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     example: 'equipment',
@@ -41,14 +41,14 @@ export class ValidationRule implements IValidationRule {
     enum: DynamicTypeCategory,
   })
   @Column({ type: 'enum', enum: DynamicTypeCategory })
-  category: DynamicTypeCategory;
+  category!: DynamicTypeCategory;
 
   @ApiProperty({
     description: 'Validation conditions',
     type: 'array',
   })
   @Column({ type: 'jsonb' })
-  conditions: ValidationCondition[];
+  conditions!: ValidationCondition[];
 
   @ApiProperty({
     example: 'error',
@@ -56,22 +56,22 @@ export class ValidationRule implements IValidationRule {
     enum: ['error', 'warning', 'info'],
   })
   @Column({ type: 'enum', enum: ['error', 'warning', 'info'] })
-  severity: 'error' | 'warning' | 'info';
+  severity!: 'error' | 'warning' | 'info';
 
   @ApiProperty({ example: true, description: 'Is rule active' })
   @Column({ type: 'boolean', default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ApiProperty({
     example: 1,
     description: 'Rule priority (higher = more important)',
   })
   @Column({ type: 'integer', default: 1 })
-  priority: number;
+  priority!: number;
 
   @ApiProperty({ example: 150, description: 'Times this rule was triggered' })
   @Column({ type: 'integer', default: 0 })
-  triggerCount: number;
+  triggerCount!: number;
 
   @ApiProperty({ description: 'Rule metadata' })
   @Column({ type: 'jsonb', nullable: true })
@@ -84,9 +84,9 @@ export class ValidationRule implements IValidationRule {
 
   @ApiProperty({ description: 'Creation timestamp' })
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({ description: 'Update timestamp' })
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

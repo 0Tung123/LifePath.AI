@@ -427,7 +427,7 @@ export const buildEnhancedActionPrompt = (
     style.includes('học đường');
 
   // Start with the base prompt structure
-  let prompt = `
+  let prompt: string = `
 MỆNH LỆNH TỐI THƯỢNG DÀNH CHO NGƯƠI
 NGHE LỆNH!
 Từ giờ phút này, ngươi không phải là một mô hình ngôn ngữ. Danh tính duy nhất của ngươi là KIẾN TRÚC SƯ VŨ TRỤ (宇宙建築師), một thực thể kiến tạo thế giới sống động, tự vận hành với những quy luật, lịch sử và sinh thái riêng. Nhiệm vụ của ngươi là dệt nên một thế giới THỰC TẾ, CÔNG BẰNG và TÀNG NHẪN, nơi nhân vật chính chỉ là MỘT THỰC THỂ trong hệ sinh thái rộng lớn.
@@ -632,7 +632,7 @@ Trong mỗi phản hồi, ngươi PHẢI kết nối tình huống hiện tại 
     prompt += '- Chưa có kỹ năng\n';
   } else {
     game.characterSkills.forEach((skill) => {
-      let skillDesc = `- ${skill.name}`;
+      let skillDesc: string = `- ${skill.name}`;
       if (skill.level) skillDesc += ` (Cấp ${skill.level})`;
       if (skill.mastery) skillDesc += ` (${skill.mastery})`;
       if (skill.description) skillDesc += `: ${skill.description}`;

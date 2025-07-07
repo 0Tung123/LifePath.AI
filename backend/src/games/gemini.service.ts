@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   GoogleGenerativeAI,
+  GenerativeModel,
   HarmBlockThreshold,
   HarmCategory,
 } from '@google/generative-ai';
@@ -9,7 +10,7 @@ import {
 @Injectable()
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
-  private model: any;
+  private model: GenerativeModel;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -46,9 +47,11 @@ export class GeminiService {
       const result = await this.model.generateContent(prompt);
       const response = result.response;
       return response.text();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error generating content with Gemini:', error);
-      throw new Error(`Failed to generate game content: ${error.message}`);
+      throw new Error(
+        `Failed to generate game content: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

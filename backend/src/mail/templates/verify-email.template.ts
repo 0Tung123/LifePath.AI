@@ -1,7 +1,7 @@
 export const verifyEmailTemplate = (
   firstName: string,
   verificationLink: string,
-) => `
+): string => `
 <h1>Verify Your Email</h1>
 <p>Dear ${firstName},</p>
 <p>Thank you for registering with us. Please verify your email address by clicking the button below:</p>

@@ -4,6 +4,65 @@
  */
 
 /**
+ * Base property types for different categories
+ */
+export interface BaseProperties {
+  [key: string]: string | number | boolean | string[] | null | undefined;
+}
+
+export interface ElementProperties extends BaseProperties {
+  damage?: number | null;
+  resistance?: number | null;
+  immunity?: number | null;
+}
+
+export interface WeaponProperties extends BaseProperties {
+  damage?: number | null;
+  speed?: number | null;
+  reach?: number | null;
+  durability?: number | null;
+}
+
+export interface EnchantmentProperties extends BaseProperties {
+  power_multiplier?: number | null;
+  durability_bonus?: number | null;
+  special_effects?: string[] | null;
+}
+
+export interface StatusProperties extends BaseProperties {
+  duration?: number | null;
+  intensity?: number | null;
+  stacks?: number | null;
+}
+
+export type TagProperties =
+  | ElementProperties
+  | WeaponProperties
+  | EnchantmentProperties
+  | StatusProperties
+  | BaseProperties;
+
+export interface SynergyEffects extends BaseProperties {
+  auto_resurrect?: number | null;
+  stat_bonus?: number | null;
+  new_ability?: string | null;
+}
+
+export interface ValidationParameters extends BaseProperties {
+  min_count?: number | null;
+  max_count?: number | null;
+  required_tags?: string[] | null;
+  forbidden_tags?: string[] | null;
+}
+
+export interface GenerationConfig extends BaseProperties {
+  model?: string | null;
+  temperature?: number | null;
+  max_tokens?: number | null;
+  context_window?: number | null;
+}
+
+/**
  * Tag System - Hệ thống thẻ cơ bản
  */
 export interface Tag {
@@ -11,12 +70,13 @@ export interface Tag {
   name: string;
   category: TagCategory;
   description?: string;
-  properties?: Record<string, any>;
+  properties?: TagProperties;
   rarity?: TagRarity;
   conflicts?: string[]; // Tags không thể kết hợp
   synergies?: TagSynergy[]; // Tags có hiệu ứng đặc biệt khi kết hợp
   createdBy: TagCreator;
   isActive: boolean;
+  usageCount?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -92,7 +152,7 @@ export interface TagCreator {
   type: 'ai' | 'admin' | 'system';
   id?: string; // User ID nếu là admin
   aiModel?: string; // Model AI nào tạo ra
-  context?: string; // Context khi tạo
+  context?: string | undefined; // Context khi tạo - explicitly allow undefined
 }
 
 /**
@@ -102,7 +162,7 @@ export interface TagSynergy {
   requiredTags: string[]; // Tags cần thiết
   effect: SynergyEffect;
   probability?: number; // Xác suất kích hoạt
-  conditions?: Record<string, any>; // Điều kiện đặc biệt
+  conditions?: ValidationParameters; // Điều kiện đặc biệt
 }
 
 /**
@@ -112,7 +172,7 @@ export interface SynergyEffect {
   type: 'stat_bonus' | 'new_ability' | 'transformation' | 'special_event';
   name: string;
   description: string;
-  effects: Record<string, any>;
+  effects: SynergyEffects;
   duration?: number; // -1 = permanent
 }
 
@@ -125,8 +185,8 @@ export interface DynamicType {
   description: string;
   category: DynamicTypeCategory;
   tags: string[]; // Tag IDs
-  baseProperties: Record<string, any>;
-  computedProperties?: Record<string, any>; // Tính toán từ tags
+  baseProperties: TagProperties;
+  computedProperties?: TagProperties; // Tính toán từ tags
   activeSynergies?: TagSynergy[];
   rarity: TagRarity;
   powerLevel: number;
@@ -177,7 +237,7 @@ export interface ValidationCondition {
     | 'tag_limit'
     | 'property_range'
     | 'custom';
-  parameters: Record<string, any>;
+  parameters: ValidationParameters;
   errorMessage: string;
 }
 
@@ -228,7 +288,7 @@ export interface TagCombinationResult {
   isValid: boolean;
   conflicts: string[];
   synergies: TagSynergy[];
-  suggestedProperties: Record<string, any>;
+  suggestedProperties: TagProperties;
   powerLevel: number;
   rarity: TagRarity;
   warnings?: string[];
@@ -261,7 +321,7 @@ export interface GenerationStep {
   id: string;
   name: string;
   type: 'ai_generation' | 'validation' | 'enhancement' | 'storage';
-  config: Record<string, any>;
+  config: GenerationConfig;
   order: number;
 }
 

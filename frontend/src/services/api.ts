@@ -19,8 +19,16 @@ api.interceptors.request.use(
     // Get token from localStorage (only on client side)
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
+      console.log('API Request - Token from localStorage:', token);
+
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log(
+          'API Request - Authorization header set:',
+          config.headers.Authorization,
+        );
+      } else {
+        console.log('API Request - No token or headers available');
       }
     }
     return config;

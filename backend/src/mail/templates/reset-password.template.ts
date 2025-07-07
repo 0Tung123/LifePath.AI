@@ -1,4 +1,4 @@
-export const resetPasswordTemplate = (resetLink: string) => `
+export const resetPasswordTemplate = (resetLink: string): string => `
 <h1>Reset Your Password</h1>
 <p>You have requested to reset your password.</p>
 <p>Please click the button below to set a new password:</p>

@@ -11,15 +11,15 @@ import { ApiProperty } from '@nestjs/swagger';
 export class User {
   @ApiProperty({ example: 'uuid', description: 'User ID' })
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiProperty({ example: 'test@example.com', description: 'Email address' })
   @Column({ unique: true, length: 255 })
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'hashed_password', description: 'Password' })
   @Column({ length: 255, select: false })
-  password: string;
+  password!: string;
 
   @ApiProperty({ example: 'John', description: 'First name', nullable: true })
   @Column({ length: 100, nullable: true })
@@ -31,7 +31,7 @@ export class User {
 
   @ApiProperty({ example: false, description: 'Is active' })
   @Column({ default: false })
-  isActive: boolean; // Có thể dùng để xác thực email sau này
+  isActive!: boolean; // Có thể dùng để xác thực email sau này
 
   @ApiProperty({
     example: 'reset_token',
@@ -70,14 +70,14 @@ export class User {
     description: 'Created at',
   })
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({
     example: '2025-05-29T12:00:00.000Z',
     description: 'Updated at',
   })
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ApiProperty({
     example: 'google_id',

@@ -24,11 +24,11 @@ import {
 export class Tag implements ITag {
   @ApiProperty({ example: 'uuid', description: 'Tag ID' })
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiProperty({ example: 'Fire Elemental', description: 'Tag name' })
   @Column({ type: 'varchar', length: 100, unique: true })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'element',
@@ -36,7 +36,7 @@ export class Tag implements ITag {
     enum: TagCategory,
   })
   @Column({ type: 'enum', enum: TagCategory })
-  category: TagCategory;
+  category!: TagCategory;
 
   @ApiProperty({
     example: 'Grants fire-based abilities and resistance',
@@ -58,7 +58,7 @@ export class Tag implements ITag {
     enum: TagRarity,
   })
   @Column({ type: 'enum', enum: TagRarity, default: TagRarity.COMMON })
-  rarity: TagRarity;
+  rarity!: TagRarity;
 
   @ApiProperty({
     example: ['water', 'ice'],
@@ -75,19 +75,19 @@ export class Tag implements ITag {
   synergies?: TagSynergy[];
 
   @ApiProperty({
-    example: { type: 'ai', aiModel: 'gemini-pro' },
+    example: { type: 'ai', aiModel: 'gemini-2.0-flash' },
     description: 'Tag creator info',
   })
   @Column({ type: 'jsonb' })
-  createdBy: TagCreator;
+  createdBy!: TagCreator;
 
   @ApiProperty({ example: true, description: 'Is tag active' })
   @Column({ type: 'boolean', default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ApiProperty({ example: 0, description: 'Usage count' })
   @Column({ type: 'integer', default: 0 })
-  usageCount: number;
+  usageCount?: number;
 
   @ApiProperty({ example: 4.5, description: 'Average rating' })
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
@@ -104,9 +104,9 @@ export class Tag implements ITag {
 
   @ApiProperty({ description: 'Creation timestamp' })
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({ description: 'Update timestamp' })
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

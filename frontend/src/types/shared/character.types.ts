@@ -17,8 +17,8 @@ export interface DynamicAttribute {
   description?: string;
   category?: string;
   tags?: string[];
-  properties: Record<string, any>;
-  metadata?: Record<string, any>;
+  properties: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -85,7 +85,7 @@ export interface DynamicCharacter extends BaseEntity {
   schedule?: NPCSchedule[];
 
   // Dynamic Properties
-  customProperties?: Record<string, any>;
+  customProperties?: Record<string, unknown>;
   flags?: Record<string, boolean>;
   counters?: Record<string, number>;
 }
@@ -253,7 +253,7 @@ export interface SkillEffect {
 export interface EffectCondition {
   type: 'health' | 'attribute' | 'status' | 'time' | 'location' | 'custom';
   operator: '>' | '>=' | '=' | '<=' | '<' | 'has' | 'not_has';
-  value: any;
+  value: string | number | boolean | string[];
   target?: 'self' | 'target' | 'environment';
 }
 
@@ -275,7 +275,7 @@ export interface SkillEvolution {
 export interface SkillModification {
   property: string;
   operation: 'set' | 'add' | 'multiply' | 'append';
-  value: any;
+  value: string | number | boolean | string[] | Record<string, unknown>;
 }
 
 // ============================================================================
@@ -350,7 +350,7 @@ export interface TalentEffect {
   scope: 'permanent' | 'conditional' | 'triggered';
 
   // Effect Values
-  values?: Record<string, any>;
+  values?: Record<string, string | number | boolean | DynamicValue>;
 
   // Conditions
   activationConditions?: EffectCondition[];
@@ -385,7 +385,7 @@ export interface TalentRequirement {
     | 'condition'
     | 'custom';
   target?: string;
-  value: any;
+  value: string | number | boolean | string[];
   description?: string;
 }
 
@@ -394,7 +394,7 @@ export interface TalentRequirement {
  */
 export interface TalentRestriction {
   type: 'race' | 'class' | 'gender' | 'age' | 'condition' | 'custom';
-  value: any;
+  value: string | number | boolean | string[];
   description: string;
 }
 
@@ -407,7 +407,10 @@ export interface TalentEvolution {
   description: string;
   requirements: TalentRequirement[];
   newTalentId?: string;
-  modifications?: Record<string, any>;
+  modifications?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 // ============================================================================
@@ -481,8 +484,8 @@ export interface DynamicItem extends DynamicAttribute {
 export interface ItemRequirement {
   type: 'level' | 'attribute' | 'skill' | 'class' | 'race' | 'condition';
   target?: string;
-  value: any;
-  operator?: string;
+  value: string | number | boolean | string[];
+  operator?: '>' | '>=' | '=' | '<=' | '<' | 'has' | 'not_has';
 }
 
 /**
@@ -536,7 +539,10 @@ export interface ItemModification {
   id: string;
   name: string;
   description: string;
-  modifiedProperties: Record<string, any>;
+  modifiedProperties: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
   addedEffects?: ItemEffect[];
   removedEffects?: string[];
 }
@@ -743,7 +749,10 @@ export interface DynamicQuest extends DynamicAttribute {
   worldStateChanges?: WorldStateChange[];
 
   // Dynamic Properties
-  variables?: Record<string, any>;
+  variables?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
   flags?: Record<string, boolean>;
 }
 
@@ -772,8 +781,8 @@ export interface QuestPrerequisite {
     | 'reputation'
     | 'condition';
   target?: string;
-  value: any;
-  operator?: string;
+  value: string | number | boolean | string[];
+  operator?: '>' | '>=' | '=' | '<=' | '<' | 'has' | 'not_has';
   description?: string;
 }
 
@@ -817,7 +826,7 @@ export interface QuestObjective {
  */
 export interface ObjectiveCondition {
   type: 'time' | 'location' | 'health' | 'stealth' | 'custom';
-  value: any;
+  value: string | number | boolean | string[];
   description?: string;
 }
 
@@ -860,7 +869,7 @@ export interface StoryImpact {
     | 'faction_standing'
     | 'story_branch';
   target: string;
-  impact: any;
+  impact: string | number | boolean | Record<string, unknown>;
   description?: string;
 }
 
@@ -874,7 +883,7 @@ export interface WorldStateChange {
     | 'item_availability'
     | 'dialogue_option';
   target: string;
-  change: any;
+  change: string | number | boolean | Record<string, unknown>;
   permanent?: boolean;
   description?: string;
 }
@@ -935,7 +944,7 @@ export interface EventEffect {
     | 'npc_behavior'
     | 'custom';
   target?: string;
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   duration?: number;
 }
 
@@ -1094,6 +1103,6 @@ export interface TimeEffect {
 export interface LocationEffect {
   type: 'attribute_modifier' | 'skill_modifier' | 'status_effect' | 'custom';
   target?: string;
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   conditions?: EffectCondition[];
 }

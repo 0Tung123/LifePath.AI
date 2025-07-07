@@ -60,7 +60,10 @@ export interface DynamicPropertyMap {
   objects?: Record<string, DynamicObjectValue>;
 
   // Custom properties - anything goes
-  custom?: Record<string, any>;
+  custom?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -137,7 +140,7 @@ export interface NumericModifier {
  */
 export interface ModifierCondition {
   type: 'time' | 'location' | 'health' | 'status' | 'equipment' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   description?: string;
 }
 
@@ -182,7 +185,7 @@ export interface DynamicTextValue {
   format?: 'plain' | 'markdown' | 'html' | 'rich_text';
 
   // Variables
-  variables?: Record<string, any>;
+  variables?: Record<string, string | number | boolean>;
   template?: string;
 
   // Validation
@@ -197,7 +200,7 @@ export interface DynamicTextValue {
  */
 export interface TextConstraint {
   type: 'length' | 'pattern' | 'forbidden_words' | 'custom';
-  constraint: any;
+  constraint: string | number | string[] | RegExp;
   errorMessage?: string;
 }
 
@@ -233,7 +236,7 @@ export interface DynamicBooleanValue {
  */
 export interface BooleanCondition {
   type: 'time' | 'event' | 'value' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   result: boolean;
   priority: number;
 }
@@ -283,7 +286,7 @@ export interface DynamicListValue {
  */
 export interface DynamicListItem {
   id: string;
-  value: any;
+  value: string | number | boolean | Record<string, unknown>;
 
   // Item Properties
   weight?: number;
@@ -316,7 +319,13 @@ export interface SortCriteria {
  */
 export interface ListItemConstraint {
   type: 'type' | 'value' | 'pattern' | 'custom';
-  constraint: any;
+  constraint:
+    | string
+    | number
+    | boolean
+    | string[]
+    | RegExp
+    | Record<string, unknown>;
   errorMessage?: string;
 }
 
@@ -325,7 +334,7 @@ export interface ListItemConstraint {
  */
 export interface ItemCondition {
   type: 'time' | 'location' | 'event' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   action: 'show' | 'hide' | 'remove' | 'modify';
 }
 
@@ -335,7 +344,7 @@ export interface ItemCondition {
 export interface ListValueHistory {
   timestamp: string;
   action: 'add' | 'remove' | 'modify' | 'sort' | 'clear';
-  details: any;
+  details: Record<string, unknown>;
   reason: string;
   source?: string;
 }
@@ -344,7 +353,10 @@ export interface ListValueHistory {
  * Dynamic object value
  */
 export interface DynamicObjectValue {
-  data: Record<string, any>;
+  data: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 
   // Schema
   schema?: ObjectSchema;
@@ -372,10 +384,16 @@ export interface ObjectSchema {
  * Property schema
  */
 export interface PropertySchema {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'any';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'unknown';
   description?: string;
-  constraints?: any[];
-  default?: any;
+  constraints?: (
+    | string
+    | number
+    | boolean
+    | RegExp
+    | Record<string, unknown>
+  )[];
+  default?: string | number | boolean | string[] | Record<string, unknown>;
 }
 
 /**
@@ -383,7 +401,9 @@ export interface PropertySchema {
  */
 export interface ObjectValidator {
   name: string;
-  validator: (value: any) => boolean | string;
+  validator: (
+    value: string | number | boolean | string[] | Record<string, unknown>,
+  ) => boolean | string;
   errorMessage?: string;
 }
 
@@ -393,7 +413,12 @@ export interface ObjectValidator {
 export interface ComputedProperty {
   name: string;
   dependencies: string[];
-  calculator: (data: Record<string, any>) => any;
+  calculator: (
+    data: Record<
+      string,
+      string | number | boolean | string[] | Record<string, unknown>
+    >,
+  ) => string | number | boolean | string[] | Record<string, unknown>;
   cached?: boolean;
   cacheTimeout?: number;
 }
@@ -404,8 +429,8 @@ export interface ComputedProperty {
 export interface ObjectValueHistory {
   timestamp: string;
   property: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: string | number | boolean | string[] | Record<string, unknown>;
+  newValue: string | number | boolean | string[] | Record<string, unknown>;
   reason: string;
   source?: string;
 }
@@ -447,7 +472,10 @@ export interface EntityMetadata {
   lastUsed?: string;
 
   // Custom Metadata
-  custom?: Record<string, any>;
+  custom?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -465,7 +493,7 @@ export interface EntityPermission {
  */
 export interface PermissionCondition {
   type: 'time' | 'location' | 'context' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   description?: string;
 }
 
@@ -483,7 +511,10 @@ export interface EntityRelationship {
   bidirectional: boolean;
 
   // Relationship Data
-  data?: Record<string, any>;
+  data?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 
   // Conditions
   conditions?: RelationshipCondition[];
@@ -493,7 +524,10 @@ export interface EntityRelationship {
   expiresAt?: string;
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -501,7 +535,7 @@ export interface EntityRelationship {
  */
 export interface RelationshipCondition {
   type: 'distance' | 'state' | 'time' | 'event' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   action: 'maintain' | 'strengthen' | 'weaken' | 'break';
 }
 
@@ -535,7 +569,10 @@ export interface EntityBehavior {
   maxExecutions?: number;
 
   // Context
-  context?: Record<string, any>;
+  context?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -543,7 +580,7 @@ export interface EntityBehavior {
  */
 export interface BehaviorTrigger {
   type: 'time' | 'event' | 'condition' | 'interaction' | 'custom';
-  trigger: any;
+  trigger: string | number | boolean | Record<string, unknown>;
 
   // Trigger Properties
   probability?: number;
@@ -558,7 +595,7 @@ export interface BehaviorTrigger {
  */
 export interface TriggerCondition {
   type: 'state' | 'relationship' | 'environment' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
 }
 
@@ -573,7 +610,7 @@ export interface BehaviorAction {
     | 'send_message'
     | 'trigger_event'
     | 'custom';
-  action: any;
+  action: string | number | boolean | Record<string, unknown>;
 
   // Action Properties
   order: number;
@@ -591,7 +628,7 @@ export interface BehaviorAction {
  */
 export interface ActionCondition {
   type: 'resource' | 'permission' | 'state' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
 }
 
@@ -600,7 +637,7 @@ export interface ActionCondition {
  */
 export interface ActionEffect {
   type: 'immediate' | 'delayed' | 'conditional' | 'persistent';
-  effect: any;
+  effect: string | number | boolean | Record<string, unknown>;
   duration?: number;
   conditions?: EffectCondition[];
 }
@@ -610,7 +647,7 @@ export interface ActionEffect {
  */
 export interface EffectCondition {
   type: 'time' | 'state' | 'event' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   description?: string;
 }
 
@@ -619,7 +656,7 @@ export interface EffectCondition {
  */
 export interface BehaviorCondition {
   type: 'state' | 'time' | 'resource' | 'relationship' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
   description?: string;
 }
@@ -637,7 +674,10 @@ export interface EntityState {
   transitions: StateTransition[];
 
   // State Data
-  stateData?: Record<string, any>;
+  stateData?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 
   // History
   stateHistory: StateHistoryEntry[];
@@ -665,7 +705,10 @@ export interface StateDefinition {
   exitConditions?: StateCondition[];
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -686,7 +729,10 @@ export interface StateTransition {
   duration?: number;
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -694,7 +740,7 @@ export interface StateTransition {
  */
 export interface StateCondition {
   type: 'property' | 'relationship' | 'time' | 'event' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
 }
 
@@ -703,7 +749,7 @@ export interface StateCondition {
  */
 export interface TransitionTrigger {
   type: 'manual' | 'automatic' | 'time' | 'event' | 'condition' | 'custom';
-  trigger: any;
+  trigger: string | number | boolean | Record<string, unknown>;
   probability?: number;
 }
 
@@ -712,7 +758,7 @@ export interface TransitionTrigger {
  */
 export interface TransitionCondition {
   type: 'resource' | 'permission' | 'state' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
 }
 
@@ -734,7 +780,10 @@ export interface StateHistoryEntry {
   toState: string;
   trigger?: string;
   reason?: string;
-  data?: Record<string, any>;
+  data?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -772,7 +821,10 @@ export interface LifecycleEvent {
   phase: string;
   timestamp: string;
   trigger?: string;
-  data?: Record<string, any>;
+  data?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -791,7 +843,7 @@ export interface LifecycleRule {
  */
 export interface LifecycleCondition {
   type: 'time' | 'usage' | 'condition' | 'manual' | 'custom';
-  condition: any;
+  condition: string | number | boolean | Record<string, unknown>;
   required: boolean;
 }
 
@@ -839,7 +891,10 @@ export interface TypeDefinition {
   factory?: EntityFactory;
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<
+    string,
+    string | number | boolean | string[] | Record<string, unknown>
+  >;
 }
 
 /**
@@ -856,7 +911,12 @@ export interface TypeValidator {
  * Entity factory
  */
 export interface EntityFactory {
-  create: (params: Record<string, any>) => UniversalEntity;
+  create: (
+    params: Record<
+      string,
+      string | number | boolean | string[] | Record<string, unknown>
+    >,
+  ) => UniversalEntity;
   template?: Partial<UniversalEntity>;
   parameterSchema?: Record<string, PropertySchema>;
 }
@@ -931,7 +991,7 @@ export interface QueryCondition {
     | 'regex'
     | 'exists'
     | 'custom';
-  value: any;
+  value: string | number | boolean | string[] | Record<string, unknown>;
 
   // Logical Operators
   and?: QueryCondition[];

@@ -1,59 +1,78 @@
 import {
   GameStats,
   InventoryItem,
-  Skill,
+  CharacterSkill,
   LoreFragment,
-  Choice,
-  NpcInfo,
-  ItemUsageRecord,
-  ImportantEvent,
-  Achievement,
-  CharacterLifeSummary,
-} from '../../common/types/game.types';
+  GameChoice,
+  ParsedGameContent,
+  LifeSummary,
+  ReputationChanges,
+} from '../../common/types/game-engine.types';
 
 // Re-export types for convenience
 export {
   GameStats,
   InventoryItem,
-  Skill,
+  CharacterSkill,
   LoreFragment,
-  Choice,
-  NpcInfo,
-  ItemUsageRecord,
-  ImportantEvent,
-  Achievement,
-  CharacterLifeSummary,
+  GameChoice,
+  ParsedGameContent,
+  LifeSummary,
+  ReputationChanges,
 };
 
 // Alias for backward compatibility
+export type Skill = CharacterSkill;
+export type Choice = GameChoice;
+
+/**
+ * NPC information for tracking interactions
+ */
+export interface NpcInfo {
+  readonly name: string;
+  readonly description: string;
+  readonly relationship: string;
+  readonly location: string;
+  readonly importance: 'low' | 'medium' | 'high';
+  readonly firstMet: Date;
+  readonly lastInteraction: Date;
+}
+
+/**
+ * Item usage tracking
+ */
+export interface ItemUsageRecord {
+  readonly itemName: string;
+  readonly usedAt: Date;
+  readonly purpose: string;
+  readonly effect: string;
+  readonly location: string;
+}
+
+/**
+ * Important event tracking
+ */
+export interface ImportantEvent {
+  readonly title: string;
+  readonly description: string;
+  readonly date: Date;
+  readonly location: string;
+  readonly impact: 'positive' | 'negative' | 'neutral';
+  readonly importance: 'low' | 'medium' | 'high';
+  readonly participants: string[];
+}
+
+/**
+ * Achievement tracking
+ */
+export interface Achievement {
+  readonly name: string;
+  readonly description: string;
+  readonly unlockedAt: Date;
+  readonly type: 'story' | 'combat' | 'social' | 'exploration' | 'special';
+  readonly rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+}
+
+// Legacy aliases for backward compatibility
 export type NpcMet = NpcInfo;
 export type ItemUsed = ItemUsageRecord;
-
-/**
- * Life summary for character
- */
-export interface LifeSummary extends Partial<CharacterLifeSummary> {
-  totalYears: number;
-  majorEvents: string[];
-  relationships: Record<string, unknown>;
-  legacy: string;
-}
-
-/**
- * Parsed game content from AI response
- */
-export interface ParsedGameContent {
-  storyText: string;
-  stats: GameStats;
-  inventory: InventoryItem[];
-  skills: Skill[];
-  lore: LoreFragment[];
-  choices: Choice[];
-  karmaChange?: number;
-  karmaReason?: string;
-  reputationChanges?: { [key: string]: number };
-  npcsMet?: NpcInfo[];
-  itemsUsed?: ItemUsageRecord[];
-  importantEvents?: ImportantEvent[];
-  achievements?: Achievement[];
-}

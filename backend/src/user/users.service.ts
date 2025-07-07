@@ -51,7 +51,10 @@ export class UsersService {
     });
   }
 
-  async update(userId: string, updatedUser: Partial<User>): Promise<any> {
+  async update(
+    userId: string,
+    updatedUser: Partial<User>,
+  ): Promise<{ message: string }> {
     await this.usersRepository.update(userId, updatedUser);
     return { message: `User with id ${userId} updated successfully` };
   }

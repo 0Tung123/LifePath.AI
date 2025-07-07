@@ -24,7 +24,6 @@ import { DynamicSystemService } from '../services/dynamic-system.service';
 import { CreateTagDto, UpdateTagDto } from '../dto/create-tag.dto';
 import {
   CreateDynamicTypeDto,
-  UpdateDynamicTypeDto,
   GenerateDynamicTypeDto,
   TagCombinationRequestDto,
 } from '../dto/create-dynamic-type.dto';

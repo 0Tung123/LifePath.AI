@@ -25,21 +25,21 @@ import { Tag } from './tag.entity';
 export class DynamicType implements IDynamicType {
   @ApiProperty({ example: 'uuid', description: 'Dynamic Type ID' })
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ApiProperty({
     example: 'Flame Sword of the Phoenix',
     description: 'Dynamic type name',
   })
   @Column({ type: 'varchar', length: 200 })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     example: 'A legendary sword imbued with phoenix fire...',
     description: 'Dynamic type description',
   })
   @Column({ type: 'text' })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     example: 'equipment',
@@ -47,21 +47,21 @@ export class DynamicType implements IDynamicType {
     enum: DynamicTypeCategory,
   })
   @Column({ type: 'enum', enum: DynamicTypeCategory })
-  category: DynamicTypeCategory;
+  category!: DynamicTypeCategory;
 
   @ApiProperty({
     example: ['fire', 'weapon', 'legendary'],
     description: 'Associated tag IDs',
   })
   @Column({ type: 'jsonb' })
-  tags: string[];
+  tags!: string[];
 
   @ApiProperty({
     example: { damage: 100, durability: 500 },
     description: 'Base properties',
   })
   @Column({ type: 'jsonb' })
-  baseProperties: Record<string, any>;
+  baseProperties!: Record<string, any>;
 
   @ApiProperty({
     example: { total_damage: 150, fire_damage: 50 },
@@ -83,30 +83,30 @@ export class DynamicType implements IDynamicType {
     enum: TagRarity,
   })
   @Column({ type: 'enum', enum: TagRarity })
-  rarity: TagRarity;
+  rarity!: TagRarity;
 
   @ApiProperty({ example: 85, description: 'Power level (0-100)' })
   @Column({ type: 'integer', default: 1 })
-  powerLevel: number;
+  powerLevel!: number;
 
   @ApiProperty({
-    example: { type: 'ai', aiModel: 'gemini-pro' },
+    example: { type: 'ai', aiModel: 'gemini-2.0-flash' },
     description: 'Creator info',
   })
   @Column({ type: 'jsonb' })
-  createdBy: TagCreator;
+  createdBy!: TagCreator;
 
   @ApiProperty({ example: false, description: 'Is this a reusable template' })
   @Column({ type: 'boolean', default: false })
-  isTemplate: boolean;
+  isTemplate!: boolean;
 
   @ApiProperty({ example: 5, description: 'Usage count' })
   @Column({ type: 'integer', default: 0 })
-  usageCount: number;
+  usageCount!: number;
 
   @ApiProperty({ example: true, description: 'Is active' })
   @Column({ type: 'boolean', default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ApiProperty({ example: 4.8, description: 'Average player rating' })
   @Column({ type: 'decimal', precision: 3, scale: 2, nullable: true })
@@ -133,9 +133,9 @@ export class DynamicType implements IDynamicType {
 
   @ApiProperty({ description: 'Creation timestamp' })
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({ description: 'Update timestamp' })
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

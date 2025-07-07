@@ -27,78 +27,78 @@ import {
 @Entity('games')
 export class Game {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'user_id' })
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @Column({ type: 'jsonb' })
-  settings: GameSettingsDto;
+  settings!: GameSettingsDto;
 
   @Column({ type: 'jsonb', name: 'story_history' })
-  storyHistory: StorySegment[];
+  storyHistory!: StorySegment[];
 
   @Column({ type: 'jsonb', name: 'character_stats' })
-  characterStats: GameStats;
+  characterStats!: GameStats;
 
   @Column({ type: 'jsonb', name: 'inventory_items' })
-  inventoryItems: InventoryItem[];
+  inventoryItems!: InventoryItem[];
 
   @Column({ type: 'jsonb', name: 'character_skills' })
-  characterSkills: Skill[];
+  characterSkills!: Skill[];
 
   @Column({ type: 'jsonb', name: 'lore_fragments' })
-  loreFragments: LoreFragment[];
+  loreFragments!: LoreFragment[];
 
   @Column({ type: 'text', name: 'current_prompt', nullable: true })
-  currentPrompt: string;
+  currentPrompt!: string;
 
   @Column({ type: 'jsonb', name: 'current_choices', nullable: true })
-  currentChoices: Choice[];
+  currentChoices!: Choice[];
 
   @Column({ type: 'jsonb', name: 'chat_history_for_gemini', nullable: true })
-  chatHistoryForGemini: ChatHistoryItem[];
+  chatHistoryForGemini!: ChatHistoryItem[];
 
   @Column({ type: 'jsonb', name: 'knowledge_base', nullable: true })
-  knowledgeBase: KnowledgeBaseItem[];
+  knowledgeBase!: KnowledgeBaseItem[];
 
   @Column({ type: 'text', name: 'current_objective', nullable: true })
-  currentObjective: string | null;
+  currentObjective!: string | null;
 
   @Column({ type: 'jsonb', name: 'npcs_met', nullable: true })
-  npcsMet: NpcInfo[];
+  npcsMet!: NpcInfo[];
 
   @Column({ type: 'jsonb', name: 'items_used', nullable: true })
-  itemsUsed: ItemUsageRecord[];
+  itemsUsed!: ItemUsageRecord[];
 
   @Column({ type: 'jsonb', name: 'important_events', nullable: true })
-  importantEvents: ImportantEvent[];
+  importantEvents!: ImportantEvent[];
 
   @Column({ type: 'jsonb', name: 'achievements', nullable: true })
-  achievements: Achievement[];
+  achievements!: Achievement[];
 
   @Column({ type: 'integer', name: 'karma_score', default: 0 })
-  karmaScore: number;
+  karmaScore!: number;
 
   @Column({ type: 'jsonb', name: 'reputation', nullable: true })
-  reputation: { [key: string]: number };
+  reputation!: { [key: string]: number };
 
   @Column({ default: true })
-  active: boolean;
+  active!: boolean;
 
   @Column({ type: 'timestamp', name: 'death_date', nullable: true })
-  deathDate: Date | null;
+  deathDate!: Date | null;
 
   @Column({ type: 'text', name: 'death_cause', nullable: true })
-  deathCause: string | null;
+  deathCause!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
