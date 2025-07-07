@@ -2,8 +2,6 @@ import { GameSettingsDto, GameTheme } from '../dto/create-game.dto';
 import {
   generateChineseStyleNarrativePrompt,
   generateKoreanStyleNarrativePrompt,
-  generateNarrativeRulesPrompt,
-  enforceVietnameseLanguage,
   validateVietnameseResponse,
   replaceEnglishTerms,
 } from './index';

@@ -744,8 +744,9 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatTimestamp = (timestamp: string | Date) => {
+    const date =
+      typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
     return date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',

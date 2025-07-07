@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error('Invalid login response');
       }
-    } catch (error) {
+    } catch {
       const errorMessage = 'Failed to login. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);
