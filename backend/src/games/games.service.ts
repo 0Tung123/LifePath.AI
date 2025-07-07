@@ -9,6 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto, GameSettingsDto } from './dto/create-game.dto';
+import { UpdateWorldStateDto } from './dto/update-world-state.dto';
+import { UpdateNpcRelationshipDto } from './dto/update-npc-relationship.dto';
+import { UpdateQuestDto } from './dto/update-quest.dto';
+import { UpdateStatusEffectsDto } from './dto/update-status-effect.dto';
+import {
+  UpdateGameEventDto,
+  GameEventConsequenceDto,
+} from './dto/update-game-event.dto';
 import { GeminiService } from './gemini.service';
 import {
   ParsedGameContent,
@@ -20,6 +28,14 @@ import {
   LifeSummary,
   Skill,
 } from './interfaces/game-content.interface';
+import {
+  InteractionType,
+  InteractionAttributes,
+  StoryHistoryEntry,
+  WorldState,
+  NpcRelationship,
+  ContentSegment,
+} from '../common/types/game-engine.types';
 
 @Injectable()
 export class GamesService {
@@ -67,13 +83,29 @@ export class GamesService {
       const newGame = this.gamesRepository.create();
       newGame.userId = userId;
       newGame.settings = gameSettings;
-      newGame.storyHistory = [
-        {
-          type: 'story',
-          content: parsedContent.storyText,
-          timestamp: new Date(),
-        },
-      ];
+
+      // Tạo entry lịch sử với định dạng mới
+      let initialStoryEntry: StoryHistoryEntry = {
+        type: InteractionType.STORY,
+        content: parsedContent.storyText,
+        timestamp: new Date(),
+      };
+
+      // Nếu có phân đoạn nội dung có cấu trúc, thêm vào attributes
+      if (
+        parsedContent.storySegments &&
+        parsedContent.storySegments.length > 0
+      ) {
+        // Create a new StoryHistoryEntry with attributes
+        initialStoryEntry = {
+          ...initialStoryEntry,
+          attributes: {
+            segments: parsedContent.storySegments,
+          },
+        };
+      }
+
+      newGame.storyHistory = [initialStoryEntry];
       newGame.characterStats = statsWithHealth;
       newGame.inventoryItems = parsedContent.inventory;
       newGame.characterSkills = parsedContent.skills;
@@ -89,6 +121,33 @@ export class GamesService {
       newGame.achievements = [];
       newGame.karmaScore = parsedContent.karmaChange || 0;
       newGame.reputation = parsedContent.reputationChanges || {};
+
+      // Khởi tạo các trường mới
+      newGame.worldState = {
+        gameTime: {
+          day: 1,
+          hour: 12,
+          minute: 0,
+          season: 'spring',
+          year: 1,
+        },
+        environment: {
+          weather: 'clear',
+          temperature: 20,
+          conditions: ['normal'],
+        },
+        society: {
+          politicalState: 'stable',
+          economicState: 'normal',
+        },
+        discoveredRegions: [],
+        activeEvents: [],
+      };
+
+      newGame.npcRelationships = [];
+      newGame.questLog = [];
+      newGame.playerChoiceHistory = [];
+      newGame.worldEvolution = [];
       newGame.active = true;
       newGame.deathDate = null;
       newGame.deathCause = null;
@@ -206,8 +265,17 @@ export class GamesService {
     action?: string,
     think?: string,
     communication?: string,
+    // Thêm các tham số mới
+    actionType?: string,
+    actionTarget?: string,
+    actionContext?: string,
+    actionIntensity?: number,
+    actionIntent?: string,
+    actionMetadata?: Record<string, unknown>,
   ): Promise<Game> {
     try {
+      // Process status effects before action
+      await this.processStatusEffects(id, userId);
       // 1. Check if game exists and belongs to the user
       const game = await this.gamesRepository.findOne({
         where: { id, userId },
@@ -219,15 +287,38 @@ export class GamesService {
         );
       }
 
-      // 2. Validate input
-      if (!choiceNumber && !action && !think && !communication) {
+      // 2. Validate input - kiểm tra xem có ít nhất một loại hành động được cung cấp
+      const hasAction =
+        choiceNumber !== undefined ||
+        action !== undefined ||
+        think !== undefined ||
+        communication !== undefined ||
+        actionType !== undefined;
+
+      if (!hasAction) {
         throw new BadRequestException(
-          'Must provide a choice number, action, thought, or communication',
+          'Must provide at least one type of action (choice, custom action, thought, communication, or action type)',
         );
       }
 
-      // Validate choice number against available choices
-      if (choiceNumber) {
+      // Xác định loại hành động dựa trên các tham số được cung cấp
+      let determinedActionType = actionType;
+      let actionContent = '';
+
+      if (!determinedActionType) {
+        if (choiceNumber !== undefined) {
+          determinedActionType = InteractionType.USER_CHOICE;
+        } else if (action) {
+          determinedActionType = InteractionType.USER_CUSTOM_ACTION;
+        } else if (think) {
+          determinedActionType = InteractionType.USER_THINKING;
+        } else if (communication) {
+          determinedActionType = InteractionType.USER_COMMUNICATION;
+        }
+      }
+
+      // Lấy nội dung hành động
+      if (choiceNumber !== undefined) {
         const validChoice = game.currentChoices.find(
           (choice) => choice.number === choiceNumber,
         );
@@ -236,6 +327,7 @@ export class GamesService {
             `Invalid choice number: ${choiceNumber}`,
           );
         }
+        actionContent = validChoice.text;
 
         // Handle special resurrection choices
         if (
@@ -253,7 +345,44 @@ export class GamesService {
           // User chose to accept death - just return current game state
           return game;
         }
+      } else if (action) {
+        actionContent = action;
+      } else if (think) {
+        actionContent = think;
+      } else if (communication) {
+        actionContent = communication;
       }
+
+      // Tạo metadata cho hành động
+      // Since InteractionAttributes has readonly properties, we need to build it all at once
+      const attributesEntries: Record<
+        string,
+        string | number | boolean | object | null
+      > = {};
+
+      // Add basic attributes
+      if (actionTarget) attributesEntries['target'] = actionTarget;
+      if (actionContext) attributesEntries['context'] = actionContext;
+      if (actionIntensity !== undefined)
+        attributesEntries['intensity'] = actionIntensity;
+      if (actionIntent) attributesEntries['intent'] = actionIntent;
+
+      // Thêm các metadata tùy chỉnh
+      if (actionMetadata) {
+        Object.entries(actionMetadata).forEach(([key, value]) => {
+          if (value !== undefined) {
+            attributesEntries[key] = value as
+              | string
+              | number
+              | boolean
+              | object
+              | null;
+          }
+        });
+      }
+
+      // Create the InteractionAttributes object
+      const interactionAttributes: InteractionAttributes = attributesEntries;
 
       // 3. Build prompt for Gemini based on the action
       const prompt = await this.buildActionPrompt(
@@ -271,49 +400,172 @@ export class GamesService {
       const parsedContent = this.parseAiResponse(aiResponse);
 
       // 6. Update game state
-      // First, add user action to history
+      // First, add user action to history with enhanced metadata
       const now = new Date();
-      if (choiceNumber) {
-        const selectedChoice = game.currentChoices.find(
-          (c) => c.number === choiceNumber,
-        );
-        if (selectedChoice) {
-          game.storyHistory.push({
-            type: 'user_choice',
-            content: selectedChoice.text,
-            timestamp: now,
-          });
+
+      // Tạo entry lịch sử với thông tin phong phú hơn
+      let historyEntry: StoryHistoryEntry = {
+        type: determinedActionType || 'unknown',
+        content: actionContent,
+        timestamp: now,
+        attributes:
+          Object.keys(interactionAttributes).length > 0
+            ? interactionAttributes
+            : undefined,
+      };
+
+      if (actionIntensity && actionIntensity > 70) {
+        const worldImpactData = {
+          environmentalChanges: {},
+          socialChanges: {},
+          affectedRelationships: [] as Array<{
+            entityId: string;
+            entityName: string;
+            relationshipChange: number;
+            newStatus?: string;
+          }>,
+        };
+
+        // Thêm thông tin về các mối quan hệ bị ảnh hưởng nếu có target
+        if (actionTarget) {
+          worldImpactData.affectedRelationships = [
+            {
+              entityId: 'unknown',
+              entityName: actionTarget,
+              relationshipChange: actionIntensity > 80 ? 10 : 5,
+            },
+          ];
         }
-      } else if (action) {
-        game.storyHistory.push({
-          type: 'user_custom_action',
-          content: action,
-          timestamp: now,
-        });
-      } else if (think) {
-        game.storyHistory.push({
-          type: 'user_thinking',
-          content: think,
-          timestamp: now,
-        });
-      } else if (communication) {
-        game.storyHistory.push({
-          type: 'user_communication',
-          content: communication,
-          timestamp: now,
-        });
+
+        // Create a new historyEntry with the worldImpact
+        historyEntry = {
+          ...historyEntry,
+          worldImpact: worldImpactData,
+        };
       }
 
-      // Then add AI response
-      game.storyHistory.push({
-        type: 'story',
+      // Thêm vào lịch sử
+      game.storyHistory.push(historyEntry);
+
+      // Then add AI response with enhanced content
+      let storyEntry: StoryHistoryEntry = {
+        type: InteractionType.STORY,
         content: parsedContent.storyText,
         timestamp: new Date(),
-      });
+      };
+
+      // Nếu có phân đoạn nội dung có cấu trúc, thêm vào attributes
+      if (
+        parsedContent.storySegments &&
+        parsedContent.storySegments.length > 0
+      ) {
+        // Create a new StoryHistoryEntry with attributes
+        storyEntry = {
+          ...storyEntry,
+          attributes: {
+            segments: parsedContent.storySegments,
+          },
+        };
+      }
+
+      // Nếu có thay đổi trạng thái thế giới, thêm vào worldImpact
+      if (parsedContent.worldStateChanges) {
+        // Create a new StoryHistoryEntry with the worldImpact
+        const updatedStoryEntry: StoryHistoryEntry = {
+          ...storyEntry,
+          worldImpact: {
+            environmentalChanges: {},
+            socialChanges: {},
+            affectedRelationships: [],
+          },
+        };
+        // Replace the storyEntry with the updated one
+        storyEntry = updatedStoryEntry;
+
+        // Xử lý thay đổi môi trường
+        if (parsedContent.worldStateChanges.environment) {
+          const envChanges = parsedContent.worldStateChanges.environment;
+          // Create a new environmentalChanges object with all entries
+          if (storyEntry.worldImpact?.environmentalChanges) {
+            const newEnvironmentalChanges: Record<
+              string,
+              { after: string | number }
+            > = {};
+
+            Object.entries(envChanges).forEach(([aspect, value]) => {
+              newEnvironmentalChanges[aspect] = {
+                after: value as string | number,
+              };
+            });
+
+            // Create a new StoryHistoryEntry with updated worldImpact
+            const updatedStoryEntry: StoryHistoryEntry = {
+              ...storyEntry,
+              worldImpact: {
+                ...storyEntry.worldImpact,
+                environmentalChanges: newEnvironmentalChanges,
+              },
+            };
+
+            // Replace the storyEntry with the updated one
+            storyEntry = updatedStoryEntry;
+          }
+        }
+
+        // Xử lý thay đổi xã hội
+        if (parsedContent.worldStateChanges.society) {
+          const socChanges = parsedContent.worldStateChanges.society;
+          // Create a new socialChanges object with all entries
+          if (storyEntry.worldImpact?.socialChanges) {
+            const newSocialChanges: Record<string, { after: string | number }> =
+              {};
+
+            Object.entries(socChanges).forEach(([aspect, value]) => {
+              newSocialChanges[aspect] = {
+                after: value as string | number,
+              };
+            });
+
+            // Create a new StoryHistoryEntry with updated worldImpact
+            const updatedStoryEntry: StoryHistoryEntry = {
+              ...storyEntry,
+              worldImpact: {
+                ...storyEntry.worldImpact,
+                socialChanges: newSocialChanges,
+              },
+            };
+
+            // Replace the storyEntry with the updated one
+            storyEntry = updatedStoryEntry;
+          }
+        }
+      }
+
+      // Thêm vào lịch sử
+      game.storyHistory.push(storyEntry);
 
       // Update game properties
       game.currentPrompt = parsedContent.storyText;
       game.currentChoices = parsedContent.choices;
+
+      // Nếu có sự kiện được kích hoạt, lưu vào lịch sử
+      if (
+        parsedContent.triggeredEvents &&
+        parsedContent.triggeredEvents.length > 0
+      ) {
+        parsedContent.triggeredEvents.forEach((event) => {
+          game.storyHistory.push({
+            type: 'event',
+            content: `${event.name}: ${event.description}`,
+            timestamp: new Date(),
+            attributes: {
+              eventId: event.id,
+              eventType: event.type,
+              probability: event.probability ?? 0, // Use 0 as default if undefined
+            },
+          });
+        });
+      }
       game.characterStats = { ...game.characterStats, ...parsedContent.stats };
 
       // Check for death condition
@@ -436,11 +688,21 @@ export class GamesService {
           (skill) => skill.name === newSkill.name,
         );
         if (existingSkill) {
-          // Update existing skill
-          if (newSkill.level) existingSkill.level = newSkill.level;
-          if (newSkill.mastery) existingSkill.mastery = newSkill.mastery;
-          if (newSkill.description)
-            existingSkill.description = newSkill.description;
+          // Create a new skill object with updated properties
+          const updatedSkill: CharacterSkill = {
+            ...existingSkill,
+            level: newSkill.level ?? existingSkill.level,
+            mastery: newSkill.mastery ?? existingSkill.mastery,
+            description: newSkill.description ?? existingSkill.description,
+          };
+
+          // Replace the existing skill with the updated one
+          const skillIndex = game.characterSkills.findIndex(
+            (s) => s.name === existingSkill.name,
+          );
+          if (skillIndex !== -1) {
+            game.characterSkills[skillIndex] = updatedSkill;
+          }
         } else {
           // Add new skill
           game.characterSkills.push(newSkill);
@@ -500,14 +762,42 @@ export class GamesService {
     action?: string,
     think?: string,
     communication?: string,
+    actionType?: string,
+    actionTarget?: string,
+    actionContext?: string,
+    actionIntensity?: number,
+    actionIntent?: string,
+    actionMetadata?: Record<string, unknown>,
   ): Promise<string> {
     try {
       // Import the enhanced action prompt
       const { buildEnhancedActionPrompt } = await import(
         './prompts/enhanced-world-building.prompt.backup'
       );
+
+      // Tạo thông tin bổ sung về hành động
+      const enhancedActionInfo = {
+        type: actionType,
+        target: actionTarget,
+        context: actionContext,
+        intensity: actionIntensity,
+        intent: actionIntent,
+        metadata: actionMetadata,
+        worldState: game.worldState,
+        npcRelationships: game.npcRelationships,
+        questLog: game.questLog,
+        worldEvolution: game.worldEvolution,
+      };
+
+      // The buildEnhancedActionPrompt function only accepts 5 parameters
+      // We'll need to modify the game object to include the enhancedActionInfo
+      const gameWithEnhancedInfo = {
+        ...game,
+        enhancedActionInfo, // Add the enhancedActionInfo to the game object
+      };
+
       return buildEnhancedActionPrompt(
-        game,
+        gameWithEnhancedInfo,
         choiceNumber,
         action,
         think,
@@ -553,19 +843,26 @@ export class GamesService {
         response.includes('[INVENTORY_INIT:');
       const hasSkillTag =
         response.includes('[SKILL:') || response.includes('[SKILLS:');
+      const hasWorldStateTag = response.includes('[WORLD_STATE:');
+      const hasEventTag = response.includes('[EVENT:');
+      const hasNpcTag = response.includes('[NPC_UPDATE:');
 
       this.logger.log(
-        `Tags found - STATS: ${hasStatsTag}, INVENTORY: ${hasInventoryTag}, SKILL: ${hasSkillTag}`,
+        `Tags found - STATS: ${hasStatsTag}, INVENTORY: ${hasInventoryTag}, SKILL: ${hasSkillTag}, WORLD: ${hasWorldStateTag}, EVENT: ${hasEventTag}, NPC: ${hasNpcTag}`,
       );
 
       // Extract story text (everything before the first tag)
       let storyText: string = response;
       const firstTagMatch = response.match(
-        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION):/,
+        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION|WORLD_STATE|EVENT|NPC_UPDATE):/,
       );
       if (firstTagMatch && firstTagMatch.index !== undefined) {
         storyText = response.substring(0, firstTagMatch.index).trim();
       }
+
+      // Phân tích nội dung thành các phân đoạn
+      // We're not using storySegments directly, but we'll keep the parsing for future use
+      this.parseContentSegments(storyText);
 
       // Extract stats
       const statsMatches = [...response.matchAll(/\[STATS:\s*(.*?)\]/g)];
@@ -794,6 +1091,7 @@ export class GamesService {
         const content = contentMatch?.[1] || descMatch?.[1] || 'No description';
 
         const loreFragment: LoreFragment = {
+          id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
           title,
           content,
           type: category,
@@ -826,6 +1124,7 @@ export class GamesService {
 
               fragments.forEach((fragment) => {
                 const loreFragment: LoreFragment = {
+                  id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
                   title: fragment.title || 'Unknown',
                   content: fragment.content || 'No description',
                   type: fragment.category || 'world',
@@ -946,8 +1245,227 @@ export class GamesService {
         ];
       }
 
+      // Extract world state changes
+      const worldStateMatches = [
+        ...response.matchAll(/\[WORLD_STATE:\s*(.*?)\]/gs),
+      ];
+      let worldStateChanges: Partial<WorldState> | undefined;
+
+      if (worldStateMatches.length > 0) {
+        try {
+          const worldStateString = worldStateMatches[0][1];
+          // Parse JSON format
+          if (worldStateString.trim().startsWith('{')) {
+            worldStateChanges = JSON.parse(worldStateString);
+          } else {
+            // Parse key-value format
+            worldStateChanges = {
+              environment: {
+                weather: 'clear',
+                temperature: 20,
+                conditions: ['normal'],
+              },
+              society: {
+                politicalState: 'stable',
+                economicState: 'normal',
+              },
+            };
+
+            const keyValuePairs = worldStateString
+              .split(',')
+              .map((pair) => pair.trim());
+            keyValuePairs.forEach((pair) => {
+              if (pair.includes('=')) {
+                const [key, value] = pair.split('=').map((s) => s.trim());
+                if (
+                  key.startsWith('weather') ||
+                  key.startsWith('temperature') ||
+                  key.includes('environment')
+                ) {
+                  // Handle environment properties safely
+                  if (key === 'weather') {
+                    worldStateChanges!.environment!.weather = value.replace(
+                      /"/g,
+                      '',
+                    );
+                  } else if (key === 'temperature') {
+                    worldStateChanges!.environment!.temperature =
+                      Number(value.replace(/"/g, '')) || 20;
+                  } else if (key === 'conditions') {
+                    try {
+                      const conditions = JSON.parse(value.replace(/'/g, '"'));
+                      worldStateChanges!.environment!.conditions =
+                        Array.isArray(conditions) ? conditions : ['normal'];
+                    } catch (e) {
+                      worldStateChanges!.environment!.conditions = [
+                        value.replace(/"/g, ''),
+                      ];
+                    }
+                  } else if (key === 'specialEffects') {
+                    try {
+                      const effects = JSON.parse(value.replace(/'/g, '"'));
+                      worldStateChanges!.environment!.specialEffects =
+                        Array.isArray(effects)
+                          ? effects
+                          : [value.replace(/"/g, '')];
+                    } catch (e) {
+                      worldStateChanges!.environment!.specialEffects = [
+                        value.replace(/"/g, ''),
+                      ];
+                    }
+                  }
+                } else {
+                  // Handle society properties safely
+                  if (key === 'politicalState') {
+                    worldStateChanges!.society!.politicalState = value.replace(
+                      /"/g,
+                      '',
+                    );
+                  } else if (key === 'economicState') {
+                    worldStateChanges!.society!.economicState = value.replace(
+                      /"/g,
+                      '',
+                    );
+                  } else if (key === 'dominantFaction') {
+                    worldStateChanges!.society!.dominantFaction = value.replace(
+                      /"/g,
+                      '',
+                    );
+                  } else if (key === 'tensions') {
+                    try {
+                      worldStateChanges!.society!.tensions = JSON.parse(
+                        value.replace(/'/g, '"'),
+                      );
+                    } catch (e) {
+                      this.logger.error('Error parsing tensions:', e);
+                    }
+                  } else if (key === 'events') {
+                    try {
+                      const events = JSON.parse(value.replace(/'/g, '"'));
+                      worldStateChanges!.society!.events = Array.isArray(events)
+                        ? events
+                        : [value.replace(/"/g, '')];
+                    } catch (e) {
+                      worldStateChanges!.society!.events = [
+                        value.replace(/"/g, ''),
+                      ];
+                    }
+                  }
+                }
+              }
+            });
+          }
+        } catch (e) {
+          this.logger.error('Error parsing world state:', e);
+        }
+      }
+
+      // Extract triggered events
+      const eventMatches = [...response.matchAll(/\[EVENT:\s*(.*?)\]/gs)];
+      const triggeredEvents: Array<{
+        id: string;
+        name: string;
+        description: string;
+        type: string;
+        probability?: number;
+      }> = [];
+
+      eventMatches.forEach((match) => {
+        try {
+          const eventString = match[1];
+          // Try to parse as JSON
+          if (eventString.trim().startsWith('{')) {
+            const eventObj = JSON.parse(eventString);
+            triggeredEvents.push(eventObj);
+          } else {
+            // Parse from key-value format
+            const eventParts = eventString
+              .split(',')
+              .map((part) => part.trim());
+            const event: any = {
+              id: `event_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+              type: 'generic',
+            };
+
+            eventParts.forEach((part) => {
+              if (part.includes(':')) {
+                const [key, value] = part.split(':').map((s) => s.trim());
+                event[key.toLowerCase()] = value.replace(/"/g, '');
+              } else if (part.includes('=')) {
+                const [key, value] = part.split('=').map((s) => s.trim());
+                event[key.toLowerCase()] = value.replace(/"/g, '');
+              }
+            });
+
+            if (event.name && event.description) {
+              triggeredEvents.push(event);
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing event:', e);
+        }
+      });
+
+      // Extract NPC updates
+      const npcUpdateMatches = [
+        ...response.matchAll(/\[NPC_UPDATE:\s*(.*?)\]/gs),
+      ];
+      const npcUpdates: Array<{
+        npcId: string;
+        npcName: string;
+        changes: Record<string, unknown>;
+        newDialogue?: string[];
+        newBehavior?: string;
+        locationChange?: string;
+      }> = [];
+
+      npcUpdateMatches.forEach((match) => {
+        try {
+          const npcString = match[1];
+          // Try to parse as JSON
+          if (npcString.trim().startsWith('{')) {
+            const npcObj = JSON.parse(npcString);
+            npcUpdates.push(npcObj);
+          } else {
+            // Parse from key-value format
+            const npcParts = npcString.split(',').map((part) => part.trim());
+            const npc: any = {
+              npcId: `npc_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+              changes: {},
+            };
+
+            npcParts.forEach((part) => {
+              if (part.includes(':')) {
+                const [key, value] = part.split(':').map((s) => s.trim());
+                if (key.toLowerCase() === 'name') {
+                  npc.npcName = value.replace(/"/g, '');
+                } else if (key.toLowerCase() === 'dialogue') {
+                  npc.newDialogue = [value.replace(/"/g, '')];
+                } else if (key.toLowerCase() === 'behavior') {
+                  npc.newBehavior = value.replace(/"/g, '');
+                } else if (key.toLowerCase() === 'location') {
+                  npc.locationChange = value.replace(/"/g, '');
+                } else {
+                  npc.changes[key.toLowerCase()] = value.replace(/"/g, '');
+                }
+              }
+            });
+
+            if (npc.npcName) {
+              npcUpdates.push(npc);
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing NPC update:', e);
+        }
+      });
+
+      // Phân tích nội dung thành các phân đoạn
+      const parsedStorySegments = this.parseContentSegments(storyText);
+
       return {
         storyText,
+        storySegments: parsedStorySegments,
         stats,
         inventory,
         skills,
@@ -956,6 +1474,9 @@ export class GamesService {
         karmaChange,
         karmaReason,
         reputationChanges,
+        worldStateChanges,
+        triggeredEvents,
+        npcUpdates,
       };
     } catch (error) {
       const logger = new Logger('GamesService');
@@ -965,6 +1486,79 @@ export class GamesService {
           (error instanceof Error ? error.message : String(error)),
       );
     }
+  }
+
+  /**
+   * Parse story text into structured content segments
+   */
+  private parseContentSegments(text: string): ContentSegment[] {
+    const segments: ContentSegment[] = [];
+
+    // Nếu không có nội dung, trả về mảng rỗng
+    if (!text || text.trim() === '') {
+      return segments;
+    }
+
+    // Phân tích các đoạn văn
+    const paragraphs = text.split(/\n\n+/);
+
+    paragraphs.forEach((paragraph) => {
+      const trimmedParagraph = paragraph.trim();
+      if (trimmedParagraph === '') return;
+
+      // Kiểm tra xem đây có phải là đối thoại không
+      const dialogueMatch = trimmedParagraph.match(
+        /^([A-Za-z\u00C0-\u1EF9 ]+):\s*["'](.+)["']$/,
+      );
+      if (dialogueMatch) {
+        segments.push({
+          type: 'dialogue',
+          speaker: dialogueMatch[1].trim(),
+          content: dialogueMatch[2].trim(),
+        });
+        return;
+      }
+
+      // Kiểm tra xem đây có phải là độc thoại không
+      if (trimmedParagraph.startsWith('*') && trimmedParagraph.endsWith('*')) {
+        segments.push({
+          type: 'monologue',
+          content: trimmedParagraph.slice(1, -1).trim(),
+        });
+        return;
+      }
+
+      // Kiểm tra xem đây có phải là hành động không
+      if (trimmedParagraph.startsWith('[') && trimmedParagraph.endsWith(']')) {
+        segments.push({
+          type: 'action',
+          content: trimmedParagraph.slice(1, -1).trim(),
+        });
+        return;
+      }
+
+      // Kiểm tra xem đây có phải là thông báo hệ thống không
+      if (
+        trimmedParagraph.includes('✨') ||
+        trimmedParagraph.includes('📊') ||
+        trimmedParagraph.includes('🎯') ||
+        trimmedParagraph.includes('⚙️')
+      ) {
+        segments.push({
+          type: 'system',
+          content: trimmedParagraph,
+        });
+        return;
+      }
+
+      // Mặc định là mô tả
+      segments.push({
+        type: 'description',
+        content: trimmedParagraph,
+      });
+    });
+
+    return segments;
   }
 
   /**
@@ -1320,26 +1914,53 @@ export class GamesService {
         if (usageMatch) {
           const currentUses = parseInt(usageMatch[1]);
           if (currentUses > 1) {
-            // Decrease usage count
-            resurrectionSkill.description =
-              resurrectionSkill.description.replace(
-                /Số lần sử dụng:\s*\d+/,
-                `Số lần sử dụng: ${currentUses - 1}`,
-              );
-          } else {
-            // Mark as used up
-            resurrectionSkill.description =
-              resurrectionSkill.description.replace(
-                /Số lần sử dụng:\s*\d+/,
-                'Số lần sử dụng: 0 (Đã cạn kiệt)',
-              );
+            // Decrease usage count - create new skill object to avoid readonly issue
+            const updatedDescription = resurrectionSkill.description.replace(
+              /Số lần sử dụng:\s*\d+/,
+              `Số lần sử dụng: ${currentUses - 1}`,
+            );
 
-            // Remove the skill if it's completely used up
+            // Create a new skill object with updated description
+            const updatedSkill: CharacterSkill = {
+              name: resurrectionSkill.name,
+              description: updatedDescription,
+              level: resurrectionSkill.level,
+              mastery: resurrectionSkill.mastery,
+              type: resurrectionSkill.type,
+              requirements: resurrectionSkill.requirements,
+            };
+
+            // Find and replace the skill in the character skills array
             const skillIndex = game.characterSkills.findIndex(
               (s) => s.name === resurrectionSkill.name,
             );
             if (skillIndex !== -1) {
-              game.characterSkills.splice(skillIndex, 1);
+              game.characterSkills[skillIndex] = updatedSkill;
+            }
+          } else {
+            // Mark as used up - create new skill object to avoid readonly issue
+            const updatedDescription = resurrectionSkill.description.replace(
+              /Số lần sử dụng:\s*\d+/,
+              'Số lần sử dụng: 0 (Đã cạn kiệt)',
+            );
+
+            // Create a new skill object with updated description
+            const updatedSkill: CharacterSkill = {
+              name: resurrectionSkill.name,
+              description: updatedDescription,
+              level: resurrectionSkill.level,
+              mastery: resurrectionSkill.mastery,
+              type: resurrectionSkill.type,
+              requirements: resurrectionSkill.requirements,
+            };
+
+            // Find and replace the skill in the character skills array
+            const skillIndex = game.characterSkills.findIndex(
+              (s) => s.name === resurrectionSkill.name,
+            );
+            if (skillIndex !== -1) {
+              // Replace with updated skill instead of removing
+              game.characterSkills[skillIndex] = updatedSkill;
             }
           }
         } else {
@@ -1436,10 +2057,1210 @@ export class GamesService {
   }
 
   /**
+   * Update quest
+   */
+  async updateQuest(
+    id: string,
+    userId: string,
+    updateQuestDto: UpdateQuestDto,
+  ): Promise<Game> {
+    try {
+      // 1. Check if game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (!game) {
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
+      }
+
+      // 2. Initialize quest log if it doesn't exist
+      if (!game.questLog) {
+        game.questLog = [];
+      }
+
+      // 3. Check if quest already exists
+      const existingQuestIndex = game.questLog.findIndex(
+        (quest) => quest.id === updateQuestDto.id,
+      );
+
+      if (existingQuestIndex !== -1) {
+        // 4. Update existing quest
+        const existingQuest = game.questLog[existingQuestIndex];
+
+        // Update basic properties
+        game.questLog[existingQuestIndex] = {
+          ...existingQuest,
+          title: updateQuestDto.title || existingQuest.title,
+          description: updateQuestDto.description || existingQuest.description,
+          status: updateQuestDto.status || existingQuest.status,
+          progress:
+            updateQuestDto.progress !== undefined
+              ? updateQuestDto.progress
+              : existingQuest.progress,
+          rewards: updateQuestDto.rewards || existingQuest.rewards,
+          relatedNpcs: updateQuestDto.relatedNpcs || existingQuest.relatedNpcs,
+          deadline: updateQuestDto.deadline || existingQuest.deadline,
+        };
+
+        // Update objectives if provided
+        if (updateQuestDto.objectives && updateQuestDto.objectives.length > 0) {
+          // Map existing objectives by description for easy lookup
+          const existingObjectives = new Map(
+            existingQuest.objectives.map((obj) => [obj.description, obj]),
+          );
+
+          // Process new/updated objectives
+          const updatedObjectives = updateQuestDto.objectives.map((newObj) => {
+            const existing = existingObjectives.get(newObj.description);
+            if (existing) {
+              // Update existing objective
+              return {
+                ...existing,
+                completed: newObj.completed,
+                optional:
+                  newObj.optional !== undefined
+                    ? newObj.optional
+                    : existing.optional,
+              };
+            } else {
+              // Add new objective
+              return {
+                description: newObj.description,
+                completed: newObj.completed,
+                optional: newObj.optional || false,
+              };
+            }
+          });
+
+          // Keep existing objectives that weren't in the update
+          const objectiveDescriptions = new Set(
+            updateQuestDto.objectives.map((obj) => obj.description),
+          );
+
+          const remainingObjectives = existingQuest.objectives.filter(
+            (obj) => !objectiveDescriptions.has(obj.description),
+          );
+
+          // Combine updated and remaining objectives
+          game.questLog[existingQuestIndex].objectives = [
+            ...updatedObjectives,
+            ...remainingObjectives,
+          ];
+        }
+
+        // Update progress based on completed objectives if not explicitly set
+        if (updateQuestDto.progress === undefined) {
+          const completedObjectives = game.questLog[
+            existingQuestIndex
+          ].objectives.filter((obj) => obj.completed && !obj.optional).length;
+
+          const requiredObjectives = game.questLog[
+            existingQuestIndex
+          ].objectives.filter((obj) => !obj.optional).length;
+
+          if (requiredObjectives > 0) {
+            game.questLog[existingQuestIndex].progress = Math.round(
+              (completedObjectives / requiredObjectives) * 100,
+            );
+          }
+        }
+
+        // Auto-update status if all required objectives are completed
+        const allRequiredCompleted = game.questLog[
+          existingQuestIndex
+        ].objectives
+          .filter((obj) => !obj.optional)
+          .every((obj) => obj.completed);
+
+        if (
+          allRequiredCompleted &&
+          game.questLog[existingQuestIndex].status === 'active'
+        ) {
+          game.questLog[existingQuestIndex].status = 'completed';
+
+          // Add to story history
+          game.storyHistory.push({
+            type: 'quest_completed',
+            content: `Nhiệm vụ hoàn thành: ${game.questLog[existingQuestIndex].title}`,
+            timestamp: new Date(),
+            attributes: {
+              questId: game.questLog[existingQuestIndex].id,
+              questTitle: game.questLog[existingQuestIndex].title,
+            },
+          });
+        }
+      } else {
+        // 5. Create new quest
+        const newQuest = {
+          id: updateQuestDto.id,
+          title: updateQuestDto.title,
+          description: updateQuestDto.description,
+          status: (updateQuestDto.status || 'active') as
+            | 'active'
+            | 'completed'
+            | 'failed'
+            | 'hidden',
+          progress: updateQuestDto.progress || 0,
+          objectives: updateQuestDto.objectives || [],
+          rewards: updateQuestDto.rewards || [],
+          relatedNpcs: updateQuestDto.relatedNpcs || [],
+          deadline: updateQuestDto.deadline,
+        };
+
+        game.questLog.push(newQuest);
+
+        // Add to story history
+        game.storyHistory.push({
+          type: 'quest_started',
+          content: `Nhiệm vụ mới: ${newQuest.title}`,
+          timestamp: new Date(),
+          attributes: {
+            questId: newQuest.id,
+            questTitle: newQuest.title,
+          },
+        });
+      }
+
+      // 6. Save updated game to database
+      const updatedGame = await this.gamesRepository.save(game);
+      this.logger.log(`Game ${id} quest updated successfully`);
+
+      return updatedGame;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error updating quest for game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to update quest');
+    }
+  }
+
+  /**
+   * Update NPC relationship
+   */
+  async updateNpcRelationship(
+    id: string,
+    userId: string,
+    updateNpcRelationshipDto: UpdateNpcRelationshipDto,
+  ): Promise<Game> {
+    try {
+      // 1. Check if game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (!game) {
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
+      }
+
+      // 2. Initialize NPC relationships array if it doesn't exist
+      if (!game.npcRelationships) {
+        game.npcRelationships = [];
+      }
+
+      // 3. Check if NPC already exists in relationships
+      const existingNpcIndex = game.npcRelationships.findIndex(
+        (npc) =>
+          npc.npcId === updateNpcRelationshipDto.npcId ||
+          npc.npcName === updateNpcRelationshipDto.npcName,
+      );
+
+      const now = new Date();
+
+      if (existingNpcIndex !== -1) {
+        // 4. Update existing NPC relationship
+        const existingNpc = game.npcRelationships[existingNpcIndex];
+
+        // Update relationship level if provided
+        if (updateNpcRelationshipDto.relationshipLevel !== undefined) {
+          game.npcRelationships[existingNpcIndex].relationshipLevel =
+            updateNpcRelationshipDto.relationshipLevel;
+        }
+
+        // Update status if provided
+        if (updateNpcRelationshipDto.status) {
+          game.npcRelationships[existingNpcIndex].status =
+            updateNpcRelationshipDto.status;
+        }
+
+        // Add new interaction if provided
+        if (updateNpcRelationshipDto.newInteraction) {
+          if (!existingNpc.interactions) {
+            game.npcRelationships[existingNpcIndex].interactions = [];
+          }
+
+          game.npcRelationships[existingNpcIndex].interactions.push({
+            date: now,
+            type: updateNpcRelationshipDto.newInteraction.type,
+            outcome: updateNpcRelationshipDto.newInteraction.outcome,
+            impact: updateNpcRelationshipDto.newInteraction.impact,
+          });
+        }
+
+        // Add new memories if provided
+        if (
+          updateNpcRelationshipDto.newMemories &&
+          updateNpcRelationshipDto.newMemories.length > 0
+        ) {
+          if (!existingNpc.memories) {
+            game.npcRelationships[existingNpcIndex].memories = [];
+          }
+
+          game.npcRelationships[existingNpcIndex].memories = [
+            ...game.npcRelationships[existingNpcIndex].memories,
+            ...updateNpcRelationshipDto.newMemories,
+          ];
+        }
+
+        // Update location if provided
+        if (updateNpcRelationshipDto.currentLocation) {
+          game.npcRelationships[existingNpcIndex].currentLocation =
+            updateNpcRelationshipDto.currentLocation;
+        }
+
+        // Update activity if provided
+        if (updateNpcRelationshipDto.currentActivity) {
+          game.npcRelationships[existingNpcIndex].currentActivity =
+            updateNpcRelationshipDto.currentActivity;
+        }
+      } else {
+        // 5. Create new NPC relationship
+        const newNpcRelationship: NpcRelationship = {
+          npcId: updateNpcRelationshipDto.npcId,
+          npcName: updateNpcRelationshipDto.npcName,
+          relationshipLevel: updateNpcRelationshipDto.relationshipLevel || 0,
+          status: updateNpcRelationshipDto.status || 'neutral',
+          interactions: updateNpcRelationshipDto.newInteraction
+            ? [
+                {
+                  date: now,
+                  type: updateNpcRelationshipDto.newInteraction.type,
+                  outcome: updateNpcRelationshipDto.newInteraction.outcome,
+                  impact: updateNpcRelationshipDto.newInteraction.impact,
+                },
+              ]
+            : [],
+          memories: updateNpcRelationshipDto.newMemories || [],
+          currentLocation: updateNpcRelationshipDto.currentLocation,
+          currentActivity: updateNpcRelationshipDto.currentActivity,
+        };
+
+        game.npcRelationships.push(newNpcRelationship);
+      }
+
+      // 6. Save updated game to database
+      const updatedGame = await this.gamesRepository.save(game);
+      this.logger.log(`Game ${id} NPC relationship updated successfully`);
+
+      return updatedGame;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error updating NPC relationship for game ${id}:`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update NPC relationship',
+      );
+    }
+  }
+
+  /**
+   * Update game world state
+   */
+  async updateWorldState(
+    id: string,
+    userId: string,
+    updateWorldStateDto: UpdateWorldStateDto,
+  ): Promise<Game> {
+    try {
+      // 1. Check if game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (!game) {
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
+      }
+
+      // 2. Initialize world state if it doesn't exist
+      if (!game.worldState) {
+        game.worldState = {
+          gameTime: {
+            day: 1,
+            hour: 12,
+            minute: 0,
+            season: 'spring',
+            year: 1,
+          },
+          environment: {
+            weather: 'clear',
+            temperature: 20,
+            conditions: ['normal'],
+          },
+          society: {
+            politicalState: 'stable',
+            economicState: 'normal',
+          },
+          discoveredRegions: [],
+          activeEvents: [],
+        };
+      }
+
+      // 3. Update game time if provided
+      if (updateWorldStateDto.gameTime) {
+        game.worldState.gameTime = {
+          ...game.worldState.gameTime,
+          ...updateWorldStateDto.gameTime,
+        };
+      }
+
+      // 4. Update environment if provided
+      if (updateWorldStateDto.environment) {
+        game.worldState.environment = {
+          ...game.worldState.environment,
+          ...updateWorldStateDto.environment,
+        };
+      }
+
+      // 5. Update society if provided
+      if (updateWorldStateDto.society) {
+        game.worldState.society = {
+          ...game.worldState.society,
+          ...updateWorldStateDto.society,
+        };
+      }
+
+      // 6. Update discovered regions if provided
+      if (
+        updateWorldStateDto.discoveredRegions &&
+        Array.isArray(updateWorldStateDto.discoveredRegions)
+      ) {
+        // Add new regions without duplicates
+        const existingRegions = new Set(
+          game.worldState.discoveredRegions || [],
+        );
+        updateWorldStateDto.discoveredRegions.forEach((region: string) => {
+          existingRegions.add(region);
+        });
+        game.worldState.discoveredRegions = Array.from(existingRegions);
+      }
+
+      // 7. Update active events if provided
+      if (
+        updateWorldStateDto.activeEvents &&
+        Array.isArray(updateWorldStateDto.activeEvents)
+      ) {
+        // Replace existing events with the same ID, add new ones
+        const existingEvents = new Map(
+          (game.worldState.activeEvents || []).map((event) => [
+            event.id,
+            event,
+          ]),
+        );
+
+        updateWorldStateDto.activeEvents.forEach((event: any) => {
+          existingEvents.set(event.id, {
+            ...event,
+            startTime: event.startTime || new Date(),
+          });
+        });
+
+        game.worldState.activeEvents = Array.from(existingEvents.values());
+      }
+
+      // 8. Update custom attributes if provided
+      if (
+        updateWorldStateDto.attributes &&
+        typeof updateWorldStateDto.attributes === 'object'
+      ) {
+        game.worldState = {
+          ...game.worldState,
+          ...updateWorldStateDto.attributes,
+        };
+      }
+
+      // 9. Add to world evolution history
+      if (!game.worldEvolution) {
+        game.worldEvolution = [];
+      }
+
+      // Record significant changes to world evolution
+      const significantChanges = [];
+
+      if (updateWorldStateDto.environment?.weather) {
+        significantChanges.push({
+          aspect: 'weather',
+          change: `Weather changed to ${updateWorldStateDto.environment.weather}`,
+          playerInfluence: 0, // System change
+        });
+      }
+
+      if (updateWorldStateDto.society?.politicalState) {
+        significantChanges.push({
+          aspect: 'politics',
+          change: `Political state changed to ${updateWorldStateDto.society.politicalState}`,
+          playerInfluence: 20, // Assume some player influence
+        });
+      }
+
+      if (
+        updateWorldStateDto.activeEvents &&
+        updateWorldStateDto.activeEvents.length > 0
+      ) {
+        updateWorldStateDto.activeEvents.forEach((event: any) => {
+          significantChanges.push({
+            aspect: 'event',
+            change: `Event started: ${event.name}`,
+            playerInfluence: 50, // Assume moderate player influence
+          });
+        });
+      }
+
+      // Add all significant changes to evolution history
+      const now = new Date();
+      significantChanges.forEach((change) => {
+        game.worldEvolution.push({
+          timestamp: now,
+          ...change,
+        });
+      });
+
+      // 10. Save updated game to database
+      const updatedGame = await this.gamesRepository.save(game);
+      this.logger.log(`Game ${id} world state updated successfully`);
+
+      return updatedGame;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error updating world state for game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to update world state');
+    }
+  }
+
+  /**
+   * Update player status effects
+   */
+  async updateStatusEffects(
+    id: string,
+    userId: string,
+    updateStatusEffectsDto: UpdateStatusEffectsDto,
+  ): Promise<Game> {
+    try {
+      // 1. Check if game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (!game) {
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
+      }
+
+      // 2. Initialize player status effects array if it doesn't exist
+      if (!game.playerStatusEffects) {
+        game.playerStatusEffects = [];
+      }
+
+      // 3. Process effects to add
+      if (
+        updateStatusEffectsDto.addEffects &&
+        updateStatusEffectsDto.addEffects.length > 0
+      ) {
+        // Check for duplicates and add new effects
+        const existingEffectIds = new Set(
+          game.playerStatusEffects.map((effect) => effect.id),
+        );
+
+        updateStatusEffectsDto.addEffects.forEach((newEffect) => {
+          if (!existingEffectIds.has(newEffect.id)) {
+            game.playerStatusEffects.push({
+              ...newEffect,
+              appliedAt: new Date(),
+              remainingDuration: newEffect.duration,
+            });
+
+            // Add to story history
+            game.storyHistory.push({
+              type: 'status_effect_applied',
+              content: `Hiệu ứng mới: ${newEffect.name} - ${newEffect.description}`,
+              timestamp: new Date(),
+              attributes: {
+                effectId: newEffect.id,
+                effectName: newEffect.name,
+                effectType: newEffect.type || 'unknown',
+                source: newEffect.source || 'unknown',
+              },
+            });
+          }
+        });
+      }
+
+      // 4. Process effects to remove
+      if (
+        updateStatusEffectsDto.removeEffects &&
+        updateStatusEffectsDto.removeEffects.length > 0
+      ) {
+        const removeEffectIds = new Set(updateStatusEffectsDto.removeEffects);
+
+        // Filter out effects to remove
+        const effectsToRemove = game.playerStatusEffects.filter((effect) =>
+          removeEffectIds.has(effect.id),
+        );
+
+        game.playerStatusEffects = game.playerStatusEffects.filter(
+          (effect) => !removeEffectIds.has(effect.id),
+        );
+
+        // Add to story history for each removed effect
+        effectsToRemove.forEach((effect) => {
+          game.storyHistory.push({
+            type: 'status_effect_removed',
+            content: `Hiệu ứng kết thúc: ${effect.name}`,
+            timestamp: new Date(),
+            attributes: {
+              effectId: effect.id,
+              effectName: effect.name,
+              effectType: effect.type || 'unknown',
+              reason: 'manual_removal',
+            },
+          });
+        });
+      }
+
+      // 5. Process effects to update
+      if (
+        updateStatusEffectsDto.updateEffects &&
+        updateStatusEffectsDto.updateEffects.length > 0
+      ) {
+        updateStatusEffectsDto.updateEffects.forEach((updatedEffect) => {
+          const existingEffectIndex = game.playerStatusEffects.findIndex(
+            (effect) => effect.id === updatedEffect.id,
+          );
+
+          if (existingEffectIndex !== -1) {
+            // Update existing effect
+            const oldEffect = {
+              ...game.playerStatusEffects[existingEffectIndex],
+            };
+
+            game.playerStatusEffects[existingEffectIndex] = {
+              ...oldEffect,
+              ...updatedEffect,
+              // Keep original application time
+              appliedAt: oldEffect.appliedAt,
+              // Update remaining duration if duration changed
+              remainingDuration:
+                updatedEffect.duration !== oldEffect.duration
+                  ? updatedEffect.duration
+                  : oldEffect.remainingDuration,
+            };
+
+            // Add to story history if significant changes
+            if (
+              updatedEffect.intensity !== oldEffect.intensity ||
+              updatedEffect.duration !== oldEffect.duration ||
+              JSON.stringify(updatedEffect.effects) !==
+                JSON.stringify(oldEffect.effects)
+            ) {
+              game.storyHistory.push({
+                type: 'status_effect_changed',
+                content: `Hiệu ứng thay đổi: ${updatedEffect.name}`,
+                timestamp: new Date(),
+                attributes: {
+                  effectId: updatedEffect.id,
+                  effectName: updatedEffect.name,
+                  changes: {
+                    intensity: updatedEffect.intensity !== oldEffect.intensity,
+                    duration: updatedEffect.duration !== oldEffect.duration,
+                    effects:
+                      JSON.stringify(updatedEffect.effects) !==
+                      JSON.stringify(oldEffect.effects),
+                  },
+                },
+              });
+            }
+          }
+        });
+      }
+
+      // 6. Apply status effects to character stats
+      this.applyStatusEffectsToStats(game);
+
+      // 7. Save updated game to database
+      const updatedGame = await this.gamesRepository.save(game);
+      this.logger.log(`Game ${id} status effects updated successfully`);
+
+      return updatedGame;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error updating status effects for game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to update status effects');
+    }
+  }
+
+  /**
+   * Process status effects (reduce duration, apply effects, remove expired)
+   */
+  async processStatusEffects(id: string, userId: string): Promise<void> {
+    try {
+      // 1. Get the game
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (
+        !game ||
+        !game.playerStatusEffects ||
+        game.playerStatusEffects.length === 0
+      ) {
+        return; // No game or no status effects to process
+      }
+
+      // 2. Process each status effect
+      const expiredEffects: string[] = [];
+      let effectsChanged = false;
+
+      game.playerStatusEffects.forEach((effect) => {
+        // Reduce remaining duration by 1
+        effect.remainingDuration -= 1;
+        effectsChanged = true;
+
+        // Check if effect has expired
+        if (effect.remainingDuration <= 0) {
+          expiredEffects.push(effect.id);
+
+          // Add to story history
+          game.storyHistory.push({
+            type: 'status_effect_expired',
+            content: `Hiệu ứng kết thúc: ${effect.name}`,
+            timestamp: new Date(),
+            attributes: {
+              effectId: effect.id,
+              effectName: effect.name,
+              effectType: effect.type || 'unknown',
+              reason: 'duration_ended',
+            },
+          });
+        }
+      });
+
+      // 3. Remove expired effects
+      if (expiredEffects.length > 0) {
+        game.playerStatusEffects = game.playerStatusEffects.filter(
+          (effect) => !expiredEffects.includes(effect.id),
+        );
+        effectsChanged = true;
+      }
+
+      // 4. Apply effects to stats if any changes were made
+      if (effectsChanged) {
+        this.applyStatusEffectsToStats(game);
+
+        // 5. Save the game
+        await this.gamesRepository.save(game);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing status effects for game ${id}:`,
+        error,
+      );
+      // Don't throw here, just log the error to avoid interrupting the main action
+    }
+  }
+
+  /**
+   * Apply status effects to character stats
+   */
+  private applyStatusEffectsToStats(game: Game): void {
+    // Skip if no status effects
+    if (!game.playerStatusEffects || game.playerStatusEffects.length === 0) {
+      return;
+    }
+
+    // Create a copy of the original stats
+    const originalStats = { ...game.characterStats };
+
+    // Apply each effect to the stats
+    game.playerStatusEffects.forEach((effect) => {
+      if (effect.effects) {
+        Object.entries(effect.effects).forEach(([statKey, value]) => {
+          // Handle numeric changes
+          if (
+            typeof value === 'number' &&
+            typeof game.characterStats[statKey] === 'number'
+          ) {
+            // Apply the effect
+            game.characterStats[statKey] =
+              (game.characterStats[statKey] as number) + value;
+          }
+          // Handle percentage changes
+          else if (
+            typeof value === 'string' &&
+            value.endsWith('%') &&
+            typeof game.characterStats[statKey] === 'number'
+          ) {
+            const percentage = parseFloat(value) / 100;
+            const originalValue = originalStats[statKey] as number;
+            const change = originalValue * percentage;
+            game.characterStats[statKey] =
+              (game.characterStats[statKey] as number) + change;
+          }
+          // Handle direct string replacements
+          else if (typeof value === 'string' && !value.endsWith('%')) {
+            game.characterStats[statKey] = value;
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Update game events
+   */
+  async updateGameEvents(
+    id: string,
+    userId: string,
+    updateGameEventDto: UpdateGameEventDto,
+  ): Promise<Game> {
+    try {
+      // 1. Check if game exists and belongs to the user
+      const game = await this.gamesRepository.findOne({
+        where: { id, userId },
+      });
+
+      if (!game) {
+        throw new BadRequestException(
+          `Game with ID ${id} not found or you don't have access to it`,
+        );
+      }
+
+      // 2. Initialize game events array if it doesn't exist
+      if (!game.worldState) {
+        game.worldState = {
+          gameTime: {
+            day: 1,
+            hour: 12,
+            minute: 0,
+            season: 'spring',
+            year: 1,
+          },
+          environment: {
+            weather: 'clear',
+            temperature: 20,
+            conditions: ['normal'],
+          },
+          society: {
+            politicalState: 'stable',
+            economicState: 'normal',
+          },
+          discoveredRegions: [],
+          activeEvents: [],
+        };
+      }
+
+      if (!game.worldState.activeEvents) {
+        game.worldState.activeEvents = [];
+      }
+
+      // 3. Process events to add
+      if (
+        updateGameEventDto.addEvents &&
+        updateGameEventDto.addEvents.length > 0
+      ) {
+        // Check for duplicates and add new events
+        const existingEventIds = new Set(
+          game.worldState.activeEvents.map((event) => event.id),
+        );
+
+        updateGameEventDto.addEvents.forEach((newEvent) => {
+          if (!existingEventIds.has(newEvent.id)) {
+            game.worldState.activeEvents.push({
+              ...newEvent,
+              startTime: new Date(),
+              affectedRegions: newEvent.relatedLocations || [],
+              consequences: [],
+            });
+
+            // Add to story history
+            game.storyHistory.push({
+              type: 'event_started',
+              content: `Sự kiện mới: ${newEvent.name} - ${newEvent.description}`,
+              timestamp: new Date(),
+              attributes: {
+                eventId: newEvent.id,
+                eventName: newEvent.name,
+                eventType: newEvent.type,
+              },
+            });
+
+            // Apply immediate effects if any
+            if (
+              newEvent.immediateEffects &&
+              newEvent.immediateEffects.length > 0
+            ) {
+              this.applyEventEffects(game, newEvent.immediateEffects);
+            }
+          }
+        });
+      }
+
+      // 4. Process events to remove
+      if (
+        updateGameEventDto.removeEvents &&
+        updateGameEventDto.removeEvents.length > 0
+      ) {
+        const removeEventIds = new Set(updateGameEventDto.removeEvents);
+
+        // Filter out events to remove
+        const eventsToRemove = game.worldState.activeEvents.filter((event) =>
+          removeEventIds.has(event.id),
+        );
+
+        game.worldState.activeEvents = game.worldState.activeEvents.filter(
+          (event) => !removeEventIds.has(event.id),
+        );
+
+        // Add to story history for each removed event
+        eventsToRemove.forEach((event) => {
+          game.storyHistory.push({
+            type: 'event_ended',
+            content: `Sự kiện kết thúc: ${event.name}`,
+            timestamp: new Date(),
+            attributes: {
+              eventId: event.id,
+              eventName: event.name,
+              eventType: event.type || 'unknown',
+              duration: this.calculateEventDuration(
+                event.startTime,
+                new Date(),
+              ),
+            },
+          });
+        });
+      }
+
+      // 5. Process events to update
+      if (
+        updateGameEventDto.updateEvents &&
+        updateGameEventDto.updateEvents.length > 0
+      ) {
+        updateGameEventDto.updateEvents.forEach((updatedEvent) => {
+          const existingEventIndex = game.worldState.activeEvents.findIndex(
+            (event) => event.id === updatedEvent.id,
+          );
+
+          if (existingEventIndex !== -1) {
+            // Update existing event
+            const oldEvent = {
+              ...game.worldState.activeEvents[existingEventIndex],
+            };
+
+            game.worldState.activeEvents[existingEventIndex] = {
+              ...oldEvent,
+              ...updatedEvent,
+              // Keep original start time
+              startTime: oldEvent.startTime,
+              // Update affected regions and consequences
+              affectedRegions:
+                updatedEvent.relatedLocations || oldEvent.affectedRegions,
+              consequences: updatedEvent.immediateEffects
+                ? updatedEvent.immediateEffects.map(
+                    (effect) => `${effect.type}: ${effect.target}`,
+                  )
+                : oldEvent.consequences,
+            };
+
+            // Add to story history if significant changes
+            if (
+              updatedEvent.name !== oldEvent.name ||
+              updatedEvent.description !== oldEvent.description ||
+              updatedEvent.type !== oldEvent.type
+            ) {
+              game.storyHistory.push({
+                type: 'event_changed',
+                content: `Sự kiện thay đổi: ${updatedEvent.name}`,
+                timestamp: new Date(),
+                attributes: {
+                  eventId: updatedEvent.id,
+                  eventName: updatedEvent.name,
+                  changes: {
+                    name: updatedEvent.name !== oldEvent.name,
+                    description:
+                      updatedEvent.description !== oldEvent.description,
+                    type: updatedEvent.type !== oldEvent.type,
+                  },
+                },
+              });
+            }
+
+            // Apply new immediate effects if any
+            if (
+              updatedEvent.immediateEffects &&
+              updatedEvent.immediateEffects.length > 0
+            ) {
+              this.applyEventEffects(game, updatedEvent.immediateEffects);
+            }
+          }
+        });
+      }
+
+      // 6. Save updated game to database
+      const updatedGame = await this.gamesRepository.save(game);
+      this.logger.log(`Game ${id} events updated successfully`);
+
+      return updatedGame;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error updating events for game ${id}:`, error);
+      throw new InternalServerErrorException('Failed to update events');
+    }
+  }
+
+  /**
+   * Apply event effects to the game state
+   */
+  private applyEventEffects(
+    game: Game,
+    effects: GameEventConsequenceDto[],
+  ): void {
+    effects.forEach((effect) => {
+      switch (effect.type) {
+        case 'stat_change':
+          if (
+            typeof game.characterStats[effect.target] === 'number' &&
+            typeof effect.value === 'number'
+          ) {
+            game.characterStats[effect.target] =
+              (game.characterStats[effect.target] as number) + effect.value;
+          } else if (typeof effect.value === 'string') {
+            game.characterStats[effect.target] = effect.value;
+          }
+          break;
+
+        case 'weather_change':
+          if (!game.worldState || !game.worldState.environment) {
+            if (!game.worldState) {
+              game.worldState = {
+                gameTime: {
+                  day: 1,
+                  hour: 12,
+                  minute: 0,
+                  season: 'spring',
+                  year: 1,
+                },
+                environment: {
+                  weather: 'clear',
+                  temperature: 20,
+                  conditions: ['normal'],
+                },
+                society: {
+                  politicalState: 'stable',
+                  economicState: 'normal',
+                },
+                discoveredRegions: [],
+                activeEvents: [],
+              };
+            } else {
+              game.worldState.environment = {
+                weather: 'clear',
+                temperature: 20,
+                conditions: ['normal'],
+              };
+            }
+          }
+
+          if (typeof effect.value === 'string') {
+            game.worldState.environment.weather = effect.value;
+          }
+          break;
+
+        case 'temperature_change':
+          if (!game.worldState || !game.worldState.environment) {
+            if (!game.worldState) {
+              game.worldState = {
+                gameTime: {
+                  day: 1,
+                  hour: 12,
+                  minute: 0,
+                  season: 'spring',
+                  year: 1,
+                },
+                environment: {
+                  weather: 'clear',
+                  temperature: 20,
+                  conditions: ['normal'],
+                },
+                society: {
+                  politicalState: 'stable',
+                  economicState: 'normal',
+                },
+                discoveredRegions: [],
+                activeEvents: [],
+              };
+            } else {
+              game.worldState.environment = {
+                weather: 'clear',
+                temperature: 20,
+                conditions: ['normal'],
+              };
+            }
+          }
+
+          if (typeof effect.value === 'number') {
+            game.worldState.environment.temperature = effect.value;
+          }
+          break;
+
+        case 'add_status_effect':
+          if (!game.playerStatusEffects) {
+            game.playerStatusEffects = [];
+          }
+
+          const statusEffectValue = effect.value as Record<string, any>;
+          if (
+            typeof statusEffectValue === 'object' &&
+            statusEffectValue &&
+            statusEffectValue.id &&
+            statusEffectValue.name &&
+            statusEffectValue.description &&
+            statusEffectValue.effects
+          ) {
+            game.playerStatusEffects.push({
+              id: statusEffectValue.id,
+              name: statusEffectValue.name,
+              description: statusEffectValue.description,
+              duration: statusEffectValue.duration || 1,
+              remainingDuration: statusEffectValue.duration || 1,
+              intensity: statusEffectValue.intensity,
+              source: statusEffectValue.source,
+              type: statusEffectValue.type,
+              effects: statusEffectValue.effects,
+              visualEffects: statusEffectValue.visualEffects,
+              cures: statusEffectValue.cures,
+              appliedAt: new Date(),
+            });
+          }
+          break;
+
+        case 'add_item':
+          if (!game.inventoryItems) {
+            game.inventoryItems = [];
+          }
+
+          const itemValue = effect.value as Record<string, any>;
+          if (typeof itemValue === 'object' && itemValue && itemValue.name) {
+            const existingItemIndex = game.inventoryItems.findIndex(
+              (item) => item.name === itemValue.name,
+            );
+
+            if (existingItemIndex !== -1) {
+              game.inventoryItems[existingItemIndex].quantity +=
+                itemValue.quantity || 1;
+            } else {
+              game.inventoryItems.push({
+                name: itemValue.name,
+                description: itemValue.description || '',
+                quantity: itemValue.quantity || 1,
+                type: itemValue.type || 'misc',
+                rarity: this.normalizeRarity(itemValue.rarity),
+              });
+            }
+          }
+          break;
+
+        case 'remove_item':
+          if (game.inventoryItems) {
+            const itemIndex = game.inventoryItems.findIndex(
+              (item) => item.name === effect.target,
+            );
+
+            if (itemIndex !== -1) {
+              const quantity =
+                typeof effect.value === 'number' ? effect.value : 1;
+
+              if (game.inventoryItems[itemIndex].quantity <= quantity) {
+                // Remove item completely
+                game.inventoryItems.splice(itemIndex, 1);
+              } else {
+                // Reduce quantity
+                game.inventoryItems[itemIndex].quantity -= quantity;
+              }
+            }
+          }
+          break;
+
+        case 'reputation_change':
+          if (!game.reputation) {
+            game.reputation = {};
+          }
+
+          if (
+            typeof effect.target === 'string' &&
+            typeof effect.value === 'number'
+          ) {
+            const currentRep = game.reputation[effect.target] || 0;
+            game.reputation[effect.target] = currentRep + effect.value;
+          }
+          break;
+
+        case 'quest_update':
+          if (!game.questLog) {
+            game.questLog = [];
+          }
+
+          const questValue = effect.value as Record<string, any>;
+          if (
+            typeof effect.target === 'string' &&
+            typeof questValue === 'object' &&
+            questValue
+          ) {
+            const questIndex = game.questLog.findIndex(
+              (quest) => quest.id === effect.target,
+            );
+
+            if (questIndex !== -1) {
+              // Update existing quest
+              game.questLog[questIndex] = {
+                ...game.questLog[questIndex],
+                ...questValue,
+              };
+            }
+          }
+          break;
+      }
+    });
+  }
+
+  /**
+   * Calculate duration between two dates in hours
+   */
+  private calculateEventDuration(startDate: Date, endDate: Date): number {
+    const diffMs = endDate.getTime() - new Date(startDate).getTime();
+    return Math.round(diffMs / (1000 * 60 * 60));
+  }
+
+  /**
    * Normalize rarity to engine-compatible values
    */
   private normalizeRarity(
-    rarity: any,
+    rarity: unknown,
   ): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
     if (typeof rarity === 'string') {
       const normalized = rarity.toLowerCase();

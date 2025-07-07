@@ -23,6 +23,11 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GamesService } from './games.service';
 import { CreateGameDto } from './dto/create-game.dto';
+import { UpdateWorldStateDto } from './dto/update-world-state.dto';
+import { UpdateNpcRelationshipDto } from './dto/update-npc-relationship.dto';
+import { UpdateQuestDto } from './dto/update-quest.dto';
+import { UpdateStatusEffectsDto } from './dto/update-status-effect.dto';
+import { UpdateGameEventDto } from './dto/update-game-event.dto';
 import { Game } from './entities/game.entity';
 import { LifeSummary } from './interfaces/game-content.interface';
 
@@ -166,7 +171,18 @@ export class GamesController {
     @Body() actionDto: GameActionDto,
   ): Promise<Game> {
     const userId = req.user.userId;
-    const { choiceNumber, action, think, communication } = actionDto;
+    const {
+      choiceNumber,
+      action,
+      think,
+      communication,
+      actionType,
+      actionTarget,
+      actionContext,
+      actionIntensity,
+      actionIntent,
+      actionMetadata,
+    } = actionDto;
 
     return this.gamesService.processAction(
       id,
@@ -175,6 +191,12 @@ export class GamesController {
       action,
       think,
       communication,
+      actionType,
+      actionTarget,
+      actionContext,
+      actionIntensity,
+      actionIntent,
+      actionMetadata,
     );
   }
 
@@ -200,6 +222,164 @@ export class GamesController {
     // userId could be used for authorization in the future
     // const userId = req.user.userId;
     return this.gamesService.generateLifeSummary(id);
+  }
+
+  @Post(':id/world-state')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update game world state' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: UpdateWorldStateDto })
+  @ApiResponse({
+    status: 200,
+    description: 'World state updated successfully',
+    type: Game,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateWorldState(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() updateWorldStateDto: UpdateWorldStateDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.updateWorldState(id, userId, updateWorldStateDto);
+  }
+
+  @Post(':id/npc-relationship')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update NPC relationship' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: UpdateNpcRelationshipDto })
+  @ApiResponse({
+    status: 200,
+    description: 'NPC relationship updated successfully',
+    type: Game,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateNpcRelationship(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() updateNpcRelationshipDto: UpdateNpcRelationshipDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.updateNpcRelationship(
+      id,
+      userId,
+      updateNpcRelationshipDto,
+    );
+  }
+
+  @Post(':id/quest')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update or add quest' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: UpdateQuestDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Quest updated successfully',
+    type: Game,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateQuest(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() updateQuestDto: UpdateQuestDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.updateQuest(id, userId, updateQuestDto);
+  }
+
+  @Post(':id/status-effects')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update player status effects' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: UpdateStatusEffectsDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Status effects updated successfully',
+    type: Game,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateStatusEffects(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() updateStatusEffectsDto: UpdateStatusEffectsDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.updateStatusEffects(
+      id,
+      userId,
+      updateStatusEffectsDto,
+    );
+  }
+
+  @Post(':id/events')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update game events' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({ type: UpdateGameEventDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Game events updated successfully',
+    type: Game,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid input or game not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async updateGameEvents(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() updateGameEventDto: UpdateGameEventDto,
+  ): Promise<Game> {
+    const userId = req.user.userId;
+    return this.gamesService.updateGameEvents(id, userId, updateGameEventDto);
   }
 
   @Post(':id/resurrect')

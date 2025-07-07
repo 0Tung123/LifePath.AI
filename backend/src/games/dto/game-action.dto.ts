@@ -6,7 +6,10 @@ import {
   Max,
   Min,
   ValidateIf,
+  IsObject,
+  IsEnum,
 } from 'class-validator';
+import { ActionType } from '../../common/types/game-engine.types';
 
 export class GameActionDto {
   @ApiPropertyOptional({
@@ -20,7 +23,7 @@ export class GameActionDto {
   @IsNumber()
   @Min(1)
   @Max(4)
-  @ValidateIf((o) => !o.action && !o.think && !o.communication)
+  @ValidateIf((o) => !o.action && !o.think && !o.communication && !o.actionType)
   choiceNumber?: number;
 
   @ApiPropertyOptional({
@@ -30,7 +33,9 @@ export class GameActionDto {
   })
   @IsOptional()
   @IsString()
-  @ValidateIf((o) => !o.choiceNumber && !o.think && !o.communication)
+  @ValidateIf(
+    (o) => !o.choiceNumber && !o.think && !o.communication && !o.actionType,
+  )
   action?: string;
 
   @ApiPropertyOptional({
@@ -40,7 +45,9 @@ export class GameActionDto {
   })
   @IsOptional()
   @IsString()
-  @ValidateIf((o) => !o.choiceNumber && !o.action && !o.communication)
+  @ValidateIf(
+    (o) => !o.choiceNumber && !o.action && !o.communication && !o.actionType,
+  )
   think?: string;
 
   @ApiPropertyOptional({
@@ -50,6 +57,66 @@ export class GameActionDto {
   })
   @IsOptional()
   @IsString()
-  @ValidateIf((o) => !o.choiceNumber && !o.action && !o.think)
+  @ValidateIf((o) => !o.choiceNumber && !o.action && !o.think && !o.actionType)
   communication?: string;
+
+  // Thêm các trường mới
+  @ApiPropertyOptional({
+    description: 'Type of action (can be predefined or custom)',
+    example: 'custom',
+    enum: ActionType,
+  })
+  @IsOptional()
+  @IsEnum(ActionType, { message: 'actionType must be a valid ActionType' })
+  actionType?: ActionType | string;
+
+  @ApiPropertyOptional({
+    description: 'Target of the action (NPC, item, location)',
+    example: 'Old Merchant',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  actionTarget?: string;
+
+  @ApiPropertyOptional({
+    description: 'Context of the action',
+    example: 'marketplace',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  actionContext?: string;
+
+  @ApiPropertyOptional({
+    description: 'Intensity of the action (0-100)',
+    example: 75,
+    type: Number,
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  actionIntensity?: number;
+
+  @ApiPropertyOptional({
+    description: 'Intent of the player',
+    example: 'gather information',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  actionIntent?: string;
+
+  @ApiPropertyOptional({
+    description: 'Additional metadata for the action',
+    example: { mood: 'suspicious', tone: 'friendly' },
+    type: 'object',
+    additionalProperties: true, // Add the required additionalProperties field
+  })
+  @IsOptional()
+  @IsObject()
+  actionMetadata?: Record<string, unknown>;
 }

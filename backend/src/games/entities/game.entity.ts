@@ -12,17 +12,22 @@ import { GameSettingsDto } from '../dto/create-game.dto';
 import {
   GameStats,
   InventoryItem,
-  Skill,
+  CharacterSkill,
   LoreFragment,
-  Choice,
-  StorySegment,
-  NpcInfo,
-  ItemUsageRecord,
-  ImportantEvent,
+  GameChoice,
+  StoryHistoryEntry,
+  WorldState,
+  NpcRelationship,
+} from '../../common/types/game-engine.types';
+
+import {
   Achievement,
   ChatHistoryItem,
+  ImportantEvent,
+  ItemUsageRecord,
   KnowledgeBaseItem,
-} from '../../common/types/game.types';
+  NpcInfo,
+} from 'src/common/types';
 
 @Entity('games')
 export class Game {
@@ -40,7 +45,7 @@ export class Game {
   settings!: GameSettingsDto;
 
   @Column({ type: 'jsonb', name: 'story_history' })
-  storyHistory!: StorySegment[];
+  storyHistory!: StoryHistoryEntry[];
 
   @Column({ type: 'jsonb', name: 'character_stats' })
   characterStats!: GameStats;
@@ -49,7 +54,7 @@ export class Game {
   inventoryItems!: InventoryItem[];
 
   @Column({ type: 'jsonb', name: 'character_skills' })
-  characterSkills!: Skill[];
+  characterSkills!: CharacterSkill[];
 
   @Column({ type: 'jsonb', name: 'lore_fragments' })
   loreFragments!: LoreFragment[];
@@ -58,7 +63,69 @@ export class Game {
   currentPrompt!: string;
 
   @Column({ type: 'jsonb', name: 'current_choices', nullable: true })
-  currentChoices!: Choice[];
+  currentChoices!: GameChoice[];
+
+  // Thêm trường mới cho trạng thái thế giới
+  @Column({ type: 'jsonb', name: 'world_state', nullable: true })
+  worldState!: WorldState;
+
+  // Thêm trường mới cho mối quan hệ với NPC
+  @Column({ type: 'jsonb', name: 'npc_relationships', nullable: true })
+  npcRelationships!: NpcRelationship[];
+
+  // Thêm trường mới cho nhật ký nhiệm vụ
+  @Column({ type: 'jsonb', name: 'quest_log', nullable: true })
+  questLog!: Array<{
+    id: string;
+    title: string;
+    description: string;
+    status: 'active' | 'completed' | 'failed' | 'hidden';
+    progress: number;
+    objectives: Array<{
+      description: string;
+      completed: boolean;
+      optional?: boolean;
+    }>;
+    rewards?: string[];
+    relatedNpcs?: string[];
+    deadline?: Date;
+  }>;
+
+  // Thêm trường mới cho lịch sử lựa chọn của người chơi
+  @Column({ type: 'jsonb', name: 'player_choice_history', nullable: true })
+  playerChoiceHistory!: Array<{
+    choiceId: string;
+    choiceText: string;
+    timestamp: Date;
+    consequences: string[];
+    alternativePaths?: string[];
+  }>;
+
+  // Thêm trường mới cho sự tiến hóa của thế giới
+  @Column({ type: 'jsonb', name: 'world_evolution', nullable: true })
+  worldEvolution!: Array<{
+    timestamp: Date;
+    aspect: string;
+    change: string;
+    playerInfluence: number;
+  }>;
+
+  // Thêm trường mới cho hiệu ứng trạng thái người chơi
+  @Column({ type: 'jsonb', name: 'player_status_effects', nullable: true })
+  playerStatusEffects!: Array<{
+    id: string;
+    name: string;
+    description: string;
+    duration: number;
+    remainingDuration: number;
+    intensity?: number;
+    source?: string;
+    type?: string;
+    effects: Record<string, number | string>;
+    visualEffects?: string[];
+    cures?: string[];
+    appliedAt: Date;
+  }>;
 
   @Column({ type: 'jsonb', name: 'chat_history_for_gemini', nullable: true })
   chatHistoryForGemini!: ChatHistoryItem[];

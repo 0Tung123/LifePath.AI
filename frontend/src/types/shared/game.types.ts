@@ -152,12 +152,12 @@ export enum LoreFragmentType {
  */
 export interface LoreFragment {
   id?: string;
-  type: LoreFragmentType;
+  type: LoreFragmentType | string;
   name?: string;
   title?: string;
   description?: string;
   content?: string;
-  discoveredAt?: string;
+  discoveredAt?: string | Date;
 }
 
 /**
@@ -167,7 +167,7 @@ export interface Choice {
   text: string;
   number: number;
   requirements?: Record<string, number | string>;
-  consequences?: string;
+  consequences?: string[];
 }
 
 /**
@@ -186,9 +186,9 @@ export enum StorySegmentType {
  * Story segment
  */
 export interface StorySegment {
-  type: StorySegmentType;
+  type: StorySegmentType | string;
   content: string;
-  timestamp: string;
+  timestamp: string | Date;
 }
 
 /**
@@ -204,9 +204,9 @@ export enum ChatRole {
  * Chat history item
  */
 export interface ChatHistoryItem {
-  role: ChatRole;
+  role: ChatRole | string;
   content: string;
-  timestamp?: string;
+  timestamp?: string | Date;
 }
 
 /**
@@ -214,12 +214,12 @@ export interface ChatHistoryItem {
  */
 export interface KnowledgeBaseItem {
   id?: string;
-  type: LoreFragmentType;
+  type: LoreFragmentType | string;
   name: string;
   description: string;
   details?: Record<string, unknown>;
   relationships?: Record<string, string[]>;
-  discoveredAt?: string;
+  discoveredAt?: string | Date;
 }
 
 /**
@@ -229,7 +229,7 @@ export interface NpcInfo {
   id?: string;
   name: string;
   description: string;
-  firstMet: string;
+  firstMet: string | Date;
   interactions: number;
   relationship?: number; // -100 to 100
   faction?: string;
@@ -245,7 +245,7 @@ export interface ItemUsageRecord {
   id?: string;
   name: string;
   description: string;
-  usedAt: string;
+  usedAt: string | Date;
   quantity: number;
   effect?: string;
   location?: string;
@@ -271,7 +271,7 @@ export interface ImportantEvent {
   id?: string;
   title: string;
   description: string;
-  timestamp: string;
+  timestamp: string | Date;
   type: EventType | string;
   location?: string;
   characters?: string[];
@@ -285,7 +285,7 @@ export interface Achievement {
   id?: string;
   name: string;
   description: string;
-  unlockedAt: string;
+  unlockedAt: string | Date;
   rarity?: string;
   hidden?: boolean;
   icon?: string;
@@ -357,7 +357,7 @@ export interface Game extends BaseEntity {
   karmaScore: number;
   reputation?: Record<string, number>;
   active: boolean;
-  deathDate?: string | null;
+  deathDate?: string | Date | null;
   deathCause?: string | null;
 }
 
@@ -368,8 +368,8 @@ export interface CharacterLifeSummary {
   characterName: string;
   theme: string;
   setting: string;
-  birthDate: string;
-  deathDate: string;
+  birthDate: string | Date;
+  deathDate: string | Date;
   deathCause: string;
   playTime: string;
   finalStats: GameStats;
