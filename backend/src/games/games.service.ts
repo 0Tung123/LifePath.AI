@@ -798,10 +798,10 @@ export class GamesService {
 
       return buildEnhancedActionPrompt(
         gameWithEnhancedInfo,
-        choiceNumber,
-        action,
-        think,
-        communication,
+        choiceNumber ?? 0, // Provide default value if undefined
+        action ?? '',
+        think ?? '',
+        communication ?? '',
       );
     } catch (error) {
       this.logger.error('Error building action prompt:', error);
