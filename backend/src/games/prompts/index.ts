@@ -19,6 +19,16 @@ export { generateChineseStyleNarrativePrompt } from './chinese-style-narrative.p
 export { generateKoreanStyleNarrativePrompt } from './korean-style-narrative.prompt';
 export { generateNarrativeRulesPrompt } from './narrative-rules.prompt';
 
+// Import Vietnamese language enforcer
+export {
+  VIETNAMESE_LANGUAGE_REQUIREMENT,
+  enforceVietnameseLanguage,
+  hasVietnameseRequirement,
+  validateVietnameseResponse,
+  VIETNAMESE_ALTERNATIVES,
+  replaceEnglishTerms,
+} from './vietnamese-language-enforcer';
+
 // Main orchestrator function
 import {
   Tag,
@@ -219,12 +229,20 @@ ${JSON.stringify(playerAction, null, 2)}
 - **Power Level Range**: ${options.powerLevelRange?.join('-') || 'Auto'}
 - **Custom Prompt**: ${options.customPrompt || 'None'}
 
+## ⚠️ YÊU CẦU BẮT BUỘC VỀ NGÔN NGỮ
+**QUAN TRỌNG NHẤT**: Bạn PHẢI sử dụng TIẾNG VIỆT cho tất cả output.
+- ✅ **100% tiếng Việt**: Tất cả phân tích, giải thích, nội dung
+- ✅ **Thuật ngữ kỹ thuật**: Dịch sang tiếng Việt hoặc giải thích
+- ❌ **TUYỆT ĐỐI KHÔNG**: Sử dụng tiếng Anh trong output cuối cùng
+- ❌ **TUYỆT ĐỐI KHÔNG**: Trộn lẫn ngôn ngữ
+
 ## QUALITY EXPECTATIONS
 - **Type Safety**: 100% (Non-negotiable)
 - **Game Balance**: ≥ 85% (High priority)
 - **Narrative Quality**: ≥ 90% (High priority)
 - **Performance**: ≤ 3s total processing (Requirement)
 - **User Engagement**: ≥ 85% (Target)
+- **Vietnamese Language**: 100% (MANDATORY)
 
 ## BEGIN EXECUTION
 Bắt đầu với **GIAI ĐOẠN 1: PHÂN TÍCH HỆ THỐNG TYPE**

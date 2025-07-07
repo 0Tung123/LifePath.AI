@@ -796,13 +796,21 @@ export class GamesService {
         enhancedActionInfo, // Add the enhancedActionInfo to the game object
       };
 
-      return buildEnhancedActionPrompt(
+      // Import Vietnamese language enforcer
+      const { enforceVietnameseLanguage } = await import(
+        './prompts/vietnamese-language-enforcer'
+      );
+
+      const basePrompt = buildEnhancedActionPrompt(
         gameWithEnhancedInfo,
         choiceNumber ?? 0, // Provide default value if undefined
         action ?? '',
         think ?? '',
         communication ?? '',
       );
+
+      // Enforce Vietnamese language requirement
+      return enforceVietnameseLanguage(basePrompt);
     } catch (error) {
       this.logger.error('Error building action prompt:', error);
       throw new BadRequestException('Failed to build action prompt');

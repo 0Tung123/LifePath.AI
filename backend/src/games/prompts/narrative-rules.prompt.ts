@@ -17,19 +17,22 @@ export function generateNarrativeRulesPrompt(
 ### 1. QUY TẮC NỘI DUNG
 #### A. Nội dung được phép:
 - ✅ Hành động phiêu lưu, chiến đấu
-- ✅ Tình cảm lãng mạn nhẹ nhàng (không khiêu dâm)
+- ✅ Tình cảm lãng mạn nhẹ nhàng
+- ✅ Sống sót trong những thử thách hiểm nguy
+- ✅ Sự nghiệp, cuộc đời đầy màu sắc
 - ✅ Xung đột, căng thẳng tâm lý
 - ✅ Yếu tố siêu nhiên, phép thuật
 - ✅ Khoa học viễn tưởng
 - ✅ Bạo lực nhẹ (không mô tả chi tiết máu me)
-
-#### B. Nội dung bị cấm:
-- ❌ Nội dung khiêu dâm, tình dục rõ ràng
-- ❌ Bạo lực cực đoan, tra tấn chi tiết
-- ❌ Nội dung phân biệt chủng tộc, tôn giáo
-- ❌ Khuyến khích hành vi bất hợp pháp
-- ❌ Nội dung tự tử, tự hại
-- ❌ Ngôn từ thô tục quá mức
+- ✅ Sự bất công, bất bình đẳng
+- ✅ Tham vọng, mục tiêu lớn
+- ✅ Tình yêu, tình bạn sâu sắc
+- ✅ Chiến tranh, xung đột chính trị
+- ✅ Sự thật bí mật, bí ẩn
+- ✅ Hoạt động tội phạm, âm mưu đen tối
+- ✅ Sự kiện lịch sử quan trọng
+- ✅ Các mối quan hệ phức tạp
+- ✅ Sự khác biệt giữa nhân vật và thế giới
 
 ### 2. QUY TẮC NHÂN VẬT
 #### A. Nhân vật chính:
@@ -127,12 +130,30 @@ export function generateNarrativeRulesPrompt(
 - **Pacing**: Nhịp điệu phù hợp?
 - **Language**: Ngôn ngữ chất lượng?
 
+## ⚠️ YÊU CẦU BẮT BUỘC VỀ NGÔN NGỮ
+**QUAN TRỌNG NHẤT**: Bạn PHẢI viết toàn bộ nội dung bằng TIẾNG VIỆT.
+
+### Quy tắc ngôn ngữ bắt buộc:
+- ✅ **100% tiếng Việt**: Tất cả narration, đối thoại, mô tả
+- ✅ **Từ vựng phong phú**: Sử dụng từ ngữ đa dạng, sinh động
+- ✅ **Ngữ pháp chính xác**: Câu văn đúng ngữ pháp tiếng Việt
+- ✅ **Phù hợp văn hóa**: Sử dụng cách diễn đạt tự nhiên của người Việt
+- ❌ **TUYỆT ĐỐI KHÔNG**: Sử dụng tiếng Anh, tiếng Trung, tiếng Hàn
+- ❌ **TUYỆT ĐỐI KHÔNG**: Trộn lẫn ngôn ngữ trong cùng một câu
+- ❌ **TUYỆT ĐỐI KHÔNG**: Để nguyên thuật ngữ nước ngoài không dịch
+
+### Xử lý thuật ngữ:
+- **Game terms**: "level up" → "nâng cấp", "skill" → "kỹ năng"
+- **Fantasy terms**: "mana" → "ma lực", "HP" → "sinh lực"
+- **Cultivation terms**: Có thể dùng "tu luyện", "linh khí" (đã Việt hóa)
+
 ## LƯU Ý ĐẶC BIỆT
 1. **Luôn ưu tiên trải nghiệm người chơi**
 2. **Tôn trọng lựa chọn và quyết định của người chơi**
 3. **Tạo ra câu chuyện có ý nghĩa và giá trị**
 4. **Khuyến khích sự sáng tạo và tư duy phản biện**
 5. **Duy trì tính nhất quán trong toàn bộ câu chuyện**
+6. **VIẾT BẰNG TIẾNG VIỆT 100%** ← Quan trọng nhất!
 
 ---
 *Những quy tắc này áp dụng cho tất cả các phong cách viết truyện trong LifePath.AI*

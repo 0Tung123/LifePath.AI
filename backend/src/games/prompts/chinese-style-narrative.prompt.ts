@@ -59,5 +59,15 @@ Câu chuyện cần:
 **Độ dài**: 800-1200 từ
 **Giọng điệu**: Trang trọng, có chút cổ điển
 **Ngôi kể**: Ngôi thứ ba, tập trung vào nhân vật chính
+
+## ⚠️ YÊU CẦU BẮT BUỘC VỀ NGÔN NGỮ
+**QUAN TRỌNG**: Bạn PHẢI viết toàn bộ câu chuyện bằng TIẾNG VIỆT. 
+- ✅ Sử dụng 100% tiếng Việt cho narration
+- ✅ Đối thoại bằng tiếng Việt
+- ✅ Mô tả, hành động đều bằng tiếng Việt
+- ❌ KHÔNG được sử dụng tiếng Anh, tiếng Trung, hay ngôn ngữ khác
+- ❌ KHÔNG được trộn lẫn ngôn ngữ
+
+**Lưu ý**: Có thể sử dụng một số thuật ngữ tu tiên đã được Việt hóa như "tu luyện", "linh khí", "đan dược"
 `;
 }

@@ -76,5 +76,15 @@ Câu chuyện cần:
 **Giọng điệu**: Hiện đại, năng động, có chút căng thẳng
 **Ngôi kể**: Ngôi thứ ba, tập trung vào hành động và tâm lý
 **Format**: Chia thành các đoạn ngắn, dễ đọc
+
+## ⚠️ YÊU CẦU BẮT BUỘC VỀ NGÔN NGỮ
+**QUAN TRỌNG**: Bạn PHẢI viết toàn bộ câu chuyện bằng TIẾNG VIỆT.
+- ✅ Sử dụng 100% tiếng Việt cho narration
+- ✅ Đối thoại bằng tiếng Việt
+- ✅ Mô tả hành động, tâm lý đều bằng tiếng Việt
+- ❌ KHÔNG được sử dụng tiếng Anh, tiếng Hàn, hay ngôn ngữ khác
+- ❌ KHÔNG được trộn lẫn ngôn ngữ
+
+**Lưu ý**: Có thể sử dụng một số thuật ngữ game đã được Việt hóa như "level up", "skill", "guild" nhưng phải giải thích bằng tiếng Việt
 `;
 }
