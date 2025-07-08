@@ -65,6 +65,9 @@ export class Game {
   @Column({ type: 'jsonb', name: 'current_choices', nullable: true })
   currentChoices!: GameChoice[];
 
+  @Column({ type: 'jsonb', name: 'current_generic_choices', nullable: true })
+  currentGenericChoices!: GameChoice[];
+
   // Thêm trường mới cho trạng thái thế giới
   @Column({ type: 'jsonb', name: 'world_state', nullable: true })
   worldState!: WorldState;

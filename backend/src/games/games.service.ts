@@ -868,178 +868,264 @@ export class GamesService {
         storyText = response.substring(0, firstTagMatch.index).trim();
       }
 
+      // Clean ALL JSON metadata from story text
+      storyText = storyText.replace(/"choices":\s*\[[\s\S]*?\]/g, '');
+      storyText = storyText.replace(/"stats":\s*\{[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/"inventory":\s*\[[\s\S]*?\]/g, '');
+      storyText = storyText.replace(/"skills":\s*\[[\s\S]*?\]/g, '');
+      storyText = storyText.replace(/"lore":\s*\[[\s\S]*?\]/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"choices"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"stats"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"inventory"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"skills"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"lore"[\s\S]*?\}/g, '');
+      storyText = storyText.trim();
+
       // Phân tích nội dung thành các phân đoạn
       // We're not using storySegments directly, but we'll keep the parsing for future use
       this.parseContentSegments(storyText);
 
-      // Extract stats
-      const statsMatches = [...response.matchAll(/\[STATS:\s*(.*?)\]/g)];
-      const stats: Record<string, string | number> = {};
-      if (statsMatches.length > 0) {
-        const statsString = statsMatches[0][1];
-        // Parse key-value pairs from format like: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500
-        const keyValuePairs = statsString.split(',').map((pair) => pair.trim());
-        keyValuePairs.forEach((pair) => {
-          if (!pair.includes('=')) {
-            console.warn(`Invalid stats pair format: ${pair}`);
-            return; // Skip this pair
+      // Extract stats - Try JSON format first
+      let stats: Record<string, string | number> = {};
+      const jsonStatsMatch = response.match(/"stats":\s*\{[\s\S]*?\}/);
+      if (jsonStatsMatch) {
+        try {
+          const statsObjectMatch = jsonStatsMatch[0].match(/\{[\s\S]*?\}/);
+          if (statsObjectMatch) {
+            const parsedStats = JSON.parse(statsObjectMatch[0]);
+            stats = parsedStats;
+            this.logger.log(
+              `Extracted stats from JSON format: ${Object.keys(stats).length} properties`,
+            );
           }
-
-          const [key, ...valueParts] = pair
-            .split('=')
-            .map((item) => item.trim());
-          // Join value parts in case the value itself contains '=' characters
-          const value = valueParts.join('=');
-
-          if (!key || value === undefined) {
-            console.warn(`Invalid key-value pair: ${pair}`);
-            return; // Skip this pair
-          }
-
-          // Remove quotes if they exist
-          const cleanValue =
-            value &&
-            typeof value === 'string' &&
-            value.startsWith('"') &&
-            value.endsWith('"')
-              ? value.substring(1, value.length - 1)
-              : value;
-
-          stats[key] = cleanValue;
-        });
+        } catch (e) {
+          this.logger.error('Error parsing JSON stats:', e);
+        }
       }
 
-      // Extract inventory items
-      const inventoryAddMatches = [
-        ...response.matchAll(/\[INVENTORY_ADD:\s*(.*?)\]/g),
-      ];
-      const inventory: InventoryItem[] = [];
+      // Fallback to tag format if JSON parsing failed
+      if (Object.keys(stats).length === 0) {
+        const statsMatches = [...response.matchAll(/\[STATS:\s*(.*?)\]/g)];
+        if (statsMatches.length > 0) {
+          const statsString = statsMatches[0][1];
+          // Parse key-value pairs from format like: Tu Vi="Luyện Khí tầng ba", Chân Khí=500/500
+          const keyValuePairs = statsString
+            .split(',')
+            .map((pair) => pair.trim());
+          keyValuePairs.forEach((pair) => {
+            if (!pair.includes('=')) {
+              console.warn(`Invalid stats pair format: ${pair}`);
+              return; // Skip this pair
+            }
 
-      this.logger.log(
-        `Found ${inventoryAddMatches.length} INVENTORY_ADD matches`,
-      );
+            const [key, ...valueParts] = pair
+              .split('=')
+              .map((item) => item.trim());
+            // Join value parts in case the value itself contains '=' characters
+            const value = valueParts.join('=');
 
-      inventoryAddMatches.forEach((match) => {
-        const itemString = match[1];
+            if (!key || value === undefined) {
+              console.warn(`Invalid key-value pair: ${pair}`);
+              return; // Skip this pair
+            }
 
-        // Parse name, description, etc
-        if (itemString) {
-          const nameMatch = itemString.match(/Name="([^"]+)"/);
-          const descMatch = itemString.match(/Description="([^"]+)"/);
-          const quantityMatch = itemString.match(/Quantity=(\d+)/);
+            // Remove quotes if they exist
+            const cleanValue =
+              value &&
+              typeof value === 'string' &&
+              value.startsWith('"') &&
+              value.endsWith('"')
+                ? value.substring(1, value.length - 1)
+                : value;
 
-          const name = nameMatch?.[1] || '';
-          const description = descMatch?.[1] || '';
-          const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
-
-          if (name) {
-            const itemProps: InventoryItem = {
-              name,
-              description,
-              quantity,
-            };
-            inventory.push(itemProps);
-          }
+            stats[key] = cleanValue;
+          });
         }
-      });
+      }
 
-      // If there are no INVENTORY_ADD tags, try looking for INVENTORY_INIT
+      // Extract inventory items - Try JSON format first
+      let inventory: InventoryItem[] = [];
+      const jsonInventoryMatch = response.match(/"inventory":\s*\[[\s\S]*?\]/);
+      if (jsonInventoryMatch) {
+        try {
+          const inventoryArrayMatch =
+            jsonInventoryMatch[0].match(/\[[\s\S]*?\]/);
+          if (inventoryArrayMatch) {
+            const parsedInventory = JSON.parse(inventoryArrayMatch[0]);
+            if (Array.isArray(parsedInventory)) {
+              inventory = parsedInventory.map((item: any) => ({
+                name: item.name || item,
+                description: item.description || '',
+                quantity: item.quantity || 1,
+              }));
+              this.logger.log(
+                `Extracted ${inventory.length} items from JSON inventory`,
+              );
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing JSON inventory:', e);
+        }
+      }
+
+      // Fallback to tag format if JSON parsing failed
       if (inventory.length === 0) {
-        const inventoryInitMatch = response.match(
-          /\[INVENTORY_INIT:\s*({[\s\S]*?})\]/,
+        const inventoryAddMatches = [
+          ...response.matchAll(/\[INVENTORY_ADD:\s*(.*?)\]/g),
+        ];
+
+        this.logger.log(
+          `Found ${inventoryAddMatches.length} INVENTORY_ADD matches`,
         );
-        if (inventoryInitMatch) {
-          try {
-            const initInventory = JSON.parse(inventoryInitMatch[1]);
-            if (initInventory.items && Array.isArray(initInventory.items)) {
-              const items = initInventory.items as Array<{
-                name?: string;
-                description?: string;
-                quantity?: number;
-              }>;
 
-              items.forEach((item) => {
-                if (item.name) {
-                  const inventoryItem: InventoryItem = {
-                    name: item.name,
-                    description: item.description || '',
-                    quantity: item.quantity || 1,
-                  };
-                  inventory.push(inventoryItem);
-                }
-              });
+        inventoryAddMatches.forEach((match) => {
+          const itemString = match[1];
+
+          // Parse name, description, etc
+          if (itemString) {
+            const nameMatch = itemString.match(/Name="([^"]+)"/);
+            const descMatch = itemString.match(/Description="([^"]+)"/);
+            const quantityMatch = itemString.match(/Quantity=(\d+)/);
+
+            const name = nameMatch?.[1] || '';
+            const description = descMatch?.[1] || '';
+            const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
+
+            if (name) {
+              const itemProps: InventoryItem = {
+                name,
+                description,
+                quantity,
+              };
+              inventory.push(itemProps);
             }
-          } catch (e) {
-            this.logger.error('Error parsing INVENTORY_INIT:', e);
           }
+        });
+
+        // If there are no INVENTORY_ADD tags, try looking for INVENTORY_INIT
+        if (inventory.length === 0) {
+          const inventoryInitMatch = response.match(
+            /\[INVENTORY_INIT:\s*({[\s\S]*?})\]/,
+          );
+          if (inventoryInitMatch) {
+            try {
+              const initInventory = JSON.parse(inventoryInitMatch[1]);
+              if (initInventory.items && Array.isArray(initInventory.items)) {
+                const items = initInventory.items as Array<{
+                  name?: string;
+                  description?: string;
+                  quantity?: number;
+                }>;
+
+                items.forEach((item) => {
+                  if (item.name) {
+                    const inventoryItem: InventoryItem = {
+                      name: item.name,
+                      description: item.description || '',
+                      quantity: item.quantity || 1,
+                    };
+                    inventory.push(inventoryItem);
+                  }
+                });
+              }
+            } catch (e) {
+              this.logger.error('Error parsing INVENTORY_INIT:', e);
+            }
+          }
+        }
+      } // End of inventory fallback parsing
+
+      // Extract skills - Try JSON format first
+      let skills: CharacterSkill[] = [];
+      const jsonSkillsMatch = response.match(/"skills":\s*\[[\s\S]*?\]/);
+      if (jsonSkillsMatch) {
+        try {
+          const skillsArrayMatch = jsonSkillsMatch[0].match(/\[[\s\S]*?\]/);
+          if (skillsArrayMatch) {
+            const parsedSkills = JSON.parse(skillsArrayMatch[0]);
+            if (Array.isArray(parsedSkills)) {
+              skills = parsedSkills.map((skill: any) => ({
+                name: skill.name || skill,
+                description: skill.description || '',
+                level: skill.level || 1,
+                thanhThuc: skill.thanhThuc || skill.mastery || '',
+              }));
+              this.logger.log(
+                `Extracted ${skills.length} skills from JSON format`,
+              );
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing JSON skills:', e);
         }
       }
 
-      // Extract skills
-      const skillMatches = [...response.matchAll(/\[SKILL:\s*(.*?)\]/g)];
-      const skills: CharacterSkill[] = [];
-
-      this.logger.log(`Found ${skillMatches.length} SKILL matches`);
-
-      skillMatches.forEach((match) => {
-        const skillString = match[1];
-
-        // Parse name, level, description, etc
-        const nameMatch = skillString.match(/Name="([^"]+)"/);
-        const descMatch = skillString.match(/Description="([^"]+)"/);
-        const levelMatch = skillString.match(/Level=(\d+)/);
-        const thanhThucMatch = skillString.match(/ThanhThuc="([^"]+)"/);
-
-        const name = nameMatch?.[1];
-        if (name) {
-          const skillProps: CharacterSkill = {
-            name,
-            description: descMatch?.[1] || '',
-            ...(levelMatch && { level: parseInt(levelMatch[1]) }),
-            ...(thanhThucMatch && { mastery: thanhThucMatch[1] }),
-          };
-          skills.push(skillProps);
-        }
-      });
-
-      // If there are no SKILL tags, try looking for SKILLS
+      // Fallback to tag format if JSON parsing failed
       if (skills.length === 0) {
-        const skillsMatch = response.match(/\[SKILLS:\s*({[\s\S]*?})\]/);
-        if (skillsMatch) {
-          try {
-            const parsedSkills = JSON.parse(skillsMatch[1]);
-            if (
-              parsedSkills.abilities &&
-              Array.isArray(parsedSkills.abilities)
-            ) {
-              const abilities = parsedSkills.abilities as Array<{
-                name?: string;
-                description?: string;
-                level?: number;
-                mastery?: number;
-              }>;
+        const skillMatches = [...response.matchAll(/\[SKILL:\s*(.*?)\]/g)];
 
-              abilities.forEach((ability) => {
-                if (ability.name) {
-                  const skill: CharacterSkill = {
-                    name: ability.name,
-                    description: ability.description || '',
-                    ...(ability.level !== undefined && {
-                      level: ability.level,
-                    }),
-                    ...(ability.mastery !== undefined && {
-                      mastery: ability.mastery.toString(),
-                    }),
-                  };
-                  skills.push(skill);
-                }
-              });
+        this.logger.log(`Found ${skillMatches.length} SKILL matches`);
+
+        skillMatches.forEach((match) => {
+          const skillString = match[1];
+
+          // Parse name, level, description, etc
+          const nameMatch = skillString.match(/Name="([^"]+)"/);
+          const descMatch = skillString.match(/Description="([^"]+)"/);
+          const levelMatch = skillString.match(/Level=(\d+)/);
+          const thanhThucMatch = skillString.match(/ThanhThuc="([^"]+)"/);
+
+          const name = nameMatch?.[1];
+          if (name) {
+            const skillProps: CharacterSkill = {
+              name,
+              description: descMatch?.[1] || '',
+              ...(levelMatch && { level: parseInt(levelMatch[1]) }),
+              ...(thanhThucMatch && { mastery: thanhThucMatch[1] }),
+            };
+            skills.push(skillProps);
+          }
+        });
+
+        // If there are no SKILL tags, try looking for SKILLS
+        if (skills.length === 0) {
+          const skillsMatch = response.match(/\[SKILLS:\s*({[\s\S]*?})\]/);
+          if (skillsMatch) {
+            try {
+              const parsedSkills = JSON.parse(skillsMatch[1]);
+              if (
+                parsedSkills.abilities &&
+                Array.isArray(parsedSkills.abilities)
+              ) {
+                const abilities = parsedSkills.abilities as Array<{
+                  name?: string;
+                  description?: string;
+                  level?: number;
+                  mastery?: number;
+                }>;
+
+                abilities.forEach((ability) => {
+                  if (ability.name) {
+                    const skill: CharacterSkill = {
+                      name: ability.name,
+                      description: ability.description || '',
+                      ...(ability.level !== undefined && {
+                        level: ability.level,
+                      }),
+                      ...(ability.mastery !== undefined && {
+                        mastery: ability.mastery.toString(),
+                      }),
+                    };
+                    skills.push(skill);
+                  }
+                });
+              }
+            } catch (e) {
+              this.logger.error('Error parsing SKILLS:', e);
             }
-          } catch (e) {
-            this.logger.error('Error parsing SKILLS:', e);
           }
         }
-      }
+      } // End of skills fallback parsing
 
       // Extract karma score changes
       let karmaChange: number = 0;
@@ -1076,127 +1162,162 @@ export class GamesService {
         });
       }
 
-      // Extract lore
-      const loreNpcMatches = [...response.matchAll(/\[LORE_NPC:\s*(.*?)\]/g)];
-      const loreItemMatches = [...response.matchAll(/\[LORE_ITEM:\s*(.*?)\]/g)];
-      const loreLocationMatches = [
-        ...response.matchAll(/\[LORE_LOCATION:\s*(.*?)\]/g),
-      ];
-
-      const lore: LoreFragment[] = [];
-
-      const processLoreMatch = (
-        match: RegExpMatchArray,
-        category: 'npc' | 'item' | 'location' | 'event' | 'world',
-      ): void => {
-        const loreString = match[1];
-        const nameMatch = loreString.match(/Name="([^"]+)"/);
-        const descMatch = loreString.match(/Description="([^"]+)"/);
-        const titleMatch = loreString.match(/Title="([^"]+)"/);
-        const contentMatch = loreString.match(/Content="([^"]+)"/);
-
-        const title = titleMatch?.[1] || nameMatch?.[1] || 'Unknown';
-        const content = contentMatch?.[1] || descMatch?.[1] || 'No description';
-
-        const loreFragment: LoreFragment = {
-          id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
-          title,
-          content,
-          type: category,
-          category,
-          importance: 'medium',
-          timestamp: new Date(),
-        };
-
-        lore.push(loreFragment);
-      };
-
-      loreNpcMatches.forEach((match) => processLoreMatch(match, 'npc'));
-      loreItemMatches.forEach((match) => processLoreMatch(match, 'item'));
-      loreLocationMatches.forEach((match) =>
-        processLoreMatch(match, 'location'),
-      );
-
-      // If there are no LORE_X tags, try looking for LORE
-      if (lore.length === 0) {
-        const loreMatch = response.match(/\[LORE:\s*({[\s\S]*?})\]/);
-        if (loreMatch) {
-          try {
-            const parsedLore = JSON.parse(loreMatch[1]);
-            if (parsedLore.fragments && Array.isArray(parsedLore.fragments)) {
-              const fragments = parsedLore.fragments as Array<{
-                title?: string;
-                content?: string;
-                category?: string;
-              }>;
-
-              fragments.forEach((fragment) => {
-                const loreFragment: LoreFragment = {
-                  id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
-                  title: fragment.title || 'Unknown',
-                  content: fragment.content || 'No description',
-                  type: fragment.category || 'world',
-                  category:
-                    (fragment.category as LoreFragment['category']) || 'world',
-                  importance: 'medium',
-                  timestamp: new Date(),
-                };
-                lore.push(loreFragment);
-              });
+      // Extract lore - Try JSON format first
+      let lore: LoreFragment[] = [];
+      const jsonLoreMatch = response.match(/"lore":\s*\[[\s\S]*?\]/);
+      if (jsonLoreMatch) {
+        try {
+          const loreArrayMatch = jsonLoreMatch[0].match(/\[[\s\S]*?\]/);
+          if (loreArrayMatch) {
+            const parsedLore = JSON.parse(loreArrayMatch[0]);
+            if (Array.isArray(parsedLore)) {
+              lore = parsedLore.map((loreItem: any, index: number) => ({
+                id: `lore_${Date.now()}_${index}`,
+                title:
+                  loreItem.title || loreItem.name || `Lore Entry ${index + 1}`,
+                content: loreItem.content || loreItem.description || loreItem,
+                type: loreItem.type || 'world',
+                category: loreItem.category || 'world',
+                importance: loreItem.importance || 'medium',
+                timestamp: new Date(),
+              }));
+              this.logger.log(
+                `Extracted ${lore.length} lore entries from JSON format`,
+              );
             }
-          } catch (e) {
-            this.logger.error('Error parsing LORE:', e);
           }
+        } catch (e) {
+          this.logger.error('Error parsing JSON lore:', e);
         }
       }
+
+      // Fallback to tag format if JSON parsing failed
+      if (lore.length === 0) {
+        const loreNpcMatches = [...response.matchAll(/\[LORE_NPC:\s*(.*?)\]/g)];
+        const loreItemMatches = [
+          ...response.matchAll(/\[LORE_ITEM:\s*(.*?)\]/g),
+        ];
+        const loreLocationMatches = [
+          ...response.matchAll(/\[LORE_LOCATION:\s*(.*?)\]/g),
+        ];
+
+        const processLoreMatch = (
+          match: RegExpMatchArray,
+          category: 'npc' | 'item' | 'location' | 'event' | 'world',
+        ): void => {
+          const loreString = match[1];
+          const nameMatch = loreString.match(/Name="([^"]+)"/);
+          const descMatch = loreString.match(/Description="([^"]+)"/);
+          const titleMatch = loreString.match(/Title="([^"]+)"/);
+          const contentMatch = loreString.match(/Content="([^"]+)"/);
+
+          const title = titleMatch?.[1] || nameMatch?.[1] || 'Unknown';
+          const content =
+            contentMatch?.[1] || descMatch?.[1] || 'No description';
+
+          const loreFragment: LoreFragment = {
+            id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
+            title,
+            content,
+            type: category,
+            category,
+            importance: 'medium',
+            timestamp: new Date(),
+          };
+
+          lore.push(loreFragment);
+        };
+
+        loreNpcMatches.forEach((match) => processLoreMatch(match, 'npc'));
+        loreItemMatches.forEach((match) => processLoreMatch(match, 'item'));
+        loreLocationMatches.forEach((match) =>
+          processLoreMatch(match, 'location'),
+        );
+
+        // If there are no LORE_X tags, try looking for LORE
+        if (lore.length === 0) {
+          const loreMatch = response.match(/\[LORE:\s*({[\s\S]*?})\]/);
+          if (loreMatch) {
+            try {
+              const parsedLore = JSON.parse(loreMatch[1]);
+              if (parsedLore.fragments && Array.isArray(parsedLore.fragments)) {
+                const fragments = parsedLore.fragments as Array<{
+                  title?: string;
+                  content?: string;
+                  category?: string;
+                }>;
+
+                fragments.forEach((fragment) => {
+                  const loreFragment: LoreFragment = {
+                    id: `lore_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Generate a unique ID
+                    title: fragment.title || 'Unknown',
+                    content: fragment.content || 'No description',
+                    type: fragment.category || 'world',
+                    category:
+                      (fragment.category as LoreFragment['category']) ||
+                      'world',
+                    importance: 'medium',
+                    timestamp: new Date(),
+                  };
+                  lore.push(loreFragment);
+                });
+              }
+            } catch (e) {
+              this.logger.error('Error parsing LORE:', e);
+            }
+          }
+        }
+      } // End of lore fallback parsing
 
       // Extract choices - improved logic to handle various formats
       let choices: GameChoice[] = [];
 
-      // Method 1: Look for numbered choices at the end of the response (most common)
-      const lines = response.split('\n');
-      const choiceLines: string[] = [];
-      let foundChoicesSection: boolean = false;
-
-      // Look for numbered choices from the end of the response
-      for (let i: number = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
-        if (/^\d+\.\s+/.test(line)) {
-          choiceLines.unshift(line);
-          foundChoicesSection = true;
-        } else if (foundChoicesSection && line === '') {
-          // Empty line after choices is OK
-          continue;
-        } else if (foundChoicesSection) {
-          // Non-choice line found, stop looking
-          break;
+      // Method 0: Look for JSON array format choices (new format)
+      const jsonChoicesMatch = response.match(/"choices":\s*\[[\s\S]*?\]/);
+      if (jsonChoicesMatch) {
+        try {
+          // Extract just the choices array
+          const choicesArrayMatch = jsonChoicesMatch[0].match(/\[[\s\S]*?\]/);
+          if (choicesArrayMatch) {
+            const parsedChoices = JSON.parse(choicesArrayMatch[0]);
+            if (Array.isArray(parsedChoices)) {
+              choices = parsedChoices.map((choice: any, index: number) => ({
+                text: choice.text || choice,
+                number: choice.number || index + 1,
+              }));
+              this.logger.log(
+                `Extracted ${choices.length} choices from JSON format`,
+              );
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing JSON choices:', e);
         }
       }
 
-      if (choiceLines.length >= 2) {
-        choices = choiceLines.map((line, index) => {
-          const choiceText = line.replace(/^\d+\.\s*/, '').trim();
-          const number = index + 1;
-          const choice: GameChoice = {
-            text: choiceText,
-            number,
-          };
-          return choice;
-        });
+      // Method 1: Look for numbered choices at the end of the response (fallback)
+      if (choices.length === 0) {
+        const lines = response.split('\n');
+        const choiceLines: string[] = [];
+        let foundChoicesSection: boolean = false;
 
-        // Clean up story text by removing the numbered choices
-        choiceLines.forEach((line) => {
-          storyText = storyText.replace(line, '');
-        });
-        storyText = storyText.trim();
-      } else {
-        // Method 2: Look for choices in the main story text
-        const storyChoiceLines = storyText
-          .split('\n')
-          .filter((line) => /^\d+\./.test(line.trim()));
+        // Look for numbered choices from the end of the response
+        for (let i: number = lines.length - 1; i >= 0; i--) {
+          const line = lines[i].trim();
+          if (/^\d+\.\s+/.test(line)) {
+            choiceLines.unshift(line);
+            foundChoicesSection = true;
+          } else if (foundChoicesSection && line === '') {
+            // Empty line after choices is OK
+            continue;
+          } else if (foundChoicesSection) {
+            // Non-choice line found, stop looking
+            break;
+          }
+        }
 
-        if (storyChoiceLines.length >= 2) {
-          choices = storyChoiceLines.map((line, index) => {
+        if (choiceLines.length >= 2) {
+          choices = choiceLines.map((line, index) => {
             const choiceText = line.replace(/^\d+\.\s*/, '').trim();
             const number = index + 1;
             const choice: GameChoice = {
@@ -1206,51 +1327,77 @@ export class GamesService {
             return choice;
           });
 
-          // Clean up story text
-          storyChoiceLines.forEach((line) => {
+          // Clean up story text by removing the numbered choices
+          choiceLines.forEach((line) => {
             storyText = storyText.replace(line, '');
           });
           storyText = storyText.trim();
         } else {
-          // Method 3: Try the CHOICES tag format
-          const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
-          if (choicesMatch) {
-            try {
-              const parsedChoices = JSON.parse(choicesMatch[1]);
-              if (
-                parsedChoices.options &&
-                Array.isArray(parsedChoices.options)
-              ) {
-                choices = parsedChoices.options.map(
-                  (
-                    option: string | { text: string; number?: number },
-                    index: number,
-                  ) => ({
-                    text: typeof option === 'string' ? option : option.text,
-                    number:
-                      typeof option === 'string'
-                        ? index + 1
-                        : option.number || index + 1,
-                  }),
-                );
+          // Method 2: Look for choices in the main story text
+          const storyChoiceLines = storyText
+            .split('\n')
+            .filter((line) => /^\d+\./.test(line.trim()));
+
+          if (storyChoiceLines.length >= 2) {
+            choices = storyChoiceLines.map((line, index) => {
+              const choiceText = line.replace(/^\d+\.\s*/, '').trim();
+              const number = index + 1;
+              const choice: GameChoice = {
+                text: choiceText,
+                number,
+              };
+              return choice;
+            });
+
+            // Clean up story text
+            storyChoiceLines.forEach((line) => {
+              storyText = storyText.replace(line, '');
+            });
+            storyText = storyText.trim();
+          } else {
+            // Method 3: Try the CHOICES tag format
+            const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
+            if (choicesMatch) {
+              try {
+                const parsedChoices = JSON.parse(choicesMatch[1]);
+                if (
+                  parsedChoices.options &&
+                  Array.isArray(parsedChoices.options)
+                ) {
+                  choices = parsedChoices.options.map(
+                    (
+                      option: string | { text: string; number?: number },
+                      index: number,
+                    ) => ({
+                      text: typeof option === 'string' ? option : option.text,
+                      number:
+                        typeof option === 'string'
+                          ? index + 1
+                          : option.number || index + 1,
+                    }),
+                  );
+                }
+              } catch (e) {
+                this.logger.error('Error parsing CHOICES tag:', e);
               }
-            } catch (e) {
-              this.logger.error('Error parsing CHOICES tag:', e);
             }
           }
         }
-      }
+      } // End of Method 1 if block
+
+      // Always provide generic support choices
+      const genericChoices = [
+        { text: 'Tiếp tục quan sát tình hình', number: 1 },
+        { text: 'Hành động ngay lập tức', number: 2 },
+        { text: 'Tìm cách khác để giải quyết', number: 3 },
+      ];
 
       // Ensure we have at least some default choices if none were found
       if (choices.length === 0) {
         this.logger.warn(
-          'No choices found in AI response, adding default choices',
+          'No choices found in AI response, using generic choices as main choices',
         );
-        choices = [
-          { text: 'Tiếp tục quan sát tình hình', number: 1 },
-          { text: 'Hành động ngay lập tức', number: 2 },
-          { text: 'Tìm cách khác để giải quyết', number: 3 },
-        ];
+        choices = genericChoices;
       }
 
       // Extract world state changes
@@ -1479,6 +1626,7 @@ export class GamesService {
         skills,
         lore,
         choices,
+        genericChoices,
         karmaChange,
         karmaReason,
         reputationChanges,

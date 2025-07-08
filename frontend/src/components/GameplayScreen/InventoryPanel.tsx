@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { InventoryItem } from '@/types/shared';
+import { LegacyInventoryItem } from '@/types/shared';
 
 interface InventoryPanelProps {
-  inventoryItems: InventoryItem[];
+  inventoryItems: LegacyInventoryItem[];
 }
 
 const InventoryPanel: React.FC<InventoryPanelProps> = ({ inventoryItems }) => {
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<LegacyInventoryItem | null>(
+    null,
+  );
 
-  const handleItemClick = (item: InventoryItem) => {
+  const handleItemClick = (item: LegacyInventoryItem) => {
     setSelectedItem(selectedItem?.name === item.name ? null : item);
   };
 

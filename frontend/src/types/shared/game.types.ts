@@ -38,17 +38,27 @@ export enum CombatStyle {
  */
 export enum GameTheme {
   FANTASY = 'fantasy',
-  SCI_FI = 'sci-fi',
-  HISTORICAL = 'historical',
+  SCIFI = 'scifi',
   MODERN = 'modern',
-  POST_APOCALYPTIC = 'post-apocalyptic',
+  HISTORICAL = 'historical',
   HORROR = 'horror',
   MYSTERY = 'mystery',
-  WESTERN = 'western',
+  ROMANCE = 'romance',
+  ADVENTURE = 'adventure',
+  SLICE_OF_LIFE = 'slice_of_life',
   CYBERPUNK = 'cyberpunk',
   STEAMPUNK = 'steampunk',
-  CULTIVATION = 'cultivation',
+  APOCALYPSE = 'apocalypse',
   SUPERHERO = 'superhero',
+  MARTIAL_ARTS = 'martial_arts',
+  CULTIVATION = 'cultivation',
+  ISEKAI = 'isekai',
+  REINCARNATION = 'reincarnation',
+  REGRESSION = 'regression',
+  SYSTEM = 'system',
+  VILLAINESS = 'villainess',
+  OTOME = 'otome',
+  CUSTOM = 'custom',
 }
 
 /**
@@ -102,9 +112,9 @@ export interface GameStats {
 }
 
 /**
- * Inventory item
+ * Legacy inventory item (deprecated, use InventoryItem from game-engine.types)
  */
-export interface InventoryItem {
+export interface LegacyInventoryItem {
   id?: string;
   name: string;
   description?: string;
@@ -342,11 +352,12 @@ export interface Game extends BaseEntity {
   settings: GameSettings;
   storyHistory: StorySegment[];
   characterStats: GameStats;
-  inventoryItems: InventoryItem[];
+  inventoryItems: LegacyInventoryItem[];
   characterSkills: Skill[];
   loreFragments: LoreFragment[];
   currentPrompt: string;
   currentChoices: Choice[];
+  currentGenericChoices: Choice[];
   chatHistoryForGemini: ChatHistoryItem[];
   knowledgeBase: KnowledgeBaseItem[];
   currentObjective: string | null;
@@ -373,7 +384,7 @@ export interface CharacterLifeSummary {
   deathCause: string;
   playTime: string;
   finalStats: GameStats;
-  inventory: InventoryItem[];
+  inventory: LegacyInventoryItem[];
   skills: Skill[];
   npcsMet: NpcInfo[];
   importantEvents: ImportantEvent[];

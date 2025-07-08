@@ -478,6 +478,7 @@ export default function GamePage({
           <ActionInputPanel
             ref={actionPanelRef}
             currentChoices={currentGame?.currentChoices || []}
+            currentGenericChoices={currentGame?.currentGenericChoices || []}
             isLoading={gameLoading}
             onMakeChoice={handleMakeChoice}
             onPerformAction={handlePerformAction}

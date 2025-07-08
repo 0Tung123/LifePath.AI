@@ -5,6 +5,7 @@ import { Choice } from '@/types/shared';
 
 interface ActionInputPanelProps {
   currentChoices: Choice[];
+  currentGenericChoices: Choice[];
   isLoading: boolean;
   onMakeChoice: (choiceNumber: number) => Promise<void>;
   onPerformAction: (action: string) => Promise<void>;
@@ -20,6 +21,7 @@ const ActionInputPanel = React.forwardRef<
   (
     {
       currentChoices,
+      currentGenericChoices,
       isLoading,
       onMakeChoice,
       onPerformAction,
@@ -30,7 +32,7 @@ const ActionInputPanel = React.forwardRef<
     ref,
   ) => {
     const [activeTab, setActiveTab] = useState<
-      'choices' | 'action' | 'think' | 'communicate'
+      'choices' | 'support' | 'action' | 'think' | 'communicate'
     >('choices');
     const [actionText, setActionText] = useState('');
     const [thinkText, setThinkText] = useState('');
@@ -181,6 +183,16 @@ const ActionInputPanel = React.forwardRef<
               Lựa Chọn ({currentChoices.length})
             </button>
             <button
+              onClick={() => setActiveTab('support')}
+              className={`py-2 px-4 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === 'support'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Hỗ trợ lựa chọn ({currentGenericChoices.length})
+            </button>
+            <button
               onClick={() => setActiveTab('action')}
               className={`py-2 px-4 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === 'action'
@@ -293,6 +305,48 @@ const ActionInputPanel = React.forwardRef<
                   </button>
                 ))
               ) : null}
+            </div>
+          )}
+
+          {activeTab === 'support' && (
+            <div className="space-y-4">
+              {currentGenericChoices.map((choice) => (
+                <button
+                  key={choice.number}
+                  onClick={() => handleChoiceClick(choice.number)}
+                  disabled={isLoading}
+                  className={`w-full p-4 rounded-lg border text-left transition-all duration-200 ${
+                    processingChoice === choice.number
+                      ? 'bg-orange-900/50 border-orange-500/50 text-orange-200'
+                      : isLoading
+                        ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200 hover:border-orange-500/50'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-orange-600 text-white text-sm font-bold rounded-full flex items-center justify-center">
+                      {choice.number}
+                    </span>
+                    <span className="flex-1 leading-relaxed">
+                      {choice.text}
+                    </span>
+                    {processingChoice === choice.number && (
+                      <div className="flex-shrink-0">
+                        <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+              <div className="text-center text-sm text-gray-400 mt-4">
+                <p className="mb-2">
+                  💡 Lựa chọn hỗ trợ - Luôn có sẵn khi bạn cần
+                </p>
+                <p className="text-xs">
+                  Những lựa chọn tổng quát này có thể áp dụng trong nhiều tình
+                  huống khác nhau
+                </p>
+              </div>
             </div>
           )}
 

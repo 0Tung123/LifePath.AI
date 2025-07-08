@@ -15,7 +15,7 @@ export default function CreateGame() {
   const router = useRouter();
 
   const [formData, setFormData] = useState<GameSettings>({
-    theme: '',
+    theme: GameTheme.FANTASY,
     setting: '',
     characterName: '',
     characterBackstory: '',
@@ -139,21 +139,31 @@ export default function CreateGame() {
                       <option value={GameTheme.FANTASY}>
                         Giả tưởng (Fantasy)
                       </option>
-                      <option value={GameTheme.SCI_FI}>
+                      <option value={GameTheme.SCIFI}>
                         Khoa học viễn tưởng (Sci-Fi)
                       </option>
-                      <option value={GameTheme.POST_APOCALYPTIC}>
-                        Hậu tận thế
-                      </option>
-                      <option value={GameTheme.HISTORICAL}>Lịch sử</option>
                       <option value={GameTheme.MODERN}>Hiện đại</option>
+                      <option value={GameTheme.HISTORICAL}>Lịch sử</option>
                       <option value={GameTheme.HORROR}>Kinh dị</option>
                       <option value={GameTheme.MYSTERY}>Bí ẩn</option>
-                      <option value={GameTheme.WESTERN}>Miền Tây</option>
+                      <option value={GameTheme.ROMANCE}>Lãng mạn</option>
+                      <option value={GameTheme.ADVENTURE}>Phiêu lưu</option>
+                      <option value={GameTheme.SLICE_OF_LIFE}>
+                        Đời thường
+                      </option>
                       <option value={GameTheme.CYBERPUNK}>Cyberpunk</option>
                       <option value={GameTheme.STEAMPUNK}>Steampunk</option>
-                      <option value={GameTheme.CULTIVATION}>Tu Luyện</option>
+                      <option value={GameTheme.APOCALYPSE}>Hậu tận thế</option>
                       <option value={GameTheme.SUPERHERO}>Siêu Anh Hùng</option>
+                      <option value={GameTheme.MARTIAL_ARTS}>Võ hiệp</option>
+                      <option value={GameTheme.CULTIVATION}>Tu Luyện</option>
+                      <option value={GameTheme.ISEKAI}>Isekai</option>
+                      <option value={GameTheme.REINCARNATION}>Tái sinh</option>
+                      <option value={GameTheme.REGRESSION}>Hồi quy</option>
+                      <option value={GameTheme.SYSTEM}>Hệ thống</option>
+                      <option value={GameTheme.VILLAINESS}>Nữ phản diện</option>
+                      <option value={GameTheme.OTOME}>Otome</option>
+                      <option value={GameTheme.CUSTOM}>Tùy chỉnh</option>
                     </select>
                   </div>
 

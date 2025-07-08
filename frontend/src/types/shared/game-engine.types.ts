@@ -1,6 +1,45 @@
 // Game engine types - complete and strict typing
+export interface CharacterAttributes {
+  // Chỉ số cơ bản
+  strength: number; // Sức mạnh
+  agility: number; // Nhanh nhẹn
+  intelligence: number; // Trí tuệ
+  wisdom: number; // Khôn ngoan
+  charisma: number; // Quyến rũ
+  constitution: number; // Thể chất
+  luck: number; // May mắn
+
+  // Chỉ số phụ
+  health: {
+    current: number;
+    max: number;
+  };
+  mana?: {
+    current: number;
+    max: number;
+  };
+  stamina?: {
+    current: number;
+    max: number;
+  };
+
+  // Chỉ số tu luyện (nếu là game tu tiên)
+  cultivation?: {
+    level: string;
+    progress: number;
+    maxProgress: number;
+  };
+
+  // Các chỉ số khác
+  experience: number;
+  level: number;
+  nextLevelExp: number;
+}
+
 export interface GameStats {
-  [key: string]: string | number;
+  attributes?: CharacterAttributes;
+  // Vẫn giữ cấu trúc động cho các chỉ số khác
+  [key: string]: string | number | boolean | object | null | undefined;
 }
 
 export interface InventoryItem {
@@ -55,7 +94,7 @@ export interface LoreFragment {
   readonly type: string;
   readonly category: LoreCategory | string;
   readonly importance: ImportanceLevel | string;
-  readonly timestamp: string;
+  readonly timestamp: Date;
   // Thêm các thuộc tính mới
   readonly tags?: string[]; // Các tag để phân loại linh hoạt
   readonly relations?: LoreRelation[]; // Mối quan hệ với các mục lore khác
@@ -63,7 +102,7 @@ export interface LoreFragment {
   readonly evolutionStages?: Array<{
     readonly stage: string;
     readonly content: string;
-    readonly unlockedAt?: string;
+    readonly unlockedAt?: Date;
   }>; // Cho phép lore phát triển theo thời gian
   readonly attributes?: Record<string, string | number | boolean>; // Thuộc tính tùy chỉnh
 }
@@ -94,7 +133,7 @@ export interface StoryHistoryEntry {
   // Cho phép sử dụng các loại tương tác từ enum hoặc bất kỳ chuỗi nào
   readonly type: InteractionType | string;
   readonly content: string;
-  readonly timestamp: string;
+  readonly timestamp: Date;
   // Thay thế metadata bằng cấu trúc rõ ràng hơn
   readonly attributes?: InteractionAttributes;
   // Thêm trường để theo dõi tác động của tương tác này đến thế giới game
@@ -104,7 +143,7 @@ export interface StoryHistoryEntry {
 export interface KarmaChange {
   readonly amount: number;
   readonly reason: string;
-  readonly timestamp: string;
+  readonly timestamp: Date;
   // Thêm trường để phân loại loại hành động gây ra thay đổi karma
   readonly actionCategory?: string;
   // Thêm trường để theo dõi đối tượng bị ảnh hưởng
@@ -309,7 +348,7 @@ export interface GameAction {
   readonly customAction?: string;
   readonly thought?: string;
   readonly communication?: string;
-  readonly timestamp: string;
+  readonly timestamp: Date;
 
   // Thêm các trường mới
   readonly target?: string; // Đối tượng của hành động (NPC, vật phẩm, địa điểm)
@@ -359,7 +398,7 @@ export interface WorldState {
     name: string;
     description: string;
     type?: string;
-    startTime: string;
+    startTime: Date;
     duration?: number; // Thời lượng tính bằng phút
     affectedRegions?: string[];
     consequences?: string[];
@@ -376,7 +415,7 @@ export interface NpcRelationship {
   relationshipLevel: number; // -100 đến 100
   status: string; // friend, enemy, neutral, etc.
   interactions: Array<{
-    date: string;
+    date: Date;
     type: string;
     outcome: string;
     impact: number;
@@ -401,10 +440,10 @@ export interface GameState {
   readonly karmaScore: number;
   readonly reputation: ReputationChanges;
   readonly active: boolean;
-  readonly deathDate: string | null;
+  readonly deathDate: Date | null;
   readonly deathCause: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
   // Thêm các trường mới
   readonly worldState: WorldState; // Trạng thái thế giới game
@@ -422,31 +461,73 @@ export interface GameState {
     }>;
     readonly rewards?: string[];
     readonly relatedNpcs?: string[];
-    readonly deadline?: string;
+    readonly deadline?: Date;
   }>; // Nhật ký nhiệm vụ
   readonly playerChoiceHistory?: Array<{
     readonly choiceId: string;
     readonly choiceText: string;
-    readonly timestamp: string;
+    readonly timestamp: Date;
     readonly consequences: string[];
+    readonly alternativePaths?: string[];
   }>; // Lịch sử lựa chọn của người chơi
-  readonly statusEffects?: Array<{
-    readonly id: string;
-    readonly name: string;
-    readonly description: string;
-    readonly duration: number;
-    readonly remainingDuration: number;
-    readonly effects: Record<string, number | string>;
-    readonly source: string;
-  }>; // Hiệu ứng trạng thái
-  readonly discoveredSecrets?: string[]; // Bí mật đã phát hiện
-  readonly achievements?: Array<{
-    readonly id: string;
-    readonly name: string;
-    readonly description: string;
-    readonly unlockedAt: string;
-    readonly rarity: string;
-    readonly icon?: string;
-  }>; // Thành tựu
-  readonly customState?: Record<string, unknown>; // Trạng thái tùy chỉnh
+  readonly worldEvolution?: Array<{
+    readonly timestamp: Date;
+    readonly aspect: string;
+    readonly change: string;
+    readonly playerInfluence: number; // 0-100
+  }>; // Theo dõi sự tiến hóa của thế giới
+}
+
+export interface GameCreationResult {
+  readonly game: GameState;
+  readonly success: boolean;
+  readonly message?: string;
+  readonly error?: string;
+}
+
+export interface GameActionResult {
+  readonly game: GameState;
+  readonly success: boolean;
+  readonly message?: string;
+  readonly error?: string;
+  readonly isGameOver?: boolean;
+}
+
+export interface LifeSummary {
+  readonly totalDays: number;
+  readonly majorEvents: string[];
+  readonly finalStats: GameStats;
+  readonly achievements: string[];
+  readonly karmaScore: number;
+  readonly reputation: ReputationChanges;
+  readonly deathCause: string | null;
+  readonly legacy: string;
+}
+
+export interface ResurrectionOptions {
+  readonly available: boolean;
+  readonly skillName?: string;
+  readonly cost?: string;
+  readonly penalty?: string;
+  readonly description?: string;
+}
+
+export interface GameMetrics {
+  readonly totalGames: number;
+  readonly activeGames: number;
+  readonly completedGames: number;
+  readonly averageSessionLength: number;
+  readonly popularChoices: Array<{
+    readonly text: string;
+    readonly count: number;
+  }>;
+}
+
+export interface AIPromptContext {
+  readonly gameSettings: GameSettings;
+  readonly currentStats: GameStats;
+  readonly recentHistory: StoryHistoryEntry[];
+  readonly playerAction: GameAction;
+  readonly worldState: string;
+  readonly characterBackground: string;
 }

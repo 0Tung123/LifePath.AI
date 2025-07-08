@@ -1,6 +1,45 @@
 // Game engine types - complete and strict typing
+export interface CharacterAttributes {
+  // Chỉ số cơ bản
+  strength: number; // Sức mạnh
+  agility: number; // Nhanh nhẹn
+  intelligence: number; // Trí tuệ
+  wisdom: number; // Khôn ngoan
+  charisma: number; // Quyến rũ
+  constitution: number; // Thể chất
+  luck: number; // May mắn
+
+  // Chỉ số phụ
+  health: {
+    current: number;
+    max: number;
+  };
+  mana?: {
+    current: number;
+    max: number;
+  };
+  stamina?: {
+    current: number;
+    max: number;
+  };
+
+  // Chỉ số tu luyện (nếu là game tu tiên)
+  cultivation?: {
+    level: string;
+    progress: number;
+    maxProgress: number;
+  };
+
+  // Các chỉ số khác
+  experience: number;
+  level: number;
+  nextLevelExp: number;
+}
+
 export interface GameStats {
-  [key: string]: string | number;
+  attributes?: CharacterAttributes;
+  // Vẫn giữ cấu trúc động cho các chỉ số khác
+  [key: string]: any;
 }
 
 export interface InventoryItem {
@@ -254,6 +293,7 @@ export interface ParsedGameContent {
   readonly storyText: string;
   readonly storySegments?: ContentSegment[];
   readonly choices: GameChoice[];
+  readonly genericChoices: GameChoice[];
   readonly stats: GameStats;
   readonly inventory: InventoryItem[];
   readonly skills: CharacterSkill[];
@@ -398,6 +438,7 @@ export interface GameState {
   readonly storyHistory: StoryHistoryEntry[];
   readonly currentPrompt: string;
   readonly currentChoices: GameChoice[];
+  readonly currentGenericChoices: GameChoice[];
   readonly karmaScore: number;
   readonly reputation: ReputationChanges;
   readonly active: boolean;
