@@ -28,6 +28,7 @@ import {
   LifeSummary,
   Skill,
 } from './interfaces/game-content.interface';
+import { CharacterAttributes } from '../common/types/game-engine.types';
 import {
   InteractionType,
   InteractionAttributes,
@@ -68,16 +69,10 @@ export class GamesService {
         `Parsed content - Choices found: ${parsedContent.choices.length}`,
       );
 
-      // Ensure health is set in character stats
-      const statsWithHealth = {
-        ...parsedContent.stats,
-        // Add default health if not present
-        ...(!parsedContent.stats.Health &&
-          !parsedContent.stats['Máu'] &&
-          !parsedContent.stats['Sinh Lực'] && {
-            'Sinh Lực': '100/100',
-          }),
-      };
+      // Ensure proper character stats structure
+      const statsWithHealth = this.ensureProperStatsStructure(
+        parsedContent.stats,
+      );
 
       // Create new game record
       const newGame = this.gamesRepository.create();
@@ -566,7 +561,9 @@ export class GamesService {
           });
         });
       }
-      game.characterStats = { ...game.characterStats, ...parsedContent.stats };
+      // Ensure proper stats structure before updating
+      const properStats = this.ensureProperStatsStructure(parsedContent.stats);
+      game.characterStats = { ...game.characterStats, ...properStats };
 
       // Check for death condition
       const isDead = this.checkIfCharacterIsDead(
@@ -772,7 +769,7 @@ export class GamesService {
     try {
       // Import the enhanced action prompt
       const { buildEnhancedActionPrompt } = await import(
-        './prompts/enhanced-world-building.prompt.backup'
+        './prompts/enhanced-world-building.prompt'
       );
 
       // Tạo thông tin bổ sung về hành động
@@ -817,13 +814,119 @@ export class GamesService {
     }
   }
 
+  /**
+   * Ensure proper stats structure with CharacterAttributes
+   */
+  private ensureProperStatsStructure(stats: any): any {
+    // If stats already has proper attributes structure, return as is
+    if (stats.attributes && typeof stats.attributes === 'object') {
+      return stats;
+    }
+
+    // Generate default attributes if not present
+    const defaultAttributes = {
+      strength: 10,
+      agility: 10,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 10,
+      constitution: 10,
+      luck: 10,
+      health: {
+        current: 100,
+        max: 100,
+      },
+      mana: {
+        current: 50,
+        max: 50,
+      },
+      stamina: {
+        current: 50,
+        max: 50,
+      },
+      experience: 0,
+      level: 1,
+      nextLevelExp: 100,
+    };
+
+    // Try to extract any existing attributes from stats
+    const extractedAttributes: CharacterAttributes = { ...defaultAttributes };
+
+    // Map common stat names to attributes
+    const statMapping: Record<string, keyof CharacterAttributes> = {
+      'Sức Mạnh': 'strength',
+      Strength: 'strength',
+      'Nhanh Nhẹn': 'agility',
+      Agility: 'agility',
+      'Trí Tuệ': 'intelligence',
+      Intelligence: 'intelligence',
+      'Khôn Ngoan': 'wisdom',
+      Wisdom: 'wisdom',
+      'Quyến Rũ': 'charisma',
+      Charisma: 'charisma',
+      'Thể Chất': 'constitution',
+      Constitution: 'constitution',
+      'May Mắn': 'luck',
+      Luck: 'luck',
+      Level: 'level',
+      Experience: 'experience',
+      'Kinh Nghiệm': 'experience',
+      Health: 'health',
+      Máu: 'health',
+      'Sinh Lực': 'health',
+      Mana: 'mana',
+      'Năng Lượng': 'mana',
+      Stamina: 'stamina',
+      'Thể Lực': 'stamina',
+    };
+
+    // Extract values from existing stats
+    Object.entries(stats).forEach(([key, value]) => {
+      const mappedKey = statMapping[key];
+      if (mappedKey && value !== undefined) {
+        if (
+          mappedKey === 'health' ||
+          mappedKey === 'mana' ||
+          mappedKey === 'stamina'
+        ) {
+          // Handle health/mana/stamina format
+          if (typeof value === 'string' && value.includes('/')) {
+            const [current, max] = value.split('/').map(Number);
+            (extractedAttributes as any)[mappedKey] = { current, max };
+          } else if (typeof value === 'number') {
+            (extractedAttributes as any)[mappedKey] = {
+              current: value,
+              max: value,
+            };
+          }
+        } else {
+          // Handle regular numeric attributes
+          if (typeof value === 'number') {
+            (extractedAttributes as any)[mappedKey] = value;
+          } else if (typeof value === 'string') {
+            const numValue = parseInt(value, 10);
+            if (!isNaN(numValue)) {
+              (extractedAttributes as any)[mappedKey] = numValue;
+            }
+          }
+        }
+      }
+    });
+
+    // Return stats with proper attributes structure
+    return {
+      ...stats,
+      attributes: extractedAttributes,
+    };
+  }
+
   private async buildInitialPrompt(
     gameSettings: GameSettingsDto,
   ): Promise<string> {
     try {
       // Import the enhanced world-building prompt
       const { buildEnhancedWorldPrompt } = await import(
-        './prompts/enhanced-world-building.prompt.backup'
+        './prompts/enhanced-world-building.prompt'
       );
       return buildEnhancedWorldPrompt(gameSettings);
     } catch (error) {
