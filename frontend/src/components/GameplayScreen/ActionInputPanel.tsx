@@ -259,22 +259,56 @@ const ActionInputPanel = React.forwardRef<
               )}
 
               {!isLoading && currentChoices.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">
-                  <svg
-                    className="w-12 h-12 mx-auto mb-4 opacity-50"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <p>Không có lựa chọn nào</p>
-                </div>
+                // Hiển thị generic choices khi không có AI choices
+                currentGenericChoices.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="text-amber-400 font-semibold mb-2 border-b border-amber-400/30 pb-2">
+                      Lựa chọn hỗ trợ:
+                    </div>
+                    {currentGenericChoices.map((choice) => (
+                      <button
+                        key={`generic-${choice.number}`}
+                        onClick={() => {
+                          if (!isLoading) {
+                            setProcessingChoice(choice.number);
+                            onMakeChoice(choice.number);
+                          }
+                        }}
+                        disabled={isLoading}
+                        className={`w-full text-left p-3 rounded-lg transition-all duration-200 
+                          ${
+                            processingChoice === choice.number
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                          }`}
+                      >
+                        <div className="flex items-start">
+                          <span className="bg-amber-500/20 text-amber-400 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                            {choice.number}
+                          </span>
+                          <span>{choice.text}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-8">
+                    <svg
+                      className="w-12 h-12 mx-auto mb-4 opacity-50"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p>Không có lựa chọn nào</p>
+                  </div>
+                )
               ) : !isLoading ? (
                 currentChoices.map((choice) => (
                   <button

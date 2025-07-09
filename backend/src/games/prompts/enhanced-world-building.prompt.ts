@@ -112,7 +112,7 @@ Bạn PHẢI tạo ra chỉ số nhân vật với cấu trúc JSON chính xác 
 - ✅ **PHẢI có health, mana, stamina với current/max**
 - ✅ **PHẢI có experience, level, nextLevelExp**
 - ✅ **PHẢI sử dụng tiếng Việt 100%**
-- ✅ **PHẢI có ít nhất 3 lựa chọn có ý nghĩa**
+- ✅ **PHẢI có chính xác 4 lựa chọn có ý nghĩa**
 
 Hãy tạo ra câu chuyện và chỉ số nhân vật hoàn chỉnh ngay bây giờ!
 `;
@@ -155,6 +155,21 @@ Tiếp tục câu chuyện và cập nhật chỉ số nhân vật. **QUAN TRỌ
       "number": 1,
       "text": "Lựa chọn 1",
       "consequences": ["Hậu quả 1"]
+    },
+    {
+      "number": 2,
+      "text": "Lựa chọn 2",
+      "consequences": ["Hậu quả 2"]
+    },
+    {
+      "number": 3,
+      "text": "Lựa chọn 3",
+      "consequences": ["Hậu quả 3"]
+    },
+    {
+      "number": 4,
+      "text": "Lựa chọn 4",
+      "consequences": ["Hậu quả 4"]
     }
   ],
   "stats": {
@@ -194,6 +209,7 @@ Tiếp tục câu chuyện và cập nhật chỉ số nhân vật. **QUAN TRỌ
 2. **Cập nhật hợp lý**: Thay đổi chỉ số phù hợp với hành động
 3. **Cân bằng**: Không tăng quá nhiều cùng lúc
 4. **Thực tế**: Phản ánh kết quả hành động
+5. **LUÔN CÓ 4 LỰA CHỌN**: Bắt buộc phải tạo chính xác 4 lựa chọn có ý nghĩa
 
 Hãy tiếp tục câu chuyện và cập nhật chỉ số ngay bây giờ!
 `;

@@ -72,6 +72,8 @@ export class GamesService {
       // Ensure proper character stats structure
       const statsWithHealth = this.ensureProperStatsStructure(
         parsedContent.stats,
+        gameSettings.characterBackstory,
+        gameSettings.setting,
       );
 
       // Create new game record
@@ -107,6 +109,7 @@ export class GamesService {
       newGame.loreFragments = parsedContent.lore;
       newGame.currentPrompt = parsedContent.storyText;
       newGame.currentChoices = parsedContent.choices;
+      newGame.currentGenericChoices = parsedContent.genericChoices || [];
       newGame.chatHistoryForGemini = [];
       newGame.knowledgeBase = [];
       newGame.currentObjective = null;
@@ -542,6 +545,7 @@ export class GamesService {
       // Update game properties
       game.currentPrompt = parsedContent.storyText;
       game.currentChoices = parsedContent.choices;
+      game.currentGenericChoices = parsedContent.genericChoices || [];
 
       // Nếu có sự kiện được kích hoạt, lưu vào lịch sử
       if (
@@ -815,39 +819,370 @@ export class GamesService {
   }
 
   /**
+   * Generate character attributes based on background and world
+   */
+  private generateCharacterAttributes(
+    background: string,
+    world: string,
+  ): CharacterAttributes {
+    // Base stats với random từ 8-12
+    const baseStats = {
+      strength: 8 + Math.floor(Math.random() * 5),
+      agility: 8 + Math.floor(Math.random() * 5),
+      intelligence: 8 + Math.floor(Math.random() * 5),
+      wisdom: 8 + Math.floor(Math.random() * 5),
+      charisma: 8 + Math.floor(Math.random() * 5),
+      constitution: 8 + Math.floor(Math.random() * 5),
+      luck: 8 + Math.floor(Math.random() * 5),
+      level: 1,
+      experience: 0,
+      nextLevelExp: 100,
+    };
+
+    // Điều chỉnh chỉ số dựa trên tiểu sử
+    const backgroundBonus = this.getBackgroundBonus(background);
+    const worldBonus = this.getWorldBonus(world);
+
+    // Áp dụng bonus
+    Object.keys(backgroundBonus).forEach((key) => {
+      if (key in baseStats) {
+        (baseStats as any)[key] += backgroundBonus[key];
+      }
+    });
+
+    Object.keys(worldBonus).forEach((key) => {
+      if (key in baseStats) {
+        (baseStats as any)[key] += worldBonus[key];
+      }
+    });
+
+    // Tính toán HP, MP, Stamina dựa trên chỉ số
+    const healthMax = Math.floor(
+      baseStats.constitution * 8 + baseStats.level * 12 + 50,
+    );
+    const manaMax = Math.floor(
+      baseStats.intelligence * 6 +
+        baseStats.wisdom * 4 +
+        baseStats.level * 8 +
+        30,
+    );
+    const staminaMax = Math.floor(
+      baseStats.constitution * 4 +
+        baseStats.agility * 6 +
+        baseStats.level * 10 +
+        40,
+    );
+
+    return {
+      ...baseStats,
+      health: {
+        current: healthMax,
+        max: healthMax,
+      },
+      mana: {
+        current: manaMax,
+        max: manaMax,
+      },
+      stamina: {
+        current: staminaMax,
+        max: staminaMax,
+      },
+    };
+  }
+
+  /**
+   * Get stat bonus based on character background
+   */
+  private getBackgroundBonus(background: string): Record<string, number> {
+    const backgroundLower = background.toLowerCase();
+    const bonus: Record<string, number> = {};
+
+    // Warrior/Fighter backgrounds
+    if (
+      backgroundLower.includes('chiến binh') ||
+      backgroundLower.includes('warrior') ||
+      backgroundLower.includes('fighter') ||
+      backgroundLower.includes('võ sĩ')
+    ) {
+      bonus.strength = 2;
+      bonus.constitution = 2;
+      bonus.agility = 1;
+    }
+    // Mage/Scholar backgrounds
+    else if (
+      backgroundLower.includes('pháp sư') ||
+      backgroundLower.includes('mage') ||
+      backgroundLower.includes('học giả') ||
+      backgroundLower.includes('scholar')
+    ) {
+      bonus.intelligence = 3;
+      bonus.wisdom = 2;
+      bonus.constitution = -1;
+    }
+    // Thief/Assassin backgrounds
+    else if (
+      backgroundLower.includes('sát thủ') ||
+      backgroundLower.includes('assassin') ||
+      backgroundLower.includes('trộm') ||
+      backgroundLower.includes('thief')
+    ) {
+      bonus.agility = 3;
+      bonus.intelligence = 1;
+      bonus.luck = 1;
+      bonus.strength = -1;
+    }
+    // Noble/Diplomat backgrounds
+    else if (
+      backgroundLower.includes('quý tộc') ||
+      backgroundLower.includes('noble') ||
+      backgroundLower.includes('ngoại giao') ||
+      backgroundLower.includes('diplomat')
+    ) {
+      bonus.charisma = 3;
+      bonus.intelligence = 1;
+      bonus.wisdom = 1;
+      bonus.constitution = -1;
+    }
+    // Merchant/Trader backgrounds
+    else if (
+      backgroundLower.includes('thương gia') ||
+      backgroundLower.includes('merchant') ||
+      backgroundLower.includes('trader')
+    ) {
+      bonus.charisma = 2;
+      bonus.intelligence = 1;
+      bonus.luck = 2;
+    }
+    // Farmer/Commoner backgrounds
+    else if (
+      backgroundLower.includes('nông dân') ||
+      backgroundLower.includes('farmer') ||
+      backgroundLower.includes('thường dân') ||
+      backgroundLower.includes('commoner')
+    ) {
+      bonus.constitution = 2;
+      bonus.strength = 1;
+      bonus.wisdom = 1;
+    }
+
+    return bonus;
+  }
+
+  /**
+   * Get stat bonus based on world setting
+   */
+  private getWorldBonus(world: string): Record<string, number> {
+    const worldLower = world.toLowerCase();
+    const bonus: Record<string, number> = {};
+
+    // Cultivation/Xianxia worlds
+    if (
+      worldLower.includes('tu tiên') ||
+      worldLower.includes('xianxia') ||
+      worldLower.includes('cultivation')
+    ) {
+      bonus.wisdom = 2;
+      bonus.intelligence = 1;
+      bonus.constitution = 1;
+    }
+    // Fantasy/Magic worlds
+    else if (
+      worldLower.includes('fantasy') ||
+      worldLower.includes('magic') ||
+      worldLower.includes('phép thuật')
+    ) {
+      bonus.intelligence = 2;
+      bonus.wisdom = 1;
+      bonus.luck = 1;
+    }
+    // Sci-fi/Futuristic worlds
+    else if (
+      worldLower.includes('sci-fi') ||
+      worldLower.includes('tương lai') ||
+      worldLower.includes('futuristic')
+    ) {
+      bonus.intelligence = 2;
+      bonus.agility = 1;
+      bonus.constitution = 1;
+    }
+    // Medieval/Historical worlds
+    else if (
+      worldLower.includes('medieval') ||
+      worldLower.includes('lịch sử') ||
+      worldLower.includes('historical')
+    ) {
+      bonus.strength = 1;
+      bonus.constitution = 1;
+      bonus.wisdom = 1;
+    }
+
+    return bonus;
+  }
+
+  /**
+   * Calculate stats increase when leveling up
+   */
+  private calculateLevelUpStats(
+    currentAttributes: CharacterAttributes,
+    newLevel: number,
+  ): CharacterAttributes {
+    const levelDifference = newLevel - currentAttributes.level;
+
+    if (levelDifference <= 0) {
+      return currentAttributes;
+    }
+
+    // Random stat increases per level (1-3 points distributed)
+    const updatedAttributes = { ...currentAttributes };
+
+    for (let i = 0; i < levelDifference; i++) {
+      // Random 1-3 stat points per level
+      const pointsToDistribute = 1 + Math.floor(Math.random() * 3);
+
+      for (let j = 0; j < pointsToDistribute; j++) {
+        // Random stat to increase
+        const stats = [
+          'strength',
+          'agility',
+          'intelligence',
+          'wisdom',
+          'charisma',
+          'constitution',
+          'luck',
+        ];
+        const randomStat = stats[Math.floor(Math.random() * stats.length)];
+        (updatedAttributes as any)[randomStat] += 1;
+      }
+    }
+
+    // Update level
+    updatedAttributes.level = newLevel;
+
+    // Recalculate HP, MP, Stamina based on new stats
+    const healthMax = Math.floor(
+      updatedAttributes.constitution * 8 + updatedAttributes.level * 12 + 50,
+    );
+    const manaMax = Math.floor(
+      updatedAttributes.intelligence * 6 +
+        updatedAttributes.wisdom * 4 +
+        updatedAttributes.level * 8 +
+        30,
+    );
+    const staminaMax = Math.floor(
+      updatedAttributes.constitution * 4 +
+        updatedAttributes.agility * 6 +
+        updatedAttributes.level * 10 +
+        40,
+    );
+
+    // Keep current values proportional to the increase
+    const healthRatio =
+      updatedAttributes.health.current / updatedAttributes.health.max;
+    const manaRatio =
+      (updatedAttributes.mana?.current || 0) /
+      (updatedAttributes.mana?.max || 1);
+    const staminaRatio =
+      (updatedAttributes.stamina?.current || 0) /
+      (updatedAttributes.stamina?.max || 1);
+
+    updatedAttributes.health = {
+      current: Math.floor(healthMax * healthRatio),
+      max: healthMax,
+    };
+
+    updatedAttributes.mana = {
+      current: Math.floor(manaMax * manaRatio),
+      max: manaMax,
+    };
+
+    updatedAttributes.stamina = {
+      current: Math.floor(staminaMax * staminaRatio),
+      max: staminaMax,
+    };
+
+    // Calculate next level experience requirement
+    updatedAttributes.nextLevelExp = Math.floor(
+      100 * Math.pow(1.5, updatedAttributes.level - 1),
+    );
+
+    return updatedAttributes;
+  }
+
+  /**
+   * Public method to level up character
+   */
+  public levelUpCharacter(
+    currentAttributes: CharacterAttributes,
+    newLevel: number,
+  ): CharacterAttributes {
+    return this.calculateLevelUpStats(currentAttributes, newLevel);
+  }
+
+  /**
+   * Calculate dynamic HP/MP/Stamina based on current stats
+   */
+  public recalculateSecondaryStats(
+    attributes: CharacterAttributes,
+  ): CharacterAttributes {
+    const healthMax = Math.floor(
+      attributes.constitution * 8 + attributes.level * 12 + 50,
+    );
+    const manaMax = Math.floor(
+      attributes.intelligence * 6 +
+        attributes.wisdom * 4 +
+        attributes.level * 8 +
+        30,
+    );
+    const staminaMax = Math.floor(
+      attributes.constitution * 4 +
+        attributes.agility * 6 +
+        attributes.level * 10 +
+        40,
+    );
+
+    // Keep current values proportional if they exist
+    const healthRatio = attributes.health.current / attributes.health.max;
+    const manaRatio =
+      (attributes.mana?.current || 0) / (attributes.mana?.max || 1);
+    const staminaRatio =
+      (attributes.stamina?.current || 0) / (attributes.stamina?.max || 1);
+
+    return {
+      ...attributes,
+      health: {
+        current: Math.floor(healthMax * healthRatio),
+        max: healthMax,
+      },
+      mana: {
+        current: Math.floor(manaMax * manaRatio),
+        max: manaMax,
+      },
+      stamina: {
+        current: Math.floor(staminaMax * staminaRatio),
+        max: staminaMax,
+      },
+      nextLevelExp: Math.floor(100 * Math.pow(1.5, attributes.level - 1)),
+    };
+  }
+
+  /**
    * Ensure proper stats structure with CharacterAttributes
    */
-  private ensureProperStatsStructure(stats: any): any {
+  private ensureProperStatsStructure(
+    stats: any,
+    background?: string,
+    world?: string,
+  ): any {
     // If stats already has proper attributes structure, return as is
     if (stats.attributes && typeof stats.attributes === 'object') {
       return stats;
     }
 
-    // Generate default attributes if not present
-    const defaultAttributes = {
-      strength: 10,
-      agility: 10,
-      intelligence: 10,
-      wisdom: 10,
-      charisma: 10,
-      constitution: 10,
-      luck: 10,
-      health: {
-        current: 100,
-        max: 100,
-      },
-      mana: {
-        current: 50,
-        max: 50,
-      },
-      stamina: {
-        current: 50,
-        max: 50,
-      },
-      experience: 0,
-      level: 1,
-      nextLevelExp: 100,
-    };
+    // Generate attributes based on background and world if provided
+    const defaultAttributes =
+      background && world
+        ? this.generateCharacterAttributes(background, world)
+        : this.generateCharacterAttributes('thường dân', 'fantasy');
 
     // Try to extract any existing attributes from stats
     const extractedAttributes: CharacterAttributes = { ...defaultAttributes };
@@ -913,6 +1248,21 @@ export class GamesService {
       }
     });
 
+    // Check if level has increased and apply level up bonuses
+    const currentLevel = extractedAttributes.level;
+    const originalLevel = defaultAttributes.level;
+
+    if (currentLevel > originalLevel) {
+      const leveledUpAttributes = this.calculateLevelUpStats(
+        extractedAttributes,
+        currentLevel,
+      );
+      return {
+        ...stats,
+        attributes: leveledUpAttributes,
+      };
+    }
+
     // Return stats with proper attributes structure
     return {
       ...stats,
@@ -962,27 +1312,189 @@ export class GamesService {
         `Tags found - STATS: ${hasStatsTag}, INVENTORY: ${hasInventoryTag}, SKILL: ${hasSkillTag}, WORLD: ${hasWorldStateTag}, EVENT: ${hasEventTag}, NPC: ${hasNpcTag}`,
       );
 
-      // Extract story text (everything before the first tag)
-      let storyText: string = response;
-      const firstTagMatch = response.match(
-        /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION|WORLD_STATE|EVENT|NPC_UPDATE):/,
-      );
-      if (firstTagMatch && firstTagMatch.index !== undefined) {
-        storyText = response.substring(0, firstTagMatch.index).trim();
+      // ========== EXTRACT CHOICES FIRST (before cleaning) ==========
+      let choices: GameChoice[] = [];
+
+      // Extract AI choices from JSON format first
+      if (response.trim().startsWith('```json')) {
+        try {
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.choices && Array.isArray(parsedJson.choices)) {
+              choices = parsedJson.choices.map((choice: any) => ({
+                text: choice.text || '',
+                number: choice.number || 0,
+                consequences: choice.consequences || [],
+              }));
+              this.logger.log(
+                `Extracted ${choices.length} AI choices from JSON format`,
+              );
+            }
+          }
+        } catch (e) {
+          this.logger.error('Error parsing JSON choices:', e);
+          // Fallback to regex extraction if JSON parsing fails
+          const jsonChoicesMatch = response.match(/"choices":\s*\[[\s\S]*?\]/);
+          if (jsonChoicesMatch) {
+            try {
+              const choicesArrayMatch =
+                jsonChoicesMatch[0].match(/\[[\s\S]*?\]/);
+              if (choicesArrayMatch) {
+                const parsedChoices = JSON.parse(choicesArrayMatch[0]);
+                if (Array.isArray(parsedChoices)) {
+                  choices = parsedChoices.map((choice: any) => ({
+                    text: choice.text || '',
+                    number: choice.number || 0,
+                    consequences: choice.consequences || [],
+                  }));
+                  this.logger.log(
+                    `Extracted ${choices.length} AI choices using regex fallback`,
+                  );
+                }
+              }
+            } catch (regexError) {
+              this.logger.error(
+                'Error parsing JSON choices with regex fallback:',
+                regexError,
+              );
+            }
+          }
+        }
+      } else {
+        // For non-JSON format, try regex extraction
+        const jsonChoicesMatch = response.match(/"choices":\s*\[[\s\S]*?\]/);
+        if (jsonChoicesMatch) {
+          try {
+            const choicesArrayMatch = jsonChoicesMatch[0].match(/\[[\s\S]*?\]/);
+            if (choicesArrayMatch) {
+              const parsedChoices = JSON.parse(choicesArrayMatch[0]);
+              if (Array.isArray(parsedChoices)) {
+                choices = parsedChoices.map((choice: any) => ({
+                  text: choice.text || '',
+                  number: choice.number || 0,
+                  consequences: choice.consequences || [],
+                }));
+                this.logger.log(
+                  `Extracted ${choices.length} AI choices using regex`,
+                );
+              }
+            }
+          } catch (e) {
+            this.logger.error('Error parsing JSON choices:', e);
+          }
+        }
       }
 
-      // Clean ALL JSON metadata from story text
+      // DEBUG: Log original response
+      this.logger.debug('=== DEBUG ORIGINAL RESPONSE ===');
+      this.logger.debug(`Response length: ${response.length}`);
+      this.logger.debug(`Response preview: ${response.substring(0, 500)}...`);
+      this.logger.debug('=== END ORIGINAL RESPONSE ===');
+
+      // Extract story text - Check if response is JSON format first
+      let storyText: string = response;
+
+      // If response is JSON format, extract storyText field
+      if (response.trim().startsWith('```json')) {
+        try {
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.storyText) {
+              storyText = parsedJson.storyText;
+              this.logger.debug(
+                'Successfully extracted storyText from JSON format',
+              );
+            }
+          }
+        } catch (e) {
+          this.logger.warn(
+            'Failed to parse JSON format response, falling back to text extraction',
+          );
+        }
+      } else {
+        // For non-JSON format, extract everything before the first tag
+        const firstTagMatch = response.match(
+          /\[(STATS|INVENTORY_ADD|INVENTORY_REMOVE|SKILL|LORE_NPC|LORE_ITEM|LORE_LOCATION|KARMA_SCORE|REPUTATION|WORLD_STATE|EVENT|NPC_UPDATE):/,
+        );
+        if (firstTagMatch && firstTagMatch.index !== undefined) {
+          storyText = response.substring(0, firstTagMatch.index).trim();
+        }
+      }
+
+      // DEBUG: Log after extracting story text
+      this.logger.debug('=== DEBUG AFTER STORY TEXT EXTRACTION ===');
+      this.logger.debug(`Story text length: ${storyText.length}`);
+      this.logger.debug(
+        `Story text preview: ${storyText.substring(0, 300)}...`,
+      );
+      this.logger.debug('=== END STORY TEXT EXTRACTION ===');
+
+      // Clean ALL JSON metadata from story text với regex mạnh hơn
       storyText = storyText.replace(/"choices":\s*\[[\s\S]*?\]/g, '');
       storyText = storyText.replace(/"stats":\s*\{[\s\S]*?\}/g, '');
       storyText = storyText.replace(/"inventory":\s*\[[\s\S]*?\]/g, '');
       storyText = storyText.replace(/"skills":\s*\[[\s\S]*?\]/g, '');
       storyText = storyText.replace(/"lore":\s*\[[\s\S]*?\]/g, '');
+      storyText = storyText.replace(/"mana":\s*\{[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/"stamina":\s*\{[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/"experience":\s*\d+/g, '');
+      storyText = storyText.replace(/"level":\s*\d+/g, '');
+      storyText = storyText.replace(/"nextLevelExp":\s*\d+/g, '');
+
+      // Xóa các object JSON hoàn chỉnh
       storyText = storyText.replace(/\{[\s\S]*?"choices"[\s\S]*?\}/g, '');
       storyText = storyText.replace(/\{[\s\S]*?"stats"[\s\S]*?\}/g, '');
       storyText = storyText.replace(/\{[\s\S]*?"inventory"[\s\S]*?\}/g, '');
       storyText = storyText.replace(/\{[\s\S]*?"skills"[\s\S]*?\}/g, '');
       storyText = storyText.replace(/\{[\s\S]*?"lore"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"mana"[\s\S]*?\}/g, '');
+      storyText = storyText.replace(/\{[\s\S]*?"stamina"[\s\S]*?\}/g, '');
+
+      // Xóa các đoạn JSON còn sót lại - CHỈ XÓA CÁC PATTERN AN TOÀN
+      storyText = storyText.replace(/```json[\s\S]*?```/g, '');
+      storyText = storyText.replace(/```[\s\S]*?```/g, '');
+
+      // Xóa các dòng JSON properties riêng lẻ
+      storyText = storyText.replace(/^\s*"number":\s*\d+,?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"text":\s*"[^"]*",?\s*$/gm, '');
+      storyText = storyText.replace(
+        /^\s*"consequences":\s*\[[\s\S]*?\],?\s*$/gm,
+        '',
+      );
+      storyText = storyText.replace(/^\s*"current":\s*\d+,?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"max":\s*\d+,?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"experience":\s*\d+,?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"level":\s*\d+,?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"nextLevelExp":\s*\d+,?\s*$/gm, '');
+
+      // Xóa những dòng JSON rời rạc (bắt đầu bằng dấu phẩy hoặc dấu ngoặc)
+      storyText = storyText.replace(/^\s*[,\{\[\]\}]\s*$/gm, '');
+      storyText = storyText.replace(/^\s*"[^"]*":\s*$/gm, '');
+      storyText = storyText.replace(/^\s*},?\s*$/gm, '');
+      storyText = storyText.replace(/^\s*\],?\s*$/gm, '');
+
+      // Xóa dấu phẩy thừa và malformed JSON
+      storyText = storyText.replace(/,\s*,/g, ',');
+      storyText = storyText.replace(/,\s*}/g, '}');
+      storyText = storyText.replace(/,\s*\]/g, ']');
+      storyText = storyText.replace(/^\s*,|,\s*$/gm, '');
+
+      // Xóa dòng trống thừa
+      storyText = storyText.replace(/\n\s*\n\s*\n/g, '\n\n');
+
       storyText = storyText.trim();
+
+      // DEBUG: Log after JSON cleanup
+      this.logger.debug('=== DEBUG AFTER JSON CLEANUP ===');
+      this.logger.debug(`Story text length: ${storyText.length}`);
+      this.logger.debug(
+        `Story text preview: ${storyText.substring(0, 300)}...`,
+      );
+      this.logger.debug('=== END JSON CLEANUP ===');
 
       // Phân tích nội dung thành các phân đoạn
       // We're not using storySegments directly, but we'll keep the parsing for future use
@@ -990,19 +1502,44 @@ export class GamesService {
 
       // Extract stats - Try JSON format first
       let stats: Record<string, string | number> = {};
-      const jsonStatsMatch = response.match(/"stats":\s*\{[\s\S]*?\}/);
-      if (jsonStatsMatch) {
+
+      // If response is JSON format, extract stats from the full JSON
+      if (response.trim().startsWith('```json')) {
         try {
-          const statsObjectMatch = jsonStatsMatch[0].match(/\{[\s\S]*?\}/);
-          if (statsObjectMatch) {
-            const parsedStats = JSON.parse(statsObjectMatch[0]);
-            stats = parsedStats;
-            this.logger.log(
-              `Extracted stats from JSON format: ${Object.keys(stats).length} properties`,
-            );
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.stats && typeof parsedJson.stats === 'object') {
+              stats = parsedJson.stats;
+              this.logger.log(
+                `Extracted stats from full JSON: ${Object.keys(stats).length} properties`,
+              );
+            }
           }
         } catch (e) {
-          this.logger.error('Error parsing JSON stats:', e);
+          this.logger.warn(
+            'Failed to parse full JSON for stats, falling back to regex extraction',
+          );
+        }
+      }
+
+      // Fallback to regex extraction if full JSON parsing failed
+      if (Object.keys(stats).length === 0) {
+        const jsonStatsMatch = response.match(/"stats":\s*\{[\s\S]*?\}/);
+        if (jsonStatsMatch) {
+          try {
+            const statsObjectMatch = jsonStatsMatch[0].match(/\{[\s\S]*?\}/);
+            if (statsObjectMatch) {
+              const parsedStats = JSON.parse(statsObjectMatch[0]);
+              stats = parsedStats;
+              this.logger.log(
+                `Extracted stats from regex: ${Object.keys(stats).length} properties`,
+              );
+            }
+          } catch (e) {
+            this.logger.error('Error parsing JSON stats:', e);
+          }
         }
       }
 
@@ -1048,15 +1585,16 @@ export class GamesService {
 
       // Extract inventory items - Try JSON format first
       let inventory: InventoryItem[] = [];
-      const jsonInventoryMatch = response.match(/"inventory":\s*\[[\s\S]*?\]/);
-      if (jsonInventoryMatch) {
+
+      // If response is JSON format, extract inventory from the full JSON
+      if (response.trim().startsWith('```json')) {
         try {
-          const inventoryArrayMatch =
-            jsonInventoryMatch[0].match(/\[[\s\S]*?\]/);
-          if (inventoryArrayMatch) {
-            const parsedInventory = JSON.parse(inventoryArrayMatch[0]);
-            if (Array.isArray(parsedInventory)) {
-              inventory = parsedInventory.map((item: any) => ({
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.inventory && Array.isArray(parsedJson.inventory)) {
+              inventory = parsedJson.inventory.map((item: any) => ({
                 name: item.name || item,
                 description: item.description || '',
                 quantity: item.quantity || 1,
@@ -1067,7 +1605,37 @@ export class GamesService {
             }
           }
         } catch (e) {
-          this.logger.error('Error parsing JSON inventory:', e);
+          this.logger.warn(
+            'Failed to parse full JSON for inventory, falling back to regex extraction',
+          );
+        }
+      }
+
+      // Fallback to regex extraction if full JSON parsing failed
+      if (inventory.length === 0) {
+        const jsonInventoryMatch = response.match(
+          /"inventory":\s*\[[\s\S]*?\]/,
+        );
+        if (jsonInventoryMatch) {
+          try {
+            const inventoryArrayMatch =
+              jsonInventoryMatch[0].match(/\[[\s\S]*?\]/);
+            if (inventoryArrayMatch) {
+              const parsedInventory = JSON.parse(inventoryArrayMatch[0]);
+              if (Array.isArray(parsedInventory)) {
+                inventory = parsedInventory.map((item: any) => ({
+                  name: item.name || item,
+                  description: item.description || '',
+                  quantity: item.quantity || 1,
+                }));
+                this.logger.log(
+                  `Extracted ${inventory.length} items from JSON inventory using regex`,
+                );
+              }
+            }
+          } catch (e) {
+            this.logger.error('Error parsing JSON inventory:', e);
+          }
         }
       }
 
@@ -1140,14 +1708,16 @@ export class GamesService {
 
       // Extract skills - Try JSON format first
       let skills: CharacterSkill[] = [];
-      const jsonSkillsMatch = response.match(/"skills":\s*\[[\s\S]*?\]/);
-      if (jsonSkillsMatch) {
+
+      // If response is JSON format, extract skills from the full JSON
+      if (response.trim().startsWith('```json')) {
         try {
-          const skillsArrayMatch = jsonSkillsMatch[0].match(/\[[\s\S]*?\]/);
-          if (skillsArrayMatch) {
-            const parsedSkills = JSON.parse(skillsArrayMatch[0]);
-            if (Array.isArray(parsedSkills)) {
-              skills = parsedSkills.map((skill: any) => ({
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.skills && Array.isArray(parsedJson.skills)) {
+              skills = parsedJson.skills.map((skill: any) => ({
                 name: skill.name || skill,
                 description: skill.description || '',
                 level: skill.level || 1,
@@ -1159,7 +1729,35 @@ export class GamesService {
             }
           }
         } catch (e) {
-          this.logger.error('Error parsing JSON skills:', e);
+          this.logger.warn(
+            'Failed to parse full JSON for skills, falling back to regex extraction',
+          );
+        }
+      }
+
+      // Fallback to regex extraction if full JSON parsing failed
+      if (skills.length === 0) {
+        const jsonSkillsMatch = response.match(/"skills":\s*\[[\s\S]*?\]/);
+        if (jsonSkillsMatch) {
+          try {
+            const skillsArrayMatch = jsonSkillsMatch[0].match(/\[[\s\S]*?\]/);
+            if (skillsArrayMatch) {
+              const parsedSkills = JSON.parse(skillsArrayMatch[0]);
+              if (Array.isArray(parsedSkills)) {
+                skills = parsedSkills.map((skill: any) => ({
+                  name: skill.name || skill,
+                  description: skill.description || '',
+                  level: skill.level || 1,
+                  thanhThuc: skill.thanhThuc || skill.mastery || '',
+                }));
+                this.logger.log(
+                  `Extracted ${skills.length} skills from JSON format using regex`,
+                );
+              }
+            }
+          } catch (e) {
+            this.logger.error('Error parsing JSON skills:', e);
+          }
         }
       }
 
@@ -1267,14 +1865,16 @@ export class GamesService {
 
       // Extract lore - Try JSON format first
       let lore: LoreFragment[] = [];
-      const jsonLoreMatch = response.match(/"lore":\s*\[[\s\S]*?\]/);
-      if (jsonLoreMatch) {
+
+      // If response is JSON format, extract lore from the full JSON
+      if (response.trim().startsWith('```json')) {
         try {
-          const loreArrayMatch = jsonLoreMatch[0].match(/\[[\s\S]*?\]/);
-          if (loreArrayMatch) {
-            const parsedLore = JSON.parse(loreArrayMatch[0]);
-            if (Array.isArray(parsedLore)) {
-              lore = parsedLore.map((loreItem: any, index: number) => ({
+          const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonStr = jsonMatch[1];
+            const parsedJson = JSON.parse(jsonStr);
+            if (parsedJson.lore && Array.isArray(parsedJson.lore)) {
+              lore = parsedJson.lore.map((loreItem: any, index: number) => ({
                 id: `lore_${Date.now()}_${index}`,
                 title:
                   loreItem.title || loreItem.name || `Lore Entry ${index + 1}`,
@@ -1290,7 +1890,41 @@ export class GamesService {
             }
           }
         } catch (e) {
-          this.logger.error('Error parsing JSON lore:', e);
+          this.logger.warn(
+            'Failed to parse full JSON for lore, falling back to regex extraction',
+          );
+        }
+      }
+
+      // Fallback to regex extraction if full JSON parsing failed
+      if (lore.length === 0) {
+        const jsonLoreMatch = response.match(/"lore":\s*\[[\s\S]*?\]/);
+        if (jsonLoreMatch) {
+          try {
+            const loreArrayMatch = jsonLoreMatch[0].match(/\[[\s\S]*?\]/);
+            if (loreArrayMatch) {
+              const parsedLore = JSON.parse(loreArrayMatch[0]);
+              if (Array.isArray(parsedLore)) {
+                lore = parsedLore.map((loreItem: any, index: number) => ({
+                  id: `lore_${Date.now()}_${index}`,
+                  title:
+                    loreItem.title ||
+                    loreItem.name ||
+                    `Lore Entry ${index + 1}`,
+                  content: loreItem.content || loreItem.description || loreItem,
+                  type: loreItem.type || 'world',
+                  category: loreItem.category || 'world',
+                  importance: loreItem.importance || 'medium',
+                  timestamp: new Date(),
+                }));
+                this.logger.log(
+                  `Extracted ${lore.length} lore entries from JSON format using regex`,
+                );
+              }
+            }
+          } catch (e) {
+            this.logger.error('Error parsing JSON lore:', e);
+          }
         }
       }
 
@@ -1373,38 +2007,14 @@ export class GamesService {
       } // End of lore fallback parsing
 
       // Extract choices - improved logic to handle various formats
-      let choices: GameChoice[] = [];
-
-      // Method 0: Look for JSON array format choices (new format)
-      const jsonChoicesMatch = response.match(/"choices":\s*\[[\s\S]*?\]/);
-      if (jsonChoicesMatch) {
-        try {
-          // Extract just the choices array
-          const choicesArrayMatch = jsonChoicesMatch[0].match(/\[[\s\S]*?\]/);
-          if (choicesArrayMatch) {
-            const parsedChoices = JSON.parse(choicesArrayMatch[0]);
-            if (Array.isArray(parsedChoices)) {
-              choices = parsedChoices.map((choice: any, index: number) => ({
-                text: choice.text || choice,
-                number: choice.number || index + 1,
-              }));
-              this.logger.log(
-                `Extracted ${choices.length} choices from JSON format`,
-              );
-            }
-          }
-        } catch (e) {
-          this.logger.error('Error parsing JSON choices:', e);
-        }
-      }
-
-      // Method 1: Look for numbered choices at the end of the response (fallback)
+      // Fallback: Try other methods if JSON parsing failed
       if (choices.length === 0) {
-        const lines = response.split('\n');
+        // Method 1: Look for numbered choices at the end of the response
         const choiceLines: string[] = [];
-        let foundChoicesSection: boolean = false;
+        const lines = response.split('\n');
+        let foundChoicesSection = false;
 
-        // Look for numbered choices from the end of the response
+        // Start from the end and work backwards
         for (let i: number = lines.length - 1; i >= 0; i--) {
           const line = lines[i].trim();
           if (/^\d+\.\s+/.test(line)) {
@@ -1423,11 +2033,7 @@ export class GamesService {
           choices = choiceLines.map((line, index) => {
             const choiceText = line.replace(/^\d+\.\s*/, '').trim();
             const number = index + 1;
-            const choice: GameChoice = {
-              text: choiceText,
-              number,
-            };
-            return choice;
+            return { text: choiceText, number };
           });
 
           // Clean up story text by removing the numbered choices
@@ -1436,71 +2042,49 @@ export class GamesService {
           });
           storyText = storyText.trim();
         } else {
-          // Method 2: Look for choices in the main story text
-          const storyChoiceLines = storyText
-            .split('\n')
-            .filter((line) => /^\d+\./.test(line.trim()));
-
-          if (storyChoiceLines.length >= 2) {
-            choices = storyChoiceLines.map((line, index) => {
-              const choiceText = line.replace(/^\d+\.\s*/, '').trim();
-              const number = index + 1;
-              const choice: GameChoice = {
-                text: choiceText,
-                number,
-              };
-              return choice;
-            });
-
-            // Clean up story text
-            storyChoiceLines.forEach((line) => {
-              storyText = storyText.replace(line, '');
-            });
-            storyText = storyText.trim();
-          } else {
-            // Method 3: Try the CHOICES tag format
-            const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
-            if (choicesMatch) {
-              try {
-                const parsedChoices = JSON.parse(choicesMatch[1]);
-                if (
-                  parsedChoices.options &&
-                  Array.isArray(parsedChoices.options)
-                ) {
-                  choices = parsedChoices.options.map(
-                    (
-                      option: string | { text: string; number?: number },
-                      index: number,
-                    ) => ({
-                      text: typeof option === 'string' ? option : option.text,
-                      number:
-                        typeof option === 'string'
-                          ? index + 1
-                          : option.number || index + 1,
-                    }),
-                  );
-                }
-              } catch (e) {
-                this.logger.error('Error parsing CHOICES tag:', e);
+          // Method 2: Try the CHOICES tag format
+          const choicesMatch = response.match(/\[CHOICES:\s*({[\s\S]*?})\]/);
+          if (choicesMatch) {
+            try {
+              const parsedChoices = JSON.parse(choicesMatch[1]);
+              if (
+                parsedChoices.options &&
+                Array.isArray(parsedChoices.options)
+              ) {
+                choices = parsedChoices.options.map(
+                  (
+                    option: string | { text: string; number?: number },
+                    index: number,
+                  ) => ({
+                    text: typeof option === 'string' ? option : option.text,
+                    number:
+                      typeof option === 'string'
+                        ? index + 1
+                        : option.number || index + 1,
+                  }),
+                );
               }
+            } catch (e) {
+              this.logger.error('Error parsing CHOICES tag:', e);
             }
           }
         }
-      } // End of Method 1 if block
+      }
 
-      // Always provide generic support choices
+      // Always provide generic support choices (separate from AI choices)
       const genericChoices = [
         { text: 'Tiếp tục quan sát tình hình', number: 1 },
         { text: 'Hành động ngay lập tức', number: 2 },
         { text: 'Tìm cách khác để giải quyết', number: 3 },
+        { text: 'Tương tác với người xung quanh', number: 4 },
+        { text: 'Nghỉ ngơi và suy nghĩ', number: 5 },
       ];
 
-      // Ensure we have at least some default choices if none were found
+      // Log if no AI choices found, but don't merge with generic choices
       if (choices.length === 0) {
         this.logger.warn(
-          'No choices found in AI response, using generic choices as main choices',
+          'No choices found in AI response, generic choices will be available separately',
         );
-        choices = genericChoices;
       }
 
       // Extract world state changes
@@ -1717,6 +2301,19 @@ export class GamesService {
           this.logger.error('Error parsing NPC update:', e);
         }
       });
+
+      // DEBUG: Log để kiểm tra storyText
+      this.logger.debug('=== DEBUG STORY TEXT ===');
+      this.logger.debug(`Story text length: ${storyText.length}`);
+      this.logger.debug(
+        `Story text preview: ${storyText.substring(0, 300)}...`,
+      );
+      this.logger.debug(`AI choices count: ${choices.length}`);
+      this.logger.debug(`Generic choices count: ${genericChoices.length}`);
+      if (choices.length > 0) {
+        this.logger.debug(`First AI choice: ${JSON.stringify(choices[0])}`);
+      }
+      this.logger.debug('=== END DEBUG ===');
 
       // Phân tích nội dung thành các phân đoạn
       const parsedStorySegments = this.parseContentSegments(storyText);
