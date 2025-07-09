@@ -19,7 +19,43 @@ export function buildEnhancedWorldPrompt(
 - **Chủ đề**: ${gameSettings.theme}
 
 ## NHIỆM VỤ CHÍNH
-Tạo ra một câu chuyện mở đầu hấp dẫn và **ĐẶC BIỆT QUAN TRỌNG** - tạo ra chỉ số nhân vật đầy đủ theo cấu trúc chuẩn.
+Tạo ra một câu chuyện mở đầu HẤP DẪN, CUỐN HÚT và **ĐẶC BIỆT QUAN TRỌNG** - tạo ra chỉ số nhân vật đầy đủ theo cấu trúc chuẩn.
+
+## HƯỚNG DẪN VIẾT CÂU CHUYỆN XUẤT SẮC
+1. **Độ dài**: Viết ít nhất 800-1000 từ cho phần mở đầu
+2. **Nhân vật phụ (NPC)**: Giới thiệu ít nhất 1-2 NPC có tính cách rõ ràng
+3. **Đối thoại**: Thêm đối thoại sống động giữa các nhân vật, sử dụng định dạng sau:
+   Ví dụ:
+   Tên Nhân Vật: "Nội dung đối thoại"
+   Tên Nhân Vật Khác: "Nội dung phản hồi"
+   
+   - PHẢI đặt mỗi đối thoại trên một dòng riêng biệt
+   - PHẢI sử dụng dấu ngoặc kép ("") cho lời thoại
+   - PHẢI có dấu hai chấm (:) sau tên nhân vật
+4. **Xung đột**: Tạo ra một xung đột hoặc vấn đề ngay từ đầu
+5. **Mô tả**: Sử dụng mô tả chi tiết về không gian, cảm xúc và cảm giác
+6. **Phong cách**: Viết với giọng điệu phù hợp với thể loại (kịch tính, bí ẩn, hài hước...)
+
+## HƯỚNG DẪN TẠO NPC
+Khi tạo NPC, PHẢI thêm thông tin chi tiết về họ trong phần lore. Đây là PHẦN BẮT BUỘC:
+\`\`\`json
+{
+  "id": "npc_[tên_npc]",
+  "name": "[Tên NPC]",
+  "description": "[Tuổi]: [X] tuổi\\n[Nghề nghiệp]: [nghề/vai trò]\\n[Ngoại hình]: [mô tả chi tiết]\\n[Tính cách]: [đặc điểm tính cách]\\n[Động cơ]: [mục đích/động lực]\\n[Quan hệ]: [mối quan hệ với nhân vật chính]\\n[Kỹ năng]: [kỹ năng đặc biệt nếu có]\\n[Cảnh giới]: [cảnh giới tu luyện/cấp độ]\\n[Chỉ số]: Sức mạnh: [X], Nhanh nhẹn: [X], Trí tuệ: [X], Sức khỏe: [X]",
+  "type": "npc"
+}
+\`\`\`
+
+Ví dụ:
+\`\`\`json
+{
+  "id": "npc_tran_minh_duc",
+  "name": "Trần Minh Đức",
+  "description": "[Tuổi]: 45 tuổi\\n[Nghề nghiệp]: Thương nhân giàu có\\n[Ngoại hình]: Thân hình mập mạp, râu quai nón, luôn mặc áo gấm đắt tiền\\n[Tính cách]: Tham lam, xảo quyệt nhưng rất thông minh\\n[Động cơ]: Muốn độc quyền buôn bán trong vùng\\n[Quan hệ]: Đối thủ kinh doanh của nhân vật chính\\n[Kỹ năng]: Thông thạo nhiều ngôn ngữ, có mạng lưới quan hệ rộng\\n[Cảnh giới]: Phàm nhân cảnh giới 9\\n[Chỉ số]: Sức mạnh: 6, Nhanh nhẹn: 5, Trí tuệ: 9, Sức khỏe: 7",
+  "type": "npc"
+}
+\`\`\`
 
 ## ⚠️ CẤU TRÚC CHỈ SỐ BỮT BUỘC
 Bạn PHẢI tạo ra chỉ số nhân vật với cấu trúc JSON chính xác sau:
@@ -113,8 +149,19 @@ Bạn PHẢI tạo ra chỉ số nhân vật với cấu trúc JSON chính xác 
 - ✅ **PHẢI có experience, level, nextLevelExp**
 - ✅ **PHẢI sử dụng tiếng Việt 100%**
 - ✅ **PHẢI có chính xác 4 lựa chọn có ý nghĩa**
+- ✅ **PHẢI có ít nhất 1-2 NPC với tên và tính cách rõ ràng**
+- ✅ **PHẢI có đối thoại giữa nhân vật chính và NPC**
+- ✅ **PHẢI tạo ra một tình huống kịch tính hoặc bí ẩn**
 
-Hãy tạo ra câu chuyện và chỉ số nhân vật hoàn chỉnh ngay bây giờ!
+## HƯỚNG DẪN VIẾT THEO THỂ LOẠI
+- **Fantasy**: Thêm yếu tố ma thuật, sinh vật huyền bí, nhiệm vụ anh hùng
+- **Sci-fi**: Mô tả công nghệ, xung đột với AI/người ngoài hành tinh, khám phá không gian
+- **Modern**: Xung đột xã hội, mối quan hệ phức tạp, vấn đề hiện đại
+- **Horror**: Tạo không khí căng thẳng, ám ảnh, hiện tượng siêu nhiên
+- **Cultivation**: Tu luyện, đột phá cảnh giới, tranh đoạt tài nguyên
+- **Martial Arts**: Võ công, môn phái, ân oán giang hồ
+
+Hãy tạo ra câu chuyện CUỐN HÚT và chỉ số nhân vật hoàn chỉnh ngay bây giờ!
 `;
 }
 
@@ -144,7 +191,43 @@ export function buildEnhancedActionPrompt(
 ${JSON.stringify((game as any).enhancedActionInfo || {}, null, 2)}
 
 ## NHIỆM VỤ
-Tiếp tục câu chuyện và cập nhật chỉ số nhân vật. **QUAN TRỌNG**: Giữ nguyên cấu trúc chỉ số chuẩn!
+Tiếp tục câu chuyện một cách HẤP DẪN và cập nhật chỉ số nhân vật. **QUAN TRỌNG**: Giữ nguyên cấu trúc chỉ số chuẩn!
+
+## HƯỚNG DẪN VIẾT CÂU CHUYỆN XUẤT SẮC
+1. **Độ dài**: Viết ít nhất 800-1000 từ cho phần tiếp theo
+2. **Phát triển nhân vật**: Tiếp tục phát triển nhân vật chính và NPC
+3. **Đối thoại**: Thêm đối thoại sống động và có ý nghĩa, sử dụng định dạng sau:
+   Ví dụ:
+   Tên Nhân Vật: "Nội dung đối thoại"
+   Tên Nhân Vật Khác: "Nội dung phản hồi"
+   
+   - PHẢI đặt mỗi đối thoại trên một dòng riêng biệt
+   - PHẢI sử dụng dấu ngoặc kép ("") cho lời thoại
+   - PHẢI có dấu hai chấm (:) sau tên nhân vật
+4. **Diễn biến mới**: Đưa ra những tình huống mới, bất ngờ hoặc thử thách
+5. **Mô tả**: Sử dụng mô tả chi tiết về không gian, cảm xúc và cảm giác
+6. **Liên kết**: Kết nối với các sự kiện trước đó một cách hợp lý
+
+## HƯỚNG DẪN CẬP NHẬT NPC
+Khi giới thiệu NPC mới hoặc cập nhật thông tin NPC hiện có, PHẢI thêm vào phần lore. Đây là PHẦN BẮT BUỘC:
+\`\`\`json
+{
+  "id": "npc_[tên_npc]",
+  "name": "[Tên NPC]",
+  "description": "[Tuổi]: [X] tuổi\\n[Nghề nghiệp]: [nghề/vai trò]\\n[Ngoại hình]: [mô tả chi tiết]\\n[Tính cách]: [đặc điểm tính cách]\\n[Động cơ]: [mục đích/động lực]\\n[Quan hệ]: [mối quan hệ với nhân vật chính]\\n[Kỹ năng]: [kỹ năng đặc biệt nếu có]\\n[Cảnh giới]: [cảnh giới tu luyện/cấp độ]\\n[Chỉ số]: Sức mạnh: [X], Nhanh nhẹn: [X], Trí tuệ: [X], Sức khỏe: [X]",
+  "type": "npc"
+}
+\`\`\`
+
+Ví dụ:
+\`\`\`json
+{
+  "id": "npc_le_thi_hong",
+  "name": "Lê Thị Hồng",
+  "description": "[Tuổi]: 28 tuổi\\n[Nghề nghiệp]: Y tá tại bệnh viện địa phương\\n[Ngoại hình]: Cao 1m65, tóc đen dài, luôn mặc đồng phục y tá gọn gàng\\n[Tính cách]: Tận tâm, chu đáo, nhưng đôi khi quá lo lắng\\n[Động cơ]: Muốn giúp đỡ mọi người và tìm kiếm thông tin về người em gái mất tích\\n[Quan hệ]: Người đã giúp đỡ nhân vật chính khi bị thương\\n[Kỹ năng]: Sơ cứu chuyên nghiệp, có kiến thức về dược liệu tự nhiên\\n[Cảnh giới]: Phàm nhân cảnh giới 3\\n[Chỉ số]: Sức mạnh: 4, Nhanh nhẹn: 7, Trí tuệ: 8, Sức khỏe: 6",
+  "type": "npc"
+}
+\`\`\`
 
 ## CẤU TRÚC OUTPUT BẮT BUỘC
 \`\`\`json
@@ -200,7 +283,17 @@ Tiếp tục câu chuyện và cập nhật chỉ số nhân vật. **QUAN TRỌ
   },
   "inventory": [...],
   "skills": [...],
-  "lore": [...]
+  "lore": [
+    // Thêm thông tin NPC mới hoặc cập nhật NPC hiện có
+    {
+      "id": "npc_[tên_npc]",
+      "name": "[Tên NPC]",
+      "description": "[Tuổi]: [X] tuổi\\n[Nghề nghiệp]: [nghề/vai trò]\\n[Ngoại hình]: [mô tả chi tiết]\\n[Tính cách]: [đặc điểm tính cách]\\n[Động cơ]: [mục đích/động lực]\\n[Quan hệ]: [mối quan hệ với nhân vật chính]\\n[Kỹ năng]: [kỹ năng đặc biệt nếu có]\\n[Cảnh giới]: [cảnh giới tu luyện/cấp độ]\\n[Chỉ số]: Sức mạnh: [X], Nhanh nhẹn: [X], Trí tuệ: [X], Sức khỏe: [X]",
+      "type": "npc"
+    },
+    // Các mục lore khác
+    ...
+  ]
 }
 \`\`\`
 
@@ -210,7 +303,17 @@ Tiếp tục câu chuyện và cập nhật chỉ số nhân vật. **QUAN TRỌ
 3. **Cân bằng**: Không tăng quá nhiều cùng lúc
 4. **Thực tế**: Phản ánh kết quả hành động
 5. **LUÔN CÓ 4 LỰA CHỌN**: Bắt buộc phải tạo chính xác 4 lựa chọn có ý nghĩa
+6. **NPC và đối thoại**: Tiếp tục phát triển NPC hiện có hoặc giới thiệu NPC mới
+7. **Tình tiết mới**: Thêm các tình tiết mới để câu chuyện luôn hấp dẫn
+8. **Hậu quả**: Hành động của người chơi phải có hậu quả rõ ràng
 
-Hãy tiếp tục câu chuyện và cập nhật chỉ số ngay bây giờ!
+## YÊU CẦU TUYỆT ĐỐI
+- ✅ **PHẢI có đối thoại sống động**
+- ✅ **PHẢI có tình tiết cuốn hút**
+- ✅ **PHẢI có mô tả chi tiết về không gian và cảm xúc**
+- ✅ **PHẢI có phản ứng từ thế giới và NPC**
+- ✅ **PHẢI có chính xác 4 lựa chọn có ý nghĩa**
+
+Hãy tiếp tục câu chuyện một cách CUỐN HÚT và cập nhật chỉ số ngay bây giờ!
 `;
 }

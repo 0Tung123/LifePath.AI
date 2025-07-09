@@ -82,16 +82,16 @@ export class NPCDetectionService {
     const npcs: (NpcInfo | LoreFragment)[] = [];
 
     // Add from loreFragments
-    if (gameState.loreFragments) {
-      const npcLore = gameState.loreFragments.filter(
-        (lore) => lore.type === 'npc' || lore.category === 'npc',
+    if (gameState.loreFragments && Array.isArray(gameState.loreFragments)) {
+      const npcLore = (gameState.loreFragments as LoreFragment[]).filter(
+        (lore) => lore.type === 'npc',
       );
       npcs.push(...npcLore);
     }
 
     // Add from npcsMet
-    if (gameState.npcsMet) {
-      npcs.push(...gameState.npcsMet);
+    if (gameState.npcsMet && Array.isArray(gameState.npcsMet)) {
+      npcs.push(...(gameState.npcsMet as NpcInfo[]));
     }
 
     return npcs;
@@ -137,7 +137,7 @@ export class NPCDetectionService {
       return (
         currentLore.content !== previousLore.content ||
         currentLore.title !== previousLore.title ||
-        currentLore.importance !== previousLore.importance
+        currentLore.description !== previousLore.description
       );
     }
 
@@ -147,7 +147,7 @@ export class NPCDetectionService {
   /**
    * Update internal cache
    */
-  private updateCache(gameState: GameState): void {
+  private updateCache(gameState: GameStats): void {
     this.npcCache.clear();
     const allNPCs = this.getAllNPCs(gameState);
     allNPCs.forEach((npc) => {

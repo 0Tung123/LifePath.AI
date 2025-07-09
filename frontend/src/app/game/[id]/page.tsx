@@ -111,13 +111,16 @@ export default function GamePage({
     if (!currentGame?.loreFragments) return [];
 
     return currentGame.loreFragments
-      .filter((fragment) => fragment.name && fragment.description)
+      .filter(
+        (fragment) =>
+          (fragment.name || fragment.title) &&
+          (fragment.description || fragment.content),
+      )
       .map((fragment) => ({
         type: fragment.type,
-        name: fragment.name!,
-        description: fragment.description!,
-        title: fragment.title,
-        content: fragment.content,
+        name: fragment.name || fragment.title || '',
+        description: fragment.description || fragment.content || '',
+        id: fragment.id,
       }));
   };
 
@@ -459,6 +462,7 @@ export default function GamePage({
               onLoreClick={handleLoreClick}
               isLoading={gameLoading}
               onScrollToChoices={scrollToChoices}
+              characterName={currentGame?.settings?.characterName || ''}
             />
           </div>
 
@@ -469,6 +473,7 @@ export default function GamePage({
               knowledgeBase={createKnowledgeBase()}
               selectedLoreItem={selectedLoreItem}
               onCloseLoreDetail={handleCloseLoreDetail}
+              onLoreClick={handleLoreClick}
             />
           </div>
         </div>

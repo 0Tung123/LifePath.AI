@@ -20,6 +20,7 @@ interface StoryHistoryPanelProps {
   onLoreClick: (item: KnowledgeBaseItem) => void;
   isLoading?: boolean;
   onScrollToChoices?: () => void;
+  characterName?: string;
 }
 
 interface TooltipState {
@@ -42,6 +43,7 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   onLoreClick,
   isLoading = false,
   onScrollToChoices,
+  characterName = '',
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -116,7 +118,25 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   // Content type detection functions
   const detectContentType = (text: string): ContentSegment[] => {
     const segments: ContentSegment[] = [];
-    const lines = text.split('\n').filter((line) => line.trim());
+
+    // Ensure each dialogue is on a separate line
+    // Replace patterns like "Person: text" followed by "Another: text" without newline
+    const formattedText = text
+      // Standard dialogue format
+      .replace(
+        /([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+\s*:.*?)([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+\s*:)/g,
+        '$1\n$2',
+      )
+      // Names with multiple words
+      .replace(
+        /([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+ [A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+\s*:.*?)([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+\s*:)/g,
+        '$1\n$2',
+      )
+      // Ensure quotes are properly formatted
+      .replace(/([^"])"([^"])/g, '$1" $2');
+
+    // Split by newlines and filter empty lines
+    const lines = formattedText.split('\n').filter((line) => line.trim());
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -146,13 +166,28 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
         continue;
       }
 
-      // Pattern 2: "Speaker: dialogue" (without quotes)
-      const speakerNoQuotesMatch = trimmedLine.match(
+      // Pattern 2: "Speaker: "dialogue"" - Standard format
+      const speakerStandardQuotesMatch = trimmedLine.match(
         /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?):\s*"([^"]+)"$/,
       );
-      if (speakerNoQuotesMatch) {
-        const speaker = speakerNoQuotesMatch[1]?.trim();
-        const dialogue = speakerNoQuotesMatch[2];
+      if (speakerStandardQuotesMatch) {
+        const speaker = speakerStandardQuotesMatch[1]?.trim();
+        const dialogue = speakerStandardQuotesMatch[2];
+        segments.push({
+          type: 'dialogue',
+          content: dialogue,
+          speaker: speaker,
+        });
+        continue;
+      }
+
+      // Pattern 3: "Speaker : "dialogue"" - With space before colon
+      const speakerSpaceColonMatch = trimmedLine.match(
+        /^([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]*?)\s+:\s*"([^"]+)"$/,
+      );
+      if (speakerSpaceColonMatch) {
+        const speaker = speakerSpaceColonMatch[1]?.trim();
+        const dialogue = speakerSpaceColonMatch[2];
         segments.push({
           type: 'dialogue',
           content: dialogue,
@@ -301,14 +336,24 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
   };
 
   // Tooltip functions
-  const showTooltip = (content: string, event: React.MouseEvent) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltip({
-      visible: true,
-      content,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10,
-    });
+  const showTooltip = (content: string, event: React.MouseEvent | null) => {
+    if (event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setTooltip({
+        visible: true,
+        content,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+      });
+    } else {
+      // Position in center of screen if no event
+      setTooltip({
+        visible: true,
+        content,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+    }
   };
 
   const hideTooltip = () => {
@@ -317,6 +362,9 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
   // Function to get character color based on name
   const getCharacterColor = (speakerName: string) => {
+    // Use characterName prop
+    const mainCharacterName = characterName;
+
     // Predefined colors for common character types
     const colorMap: { [key: string]: string } = {
       // Main character variations
@@ -335,6 +383,14 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       'người kể': 'text-gray-400',
       narrator: 'text-gray-400',
     };
+
+    // If the speaker is the main character, use a special color
+    if (
+      mainCharacterName &&
+      speakerName.toLowerCase().includes(mainCharacterName.toLowerCase())
+    ) {
+      return 'text-emerald-400';
+    }
 
     // Check for predefined mappings first
     const lowerName = speakerName.toLowerCase();
@@ -404,20 +460,34 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
     return parts.length > 1 ? <>{parts}</> : <span>{text}</span>;
   };
 
-  // Function to highlight lore items in text
+  // Function to highlight lore items and main character name in text
   const highlightLoreItems = (text: string) => {
-    if (!knowledgeBase || knowledgeBase.length === 0) {
+    if ((!knowledgeBase || knowledgeBase.length === 0) && !characterName) {
       return highlightBracketItems(text);
     }
 
-    // const highlightedText = text;
     const loreItems: { item: KnowledgeBaseItem; regex: RegExp }[] = [];
 
     // Create regex patterns for each lore item
-    knowledgeBase.forEach((item) => {
-      const regex = new RegExp(`\\b${item.name}\\b`, 'gi');
-      loreItems.push({ item, regex });
-    });
+    if (knowledgeBase && knowledgeBase.length > 0) {
+      knowledgeBase.forEach((item) => {
+        const regex = new RegExp(`\\b${item.name}\\b`, 'gi');
+        loreItems.push({ item, regex });
+      });
+    }
+
+    // Add main character name to the list if it exists
+    if (characterName) {
+      const characterRegex = new RegExp(`\\b${characterName}\\b`, 'gi');
+      loreItems.push({
+        item: {
+          name: characterName,
+          type: 'character',
+          description: 'Nhân vật chính',
+        } as KnowledgeBaseItem,
+        regex: characterRegex,
+      });
+    }
 
     // Sort by name length (longest first) to avoid partial matches
     loreItems.sort((a, b) => b.item.name.length - a.item.name.length);
@@ -463,32 +533,60 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
 
       // Add the highlighted match
       const matchText = text.slice(match.start, match.end);
-      parts.push(
-        <button
-          key={`lore-${index}`}
-          onClick={() => onLoreClick(match.item)}
-          onMouseEnter={(e) =>
-            showTooltip(
-              match.item.description || `Chi tiết về ${match.item.name}`,
-              e,
-            )
-          }
-          onMouseLeave={hideTooltip}
-          className="text-teal-400 hover:text-teal-300 cursor-pointer font-medium transition-colors duration-200 underline decoration-teal-400/50 hover:decoration-teal-300/70"
-        >
-          {matchText}
-        </button>,
-      );
+
+      // Check if this is the main character
+      const isMainCharacter =
+        match.item.type === 'character' && match.item.name === characterName;
+
+      if (isMainCharacter) {
+        // Main character styling - no clickable, just highlight
+        parts.push(
+          <span
+            key={`character-${index}`}
+            className="text-blue-400 font-bold bg-blue-400/10 px-1 rounded shadow-sm"
+          >
+            {matchText}
+          </span>,
+        );
+      } else {
+        // Regular lore item - clickable
+        parts.push(
+          <button
+            key={`lore-${index}`}
+            onClick={() => onLoreClick(match.item)}
+            onMouseEnter={(e) =>
+              showTooltip(
+                match.item.description || `Chi tiết về ${match.item.name}`,
+                e,
+              )
+            }
+            onMouseLeave={hideTooltip}
+            className="text-teal-400 hover:text-teal-300 cursor-pointer font-medium transition-colors duration-200 underline decoration-teal-400/50 hover:decoration-teal-300/70"
+          >
+            {matchText}
+          </button>,
+        );
+      }
 
       lastIndex = match.end;
     });
 
     // Add remaining text
     if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex));
+      const remainingText = text.slice(lastIndex);
+      // Apply bracket highlighting to remaining text
+      parts.push(highlightBracketItems(remainingText));
     }
 
-    return <>{parts}</>;
+    // Also apply bracket highlighting to parts that haven't been processed
+    const processedParts = parts.map((part) => {
+      if (typeof part === 'string') {
+        return highlightBracketItems(part);
+      }
+      return part;
+    });
+
+    return <>{processedParts}</>;
   };
 
   // Render content segments with styling
@@ -506,6 +604,23 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
             .replace('text-', 'bg-')
             .replace('-400', '-400/5');
 
+          // Determine if this is the main character
+          const mainCharacterName = characterName;
+          const isMainCharacter =
+            mainCharacterName &&
+            segment.speaker &&
+            segment.speaker
+              .toLowerCase()
+              .includes(mainCharacterName.toLowerCase());
+
+          // Check if this is an NPC (not main character and not system)
+          const isNPC =
+            segment.speaker &&
+            !isMainCharacter &&
+            !['hệ thống', 'người kể', 'narrator'].includes(
+              segment.speaker.toLowerCase(),
+            );
+
           return (
             <div
               key={index}
@@ -515,13 +630,93 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
               )}`}
             >
               {segment.speaker && (
-                <div
-                  className={`font-bold ${speakerColor} mb-2 text-sm uppercase tracking-wide`}
-                >
-                  {segment.speaker}
+                <div className="flex items-center mb-2">
+                  {isMainCharacter ? (
+                    // Main character name with special styling
+                    <div
+                      className={`font-bold ${speakerColor} text-sm uppercase tracking-wide px-2 py-1 rounded bg-emerald-900/30 border border-emerald-500/30`}
+                    >
+                      {segment.speaker}
+                    </div>
+                  ) : isNPC ? (
+                    // NPC with clickable info
+                    <div
+                      className={`font-bold ${speakerColor} text-sm uppercase tracking-wide px-2 py-1 rounded cursor-pointer relative group`}
+                      style={{
+                        backgroundColor: `rgba(var(--${speakerColor.replace('text-', '')}-rgb), 0.1)`,
+                      }}
+                      onClick={() => {
+                        // Tìm kiếm thông tin NPC trong knowledgeBase
+                        // Lọc tất cả các NPC có thể phù hợp
+                        const matchingNpcs = knowledgeBase.filter(
+                          (item) =>
+                            item.type === 'npc' &&
+                            item.name &&
+                            // Tìm kiếm chính xác
+                            (item.name.toLowerCase() ===
+                              segment.speaker?.toLowerCase() ||
+                              // Tìm kiếm tương đối
+                              item.name
+                                .toLowerCase()
+                                .includes(
+                                  segment.speaker?.toLowerCase() || '',
+                                ) ||
+                              segment.speaker
+                                ?.toLowerCase()
+                                .includes(item.name.toLowerCase())),
+                        );
+
+                        // Sắp xếp theo độ phù hợp (chính xác -> tương đối)
+                        matchingNpcs.sort((a, b) => {
+                          const aExact =
+                            a.name.toLowerCase() ===
+                            segment.speaker?.toLowerCase();
+                          const bExact =
+                            b.name.toLowerCase() ===
+                            segment.speaker?.toLowerCase();
+
+                          if (aExact && !bExact) return -1;
+                          if (!aExact && bExact) return 1;
+
+                          // Nếu cả hai không chính xác, ưu tiên tên ngắn hơn
+                          return a.name.length - b.name.length;
+                        });
+
+                        const bestMatch =
+                          matchingNpcs.length > 0 ? matchingNpcs[0] : null;
+
+                        if (bestMatch) {
+                          // Sử dụng kết quả tìm kiếm tốt nhất
+                          onLoreClick(bestMatch);
+                        } else {
+                          // Tạo thông tin cơ bản nếu không tìm thấy
+                          const basicNpcInfo: KnowledgeBaseItem = {
+                            id: `npc_${segment.speaker?.toLowerCase().replace(/\s+/g, '_')}`,
+                            name: segment.speaker || 'NPC',
+                            description: `[Tên]: ${segment.speaker}\n[Vai trò]: NPC trong câu chuyện\n[Cảnh giới]: Chưa xác định\n[Chỉ số]: Chưa có thông tin`,
+                            type: 'npc',
+                          };
+                          onLoreClick(basicNpcInfo);
+                        }
+                      }}
+                    >
+                      {segment.speaker}
+                      <span className="ml-1 text-xs opacity-70">👤</span>
+                      <span className="ml-1 text-xs opacity-50">
+                        (Nhấp để xem)
+                      </span>
+                    </div>
+                  ) : (
+                    // Other speakers
+                    <div
+                      className={`font-bold ${speakerColor} text-sm uppercase tracking-wide`}
+                    >
+                      {segment.speaker}
+                    </div>
+                  )}
                 </div>
               )}
-              <div className="text-gray-100 font-sans text-base leading-relaxed">
+              <div className="text-gray-100 font-sans text-base leading-relaxed pl-2 border-l-2 border-gray-700">
                 <span className="text-gray-400 mr-1">&ldquo;</span>
                 {highlightLoreItems(segment.content)}
                 <span className="text-gray-400 ml-1">&rdquo;</span>
