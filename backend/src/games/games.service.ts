@@ -29,6 +29,7 @@ import {
   Skill,
 } from './interfaces/game-content.interface';
 import { CharacterAttributes } from '../common/types/game-engine.types';
+import { convertStatsToNarrativeTerms } from './utils/narrative-terms.util';
 import {
   InteractionType,
   InteractionAttributes,
@@ -74,6 +75,7 @@ export class GamesService {
         parsedContent.stats,
         gameSettings.characterBackstory,
         gameSettings.setting,
+        gameSettings.additionalSettings?.style,
       );
 
       // Create new game record
@@ -111,7 +113,17 @@ export class GamesService {
       newGame.currentChoices = parsedContent.choices;
       newGame.currentGenericChoices = parsedContent.genericChoices || [];
       newGame.chatHistoryForGemini = [];
-      newGame.knowledgeBase = [];
+      // Initialize knowledgeBase from lore fragments
+      newGame.knowledgeBase = parsedContent.lore.map((lore) => ({
+        id: lore.id || `lore_${lore.title.replace(/\s+/g, '_').toLowerCase()}`,
+        name: lore.title,
+        description: lore.content,
+        type: lore.type,
+        category: lore.category,
+        importance: lore.importance,
+        discovered: true,
+        discoveredAt: lore.timestamp,
+      }));
       newGame.currentObjective = null;
       newGame.npcsMet = [];
       newGame.itemsUsed = [];
@@ -214,6 +226,21 @@ export class GamesService {
       this.logger.log(
         `Retrieved character name: ${game.settings.characterName}`,
       );
+
+      // Sync knowledgeBase from loreFragments if needed
+      if (game.loreFragments && game.loreFragments.length > 0) {
+        game.knowledgeBase = game.loreFragments.map((lore) => ({
+          id:
+            lore.id || `lore_${lore.title.replace(/\s+/g, '_').toLowerCase()}`,
+          name: lore.title,
+          description: lore.content,
+          type: lore.type,
+          category: lore.category,
+          importance: lore.importance,
+          discovered: true,
+          discoveredAt: lore.timestamp,
+        }));
+      }
 
       return game;
     } catch (error) {
@@ -566,7 +593,12 @@ export class GamesService {
         });
       }
       // Ensure proper stats structure before updating
-      const properStats = this.ensureProperStatsStructure(parsedContent.stats);
+      const properStats = this.ensureProperStatsStructure(
+        parsedContent.stats,
+        undefined,
+        undefined,
+        game.settings?.additionalSettings?.style,
+      );
       game.characterStats = { ...game.characterStats, ...properStats };
 
       // Check for death condition
@@ -710,8 +742,33 @@ export class GamesService {
         }
       });
 
-      // Add new lore fragments
-      game.loreFragments = [...game.loreFragments, ...parsedContent.lore];
+      // Add new lore fragments (avoid duplicates)
+      const existingLoreNames = new Set(
+        game.loreFragments.map((lore) => lore.title),
+      );
+      const newLoreFragments = parsedContent.lore.filter(
+        (lore) => !existingLoreNames.has(lore.title),
+      );
+      game.loreFragments = [...game.loreFragments, ...newLoreFragments];
+
+      if (newLoreFragments.length > 0) {
+        this.logger.log(
+          `Added ${newLoreFragments.length} new lore fragments (${parsedContent.lore.length - newLoreFragments.length} duplicates filtered out)`,
+        );
+
+        // Update knowledgeBase from loreFragments
+        game.knowledgeBase = game.loreFragments.map((lore) => ({
+          id:
+            lore.id || `lore_${lore.title.replace(/\s+/g, '_').toLowerCase()}`,
+          name: lore.title,
+          description: lore.content,
+          type: lore.type,
+          category: lore.category,
+          importance: lore.importance,
+          discovered: true,
+          discoveredAt: lore.timestamp,
+        }));
+      }
 
       // Handle karma changes
       if (parsedContent.karmaChange && parsedContent.karmaChange !== 0) {
@@ -1172,6 +1229,7 @@ export class GamesService {
     stats: any,
     background?: string,
     world?: string,
+    narrativeStyle?: string,
   ): any {
     // If stats already has proper attributes structure, return as is
     if (stats.attributes && typeof stats.attributes === 'object') {
@@ -1206,11 +1264,16 @@ export class GamesService {
       Level: 'level',
       Experience: 'experience',
       'Kinh Nghiệm': 'experience',
+      'Cấp độ': 'level',
+      'Cảnh giới': 'level',
+      'Tu vi': 'experience',
       Health: 'health',
       Máu: 'health',
       'Sinh Lực': 'health',
       Mana: 'mana',
       'Năng Lượng': 'mana',
+      'Ma lực': 'mana',
+      'Linh lực': 'mana',
       Stamina: 'stamina',
       'Thể Lực': 'stamina',
     };
@@ -1257,15 +1320,20 @@ export class GamesService {
         extractedAttributes,
         currentLevel,
       );
+      const convertedStats = convertStatsToNarrativeTerms(
+        stats,
+        narrativeStyle,
+      );
       return {
-        ...stats,
+        ...convertedStats,
         attributes: leveledUpAttributes,
       };
     }
 
-    // Return stats with proper attributes structure
+    // Convert stats to narrative terms and return with proper attributes structure
+    const convertedStats = convertStatsToNarrativeTerms(stats, narrativeStyle);
     return {
-      ...stats,
+      ...convertedStats,
       attributes: extractedAttributes,
     };
   }
@@ -1321,6 +1389,20 @@ export class GamesService {
           const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
           if (jsonMatch) {
             const jsonStr = jsonMatch[1];
+
+            // Clean up JSON string to remove problematic characters
+            // jsonStr = jsonStr
+            //   .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+            //   .replace(/[\u0080-\u00FF]/g, '') // Remove extended ASCII
+            //   .replace(/[\u0100-\u017F]/g, '') // Remove Latin Extended-A
+            //   .replace(/[\u0180-\u024F]/g, '') // Remove Latin Extended-B
+            //   .replace(/[\u0400-\u04FF]/g, '') // Remove Cyrillic
+            //   .replace(/[\u0500-\u052F]/g, '') // Remove Cyrillic Supplement
+            //   .replace(/[\u2DE0-\u2DFF]/g, '') // Remove Cyrillic Extended-A
+            //   .replace(/[\uA640-\uA69F]/g, '') // Remove Cyrillic Extended-B
+            //   .replace(/[\u1C80-\u1C8F]/g, '') // Remove Cyrillic Extended-C
+            //   .replace(/[^\x00-\x7F]/g, ''); // Remove all non-ASCII characters as final fallback
+
             const parsedJson = JSON.parse(jsonStr);
             if (parsedJson.choices && Array.isArray(parsedJson.choices)) {
               choices = parsedJson.choices.map((choice: any) => ({
@@ -1487,6 +1569,19 @@ export class GamesService {
       storyText = storyText.replace(/\n\s*\n\s*\n/g, '\n\n');
 
       storyText = storyText.trim();
+
+      // Clean up special characters that might break parsing
+      // storyText = storyText
+      //   .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+      //   .replace(/[\u0400-\u04FF]/g, '') // Remove Cyrillic
+      //   .replace(/[\u0500-\u052F]/g, '') // Remove Cyrillic Supplement
+      //   .replace(/[\u2DE0-\u2DFF]/g, '') // Remove Cyrillic Extended-A
+      //   .replace(/[\uA640-\uA69F]/g, '') // Remove Cyrillic Extended-B
+      //   .replace(/[\u1C80-\u1C8F]/g, '') // Remove Cyrillic Extended-C
+      //   .replace(
+      //     /[^\u0000-\u007F\u00A0-\u00FF\u0100-\u017F\u0180-\u024F\u1E00-\u1EFF\u2000-\u206F\u2E00-\u2E7F\u3000-\u303F\u4E00-\u9FFF\uFF00-\uFFEF]/g,
+      //     '',
+      //   ); // Keep basic Latin, Vietnamese, Chinese, and some symbols
 
       // DEBUG: Log after JSON cleanup
       this.logger.debug('=== DEBUG AFTER JSON CLEANUP ===');

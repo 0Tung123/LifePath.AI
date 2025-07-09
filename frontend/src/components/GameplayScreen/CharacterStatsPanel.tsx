@@ -2,9 +2,15 @@
 
 import React from 'react';
 import { GameStats, CharacterAttributes } from '@/types/shared';
+import {
+  getNarrativeTerm,
+  formatStatName,
+  formatLevelDisplay,
+} from '@/utils/narrativeTerms';
 
 interface CharacterStatsPanelProps {
   characterStats: GameStats;
+  narrativeStyle?: string;
 }
 
 // Type guard function
@@ -29,6 +35,7 @@ function isCharacterAttributes(obj: unknown): obj is CharacterAttributes {
 
 const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
   characterStats,
+  narrativeStyle,
 }) => {
   // Helper function to convert complex stat values to displayable strings
   const formatStatValue = (value: unknown): string => {
@@ -48,7 +55,7 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
       'current' in value &&
       'xp' in value
     ) {
-      return `Level ${value.current} (${value.xp} XP)`;
+      return `${formatLevelDisplay(value.current as number, narrativeStyle)} (${value.xp} ${getNarrativeTerm('experience', narrativeStyle)})`;
     }
 
     // Handle CultivationInfo
@@ -66,7 +73,7 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
         cultivation?: unknown;
         skills?: unknown;
       };
-      return `Char: ${experiencePoints.character}${experiencePoints.cultivation ? `, Cult: ${experiencePoints.cultivation}` : ''}${experiencePoints.skills ? `, Skills: ${experiencePoints.skills}` : ''}`;
+      return `Nhân vật: ${experiencePoints.character}${experiencePoints.cultivation ? `, Tu luyện: ${experiencePoints.cultivation}` : ''}${experiencePoints.skills ? `, Kỹ năng: ${experiencePoints.skills}` : ''}`;
     }
 
     // Handle Record<string, SkillExperience>
@@ -84,7 +91,7 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
           return entries
             .map(
               ([skill, exp]: [string, { level: number; xp: number }]) =>
-                `${skill}: Lv${exp.level}`,
+                `${skill}: ${formatLevelDisplay(exp.level as number, narrativeStyle)}`,
             )
             .join(', ');
         }
@@ -170,18 +177,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
     ? characterStats.attributes
     : undefined;
 
-  // Helper function to get attribute name in Vietnamese
+  // Helper function to get attribute name based on narrative style
   const getAttributeName = (attr: string): string => {
-    const names: Record<string, string> = {
-      strength: 'Sức Mạnh',
-      agility: 'Nhanh Nhẹn',
-      intelligence: 'Trí Tuệ',
-      wisdom: 'Khôn Ngoan',
-      charisma: 'Quyến Rũ',
-      constitution: 'Thể Chất',
-      luck: 'May Mắn',
-    };
-    return names[attr] || attr;
+    return formatStatName(attr, narrativeStyle);
   };
 
   // Helper function to get attribute color based on value
@@ -218,7 +216,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
         {(healthInfo || attributes?.health) && (
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-300 text-sm">Sinh Lực:</span>
+              <span className="text-gray-300 text-sm">
+                {getNarrativeTerm('health', narrativeStyle)}:
+              </span>
               <span className="text-white text-sm">
                 {attributes?.health
                   ? `${attributes.health.current} / ${attributes.health.max}`
@@ -290,7 +290,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
               attributes.nextLevelExp !== undefined) && (
               <div className="mt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 text-sm">Kinh Nghiệm:</span>
+                  <span className="text-gray-300 text-sm">
+                    {getNarrativeTerm('experience', narrativeStyle)}:
+                  </span>
                   <span className="text-white text-sm">
                     {attributes.experience || 0} /{' '}
                     {attributes.nextLevelExp || 100}
@@ -312,7 +314,10 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
               <div className="mt-4 flex justify-center">
                 <div className="bg-amber-900/30 border border-amber-500/30 rounded-full px-4 py-2">
                   <span className="text-amber-400 font-semibold">
-                    Cấp độ {attributes.level}
+                    {formatLevelDisplay(
+                      attributes.level as number,
+                      narrativeStyle,
+                    )}
                   </span>
                 </div>
               </div>
@@ -322,7 +327,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
             {attributes.mana && (
               <div className="mt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 text-sm">Năng Lượng:</span>
+                  <span className="text-gray-300 text-sm">
+                    {getNarrativeTerm('mana', narrativeStyle)}:
+                  </span>
                   <span className="text-white text-sm">
                     {attributes.mana.current} / {attributes.mana.max}
                   </span>
@@ -362,7 +369,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
             {attributes.cultivation && (
               <div className="mt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 text-sm">Tu Vi:</span>
+                  <span className="text-gray-300 text-sm">
+                    {narrativeStyle === 'Chinese' ? 'Tu Vi' : 'Tu luyện'}:
+                  </span>
                   <span className="text-white text-sm">
                     {attributes.cultivation.level}
                   </span>
@@ -420,7 +429,9 @@ const CharacterStatsPanel: React.FC<CharacterStatsPanelProps> = ({
           (characterStats.KinhNghiem || characterStats.Experience) && (
             <div className="mt-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-300 text-sm">Kinh Nghiệm:</span>
+                <span className="text-gray-300 text-sm">
+                  {getNarrativeTerm('experience', narrativeStyle)}:
+                </span>
                 <span className="text-white text-sm">
                   {formatStatValue(
                     characterStats.KinhNghiem || characterStats.Experience,

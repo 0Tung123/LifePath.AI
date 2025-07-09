@@ -443,6 +443,7 @@ export default function GamePage({
           <div className="lg:col-span-1 space-y-6 overflow-y-auto">
             <CharacterStatsPanel
               characterStats={currentGame?.characterStats || {}}
+              narrativeStyle={currentGame?.settings?.additionalSettings?.style}
             />
             <KarmaReputationPanel
               karmaScore={currentGame?.karmaScore || 0}

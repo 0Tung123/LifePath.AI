@@ -20,7 +20,7 @@ export default function CreateGame() {
     characterName: '',
     characterBackstory: '',
     additionalSettings: {
-      style: 'Chinese',
+      style: 'Vietnamese',
       difficulty: 'medium',
       gameLength: 'medium',
       combatStyle: 'balanced',
@@ -222,6 +222,9 @@ export default function CreateGame() {
                       onChange={handleChange}
                       className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     >
+                      <option value="Vietnamese">
+                        Vietnamese Style (Truyền thống Việt Nam)
+                      </option>
                       <option value="Chinese">
                         Chinese Style (Tiên Hiệp, Huyền Huyễn)
                       </option>

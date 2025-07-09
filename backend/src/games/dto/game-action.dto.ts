@@ -13,16 +13,16 @@ import { ActionType } from '../../common/types/game-engine.types';
 
 export class GameActionDto {
   @ApiPropertyOptional({
-    description: 'The choice number (1-4) selected by the player',
+    description: 'The choice number (1-5) selected by the player',
     example: 2,
     type: Number,
     minimum: 1,
-    maximum: 4,
+    maximum: 5,
   })
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Max(4)
+  @Max(5)
   @ValidateIf((o) => !o.action && !o.think && !o.communication && !o.actionType)
   choiceNumber?: number;
 

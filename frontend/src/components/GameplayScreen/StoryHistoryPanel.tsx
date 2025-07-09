@@ -457,7 +457,19 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       parts.push(text.slice(lastIndex));
     }
 
-    return parts.length > 1 ? <>{parts}</> : <span>{text}</span>;
+    return parts.length > 1 ? (
+      <>
+        {parts.map((part, index) =>
+          typeof part === 'string' ? (
+            <span key={`text-${index}`}>{part}</span>
+          ) : (
+            React.cloneElement(part, { key: part.key || `element-${index}` })
+          ),
+        )}
+      </>
+    ) : (
+      <span>{text}</span>
+    );
   };
 
   // Function to highlight lore items and main character name in text
@@ -586,7 +598,21 @@ const StoryHistoryPanel: React.FC<StoryHistoryPanelProps> = ({
       return part;
     });
 
-    return <>{processedParts}</>;
+    return (
+      <>
+        {processedParts.map((part, index) =>
+          typeof part === 'string' ? (
+            <span key={`processed-text-${index}`}>{part}</span>
+          ) : React.isValidElement(part) ? (
+            React.cloneElement(part, {
+              key: part.key || `processed-element-${index}`,
+            })
+          ) : (
+            <span key={`processed-fragment-${index}`}>{part}</span>
+          ),
+        )}
+      </>
+    );
   };
 
   // Render content segments with styling
