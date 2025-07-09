@@ -406,4 +406,55 @@ export class GamesController {
     const userId = req.user.userId;
     return this.gamesService.resurrectCharacter(id, userId);
   }
+
+  @Post(':id/summary')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a summary of the current game story' })
+  @ApiParam({ name: 'id', description: 'Game ID', type: 'string' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['brief', 'detailed'],
+          default: 'brief',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Summary generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        summary: { type: 'string' },
+        highlights: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Game not found' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async getGameSummary(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { type?: 'brief' | 'detailed' },
+  ): Promise<{ summary: string; highlights?: string[] }> {
+    const userId = req.user.userId;
+    return this.gamesService.generateGameSummary(
+      id,
+      userId,
+      body.type || 'brief',
+    );
+  }
 }

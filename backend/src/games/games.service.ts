@@ -2657,6 +2657,84 @@ export class GamesService {
   }
 
   /**
+   * Generate a summary of the current game story
+   */
+  async generateGameSummary(
+    gameId: string,
+    userId: string,
+    type: 'brief' | 'detailed' = 'brief',
+  ): Promise<{ summary: string; highlights?: string[] }> {
+    const game = await this.gamesRepository.findOne({
+      where: { id: gameId, userId },
+    });
+
+    if (!game) {
+      throw new NotFoundException(`Game with ID ${gameId} not found`);
+    }
+
+    // Lấy nội dung câu chuyện từ lịch sử
+    const storyContent = game.storyHistory
+      .filter((entry) => entry.type === 'story' || entry.type === 'system')
+      .map((entry) => entry.content)
+      .join('\n\n');
+
+    // Tạo prompt cho AI để tóm tắt câu chuyện
+    const prompt = `
+# YÊU CẦU TÓM TẮT CÂU CHUYỆN
+
+## NỘI DUNG CÂU CHUYỆN
+${storyContent.substring(0, 8000)}  // Giới hạn độ dài để tránh vượt quá token limit
+
+## YÊU CẦU
+- Tạo một bản ${type === 'detailed' ? 'tóm tắt chi tiết' : 'tóm tắt ngắn gọn'} về câu chuyện trên
+- Tập trung vào các sự kiện chính và quyết định quan trọng
+- Viết ở ngôi thứ ba về nhân vật chính
+- Độ dài: ${type === 'detailed' ? '300-500' : '100-200'} từ
+- Định dạng: Văn xuôi liền mạch, không đánh số
+
+## ĐỊNH DẠNG ĐẦU RA
+\`\`\`json
+{
+  "summary": "Nội dung tóm tắt ở đây...",
+  "highlights": ["Điểm nhấn 1", "Điểm nhấn 2", "Điểm nhấn 3"]
+}
+\`\`\`
+`;
+
+    try {
+      // Gọi AI để tạo tóm tắt
+      const aiResponse = await this.geminiService.generateGameContent(prompt);
+
+      // Trích xuất JSON từ phản hồi
+      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        try {
+          const jsonStr = jsonMatch[1];
+          const parsedJson = JSON.parse(jsonStr);
+          return {
+            summary: parsedJson.summary || 'Không thể tạo tóm tắt.',
+            highlights: parsedJson.highlights || [],
+          };
+        } catch (e) {
+          this.logger.error('Error parsing JSON summary:', e);
+        }
+      }
+
+      // Fallback nếu không tìm thấy JSON
+      return {
+        summary: aiResponse
+          .substring(0, 1000)
+          .replace(/```json|```/g, '')
+          .trim(),
+        highlights: [],
+      };
+    } catch (error) {
+      this.logger.error('Error generating game summary:', error);
+      throw new InternalServerErrorException('Failed to generate game summary');
+    }
+  }
+
+  /**
    * Resurrect character with penalties
    */
   async resurrectCharacter(gameId: string, userId: string): Promise<Game> {
