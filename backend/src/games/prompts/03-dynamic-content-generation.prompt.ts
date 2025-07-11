@@ -312,7 +312,7 @@ Tạo ra ${contentCount} ${targetCategory} với format sau:
       "powerLevel": 75,
       "createdBy": {
         "type": "ai",
-        "aiModel": "gemini-2.0-flash",
+        "aiModel": "gemini-2.5-pro",
         "context": "Generated for current game context"
       },
       "isTemplate": false,

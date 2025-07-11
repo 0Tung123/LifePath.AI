@@ -39,7 +39,7 @@ export class TagCreatorDto implements TagCreator {
   id?: string;
 
   @ApiProperty({
-    example: 'gemini-2.0-flash',
+    example: 'gemini-2.5-pro',
     description: 'AI model if AI created',
     required: false,
   })

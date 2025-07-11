@@ -90,7 +90,7 @@ export class DynamicType implements IDynamicType {
   powerLevel!: number;
 
   @ApiProperty({
-    example: { type: 'ai', aiModel: 'gemini-2.0-flash' },
+    example: { type: 'ai', aiModel: 'gemini-2.5-pro' },
     description: 'Creator info',
   })
   @Column({ type: 'jsonb' })

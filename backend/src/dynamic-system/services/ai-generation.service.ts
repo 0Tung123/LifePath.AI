@@ -91,7 +91,7 @@ export class AIGenerationService {
       }
 
       const model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-pro',
       });
 
       let prompt: string;
@@ -348,7 +348,7 @@ OUTPUT FORMAT (JSON):
         })) || [],
       createdBy: {
         type: 'ai',
-        aiModel: 'gemini-2.0-flash',
+        aiModel: 'gemini-2.5-pro',
         context: 'AI generated content',
       },
       isActive: true,
@@ -366,7 +366,7 @@ OUTPUT FORMAT (JSON):
       powerLevel: Math.max(1, Math.min(100, data.powerLevel || 50)),
       createdBy: {
         type: 'ai',
-        aiModel: 'gemini-2.0-flash',
+        aiModel: 'gemini-2.5-pro',
         context: 'AI generated content',
       },
       isTemplate: false,

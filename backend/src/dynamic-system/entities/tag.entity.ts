@@ -75,7 +75,7 @@ export class Tag implements ITag {
   synergies?: TagSynergy[];
 
   @ApiProperty({
-    example: { type: 'ai', aiModel: 'gemini-2.0-flash' },
+    example: { type: 'ai', aiModel: 'gemini-2.5-pro' },
     description: 'Tag creator info',
   })
   @Column({ type: 'jsonb' })

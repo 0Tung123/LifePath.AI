@@ -400,7 +400,7 @@ export class DynamicSystemService {
           // Make sure createdBy has the right structure
           const creator: TagCreator = {
             type: aiType.createdBy.type || 'ai',
-            aiModel: aiType.createdBy.aiModel || 'gemini-2.0-flash',
+            aiModel: aiType.createdBy.aiModel || 'gemini-2.5-pro',
             context: aiType.createdBy.context || '',
           };
           await this.ensureTagsExist(aiType.tags, creator);
@@ -431,7 +431,7 @@ export class DynamicSystemService {
           }
 
           const metadata: GenerationMetadata = {
-            aiModel: 'gemini-2.0-flash',
+            aiModel: 'gemini-2.5-pro',
             processingTime: aiResponse.metadata.processingTime,
             confidence: aiResponse.metadata.confidence,
             version: '1.0',
@@ -708,7 +708,7 @@ export class DynamicSystemService {
     // Create a properly typed dynamic type with explicit handling of optional fields
     const creator: TagCreator = {
       type: 'ai' as const,
-      aiModel: 'gemini-2.0-flash',
+      aiModel: 'gemini-2.5-pro',
       // Initialize context as empty string to avoid undefined
       context: generateDto.storyContext || '',
     };
